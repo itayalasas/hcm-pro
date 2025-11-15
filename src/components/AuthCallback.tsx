@@ -15,6 +15,29 @@ export default function AuthCallback({ onSuccess }: AuthCallbackProps) {
     handleCallback();
   }, []);
 
+  const getErrorMessage = (err: any): string => {
+    const errorMessage = err?.message || '';
+    const errorText = err?.response?.text || '';
+
+    if (errorMessage.includes('CODE_ALREADY_USED') || errorText.includes('CODE_ALREADY_USED')) {
+      return 'Su sesión ha expirado. Por favor, autentíquese nuevamente.';
+    }
+
+    if (errorMessage.includes('401') || errorText.includes('401')) {
+      return 'Su sesión ha expirado o las credenciales no son válidas. Por favor, inicie sesión nuevamente.';
+    }
+
+    if (errorMessage.includes('No authorization code')) {
+      return 'No se recibió el código de autorización. Por favor, intente iniciar sesión nuevamente.';
+    }
+
+    if (errorMessage.includes('failed') || errorMessage.includes('Failed')) {
+      return 'Error al procesar la autenticación. Por favor, intente nuevamente.';
+    }
+
+    return 'Ocurrió un error durante la autenticación. Por favor, intente nuevamente.';
+  };
+
   const handleCallback = async () => {
     try {
       const { code } = parseCallbackUrl(window.location.href);
@@ -99,7 +122,7 @@ export default function AuthCallback({ onSuccess }: AuthCallbackProps) {
 
     } catch (err: any) {
       console.error('Auth callback error:', err);
-      setError(err.message || 'Authentication failed');
+      setError(getErrorMessage(err));
       setStatus('error');
     }
   };

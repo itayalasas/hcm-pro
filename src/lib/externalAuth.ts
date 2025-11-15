@@ -54,26 +54,49 @@ export async function exchangeCodeForToken(code: string): Promise<ExternalAuthRe
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-  const response = await fetch(AUTH_EXCHANGE_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${supabaseAnonKey}`,
-      'apikey': supabaseAnonKey,
-    },
-    body: JSON.stringify({
-      code: code,
-      application_id: AUTH_APP_ID,
-    }),
-  });
+  try {
+    const response = await fetch(AUTH_EXCHANGE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+      },
+      body: JSON.stringify({
+        code: code,
+        application_id: AUTH_APP_ID,
+      }),
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Exchange error:', errorText);
-    throw new Error(`Failed to exchange code for token: ${response.status} ${errorText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Exchange error:', errorText);
+
+      let errorMessage = `Failed to exchange code for token: ${response.status}`;
+
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error && errorJson.error.includes('CODE_ALREADY_USED')) {
+          errorMessage = 'CODE_ALREADY_USED';
+        } else if (errorJson.message) {
+          errorMessage = errorJson.message;
+        }
+      } catch {
+        if (errorText.includes('CODE_ALREADY_USED')) {
+          errorMessage = 'CODE_ALREADY_USED';
+        }
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  } catch (error: any) {
+    if (error.message) {
+      throw error;
+    }
+    throw new Error('Network error during authentication');
   }
-
-  return response.json();
 }
 
 export function parseCallbackUrl(url: string): { code: string | null; state: string | null } {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Building2, Check, Loader2, Shield } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getStoredAuthData } from '../lib/externalAuth';
 import Button from './ui/Button';
 
 interface Company {
@@ -32,35 +33,21 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
     loadUserCompanies();
   }, []);
 
-  const checkSystemAdmin = async () => {
+  const checkSystemAdmin = () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Obtener datos del usuario autenticado desde el sistema externo
+      const authData = getStoredAuthData();
 
-      if (!user) return false;
+      if (!authData.user) return false;
 
-      // Verificar si tiene rol de administrador en user_metadata o app_metadata
-      const userMetadata = user.user_metadata || {};
-      const appMetadata = user.app_metadata || {};
+      // Verificar si el rol es "administrador" (tal como viene de la API externa)
+      const isAdmin = authData.user.role === 'administrador' ||
+                      authData.user.role === 'administrator' ||
+                      authData.user.role === 'admin';
 
-      // El usuario es admin del sistema si:
-      // 1. Tiene system_role = 'administrator' en metadata
-      // 2. O tiene role = 'admin' en al menos una empresa
-      const isSystemAdminMeta = userMetadata.system_role === 'administrator' ||
-                                appMetadata.system_role === 'administrator';
+      console.log('[CompanySelector] User role:', authData.user.role, '| Is Admin:', isAdmin);
 
-      if (isSystemAdminMeta) {
-        return true;
-      }
-
-      // Verificar si es admin en alguna empresa
-      const { data: userCompanies } = await supabase
-        .from('user_companies')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .limit(1);
-
-      return (userCompanies && userCompanies.length > 0);
+      return isAdmin;
     } catch (error) {
       console.error('Error checking admin status:', error);
       return false;
@@ -70,7 +57,7 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
   const loadUserCompanies = async () => {
     try {
       // Verificar si es administrador del sistema
-      const isAdmin = await checkSystemAdmin();
+      const isAdmin = checkSystemAdmin();
       setIsSystemAdmin(isAdmin);
 
       if (isAdmin) {
@@ -152,23 +139,30 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
 
       // Si es admin del sistema y la empresa no está en user_companies, crear la relación
       if (isSystemAdmin) {
-        const { data: existing } = await supabase
-          .from('user_companies')
-          .select('id')
-          .eq('company_id', selectedCompany)
-          .maybeSingle();
+        const authData = getStoredAuthData();
 
-        if (!existing) {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            await supabase
-              .from('user_companies')
-              .insert({
-                user_id: user.id,
-                company_id: selectedCompany,
-                role: 'admin',
-                active: true
-              });
+        if (authData.user) {
+          // Verificar si el usuario ya tiene relación con esta empresa
+          const { data: existing } = await supabase
+            .from('user_companies')
+            .select('id')
+            .eq('company_id', selectedCompany)
+            .maybeSingle();
+
+          if (!existing) {
+            // Obtener el user_id de Supabase basado en el email
+            const { data: supabaseUser } = await supabase.auth.getUser();
+
+            if (supabaseUser?.user) {
+              await supabase
+                .from('user_companies')
+                .insert({
+                  user_id: supabaseUser.user.id,
+                  company_id: selectedCompany,
+                  role: 'admin',
+                  active: true
+                });
+            }
           }
         }
       }

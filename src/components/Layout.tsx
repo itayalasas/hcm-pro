@@ -1,8 +1,8 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useRef, useEffect } from 'react';
 import {
   LayoutDashboard, Users, Building2, Calendar, TrendingUp,
   FileText, DollarSign, Settings, LogOut, Menu, X, ChevronDown,
-  Briefcase, Award, BookOpen, FolderTree
+  Briefcase, Award, BookOpen, FolderTree, User
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -11,98 +11,111 @@ interface LayoutProps {
 }
 
 const navigation = [
-  { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { name: 'Tablero', icon: LayoutDashboard, path: '/' },
   {
-    name: 'Organization',
+    name: 'Organización',
     icon: Building2,
     path: '/organization',
     children: [
-      { name: 'Companies', path: '/organization/companies' },
-      { name: 'Business Units', path: '/organization/units' },
-      { name: 'Positions', path: '/organization/positions' },
-      { name: 'Org Chart', path: '/organization/chart' },
+      { name: 'Empresas', path: '/organization/companies' },
+      { name: 'Unidades de Negocio', path: '/organization/units' },
+      { name: 'Puestos', path: '/organization/positions' },
+      { name: 'Organigrama', path: '/organization/chart' },
     ]
   },
   {
-    name: 'Employees',
+    name: 'Empleados',
     icon: Users,
     path: '/employees',
     children: [
-      { name: 'All Employees', path: '/employees' },
-      { name: 'Add Employee', path: '/employees/new' },
-      { name: 'Reports', path: '/employees/reports' },
+      { name: 'Todos los Empleados', path: '/employees' },
+      { name: 'Agregar Empleado', path: '/employees/new' },
+      { name: 'Reportes', path: '/employees/reports' },
     ]
   },
   {
-    name: 'Time & Attendance',
+    name: 'Tiempo y Asistencia',
     icon: Calendar,
     path: '/time',
     children: [
-      { name: 'Leave Requests', path: '/time/requests' },
-      { name: 'Leave Balances', path: '/time/balances' },
-      { name: 'Leave Types', path: '/time/types' },
-      { name: 'Team Calendar', path: '/time/calendar' },
+      { name: 'Solicitudes de Ausencia', path: '/time/requests' },
+      { name: 'Saldos de Ausencia', path: '/time/balances' },
+      { name: 'Tipos de Ausencia', path: '/time/types' },
+      { name: 'Calendario del Equipo', path: '/time/calendar' },
     ]
   },
   {
-    name: 'Performance',
+    name: 'Desempeño',
     icon: TrendingUp,
     path: '/performance',
     children: [
-      { name: 'Evaluations', path: '/performance/evaluations' },
-      { name: 'Evaluation Cycles', path: '/performance/cycles' },
-      { name: 'Development Plans', path: '/performance/development' },
-      { name: '9-Box Matrix', path: '/performance/matrix' },
+      { name: 'Evaluaciones', path: '/performance/evaluations' },
+      { name: 'Ciclos de Evaluación', path: '/performance/cycles' },
+      { name: 'Planes de Desarrollo', path: '/performance/development' },
+      { name: 'Matriz 9-Box', path: '/performance/matrix' },
     ]
   },
   {
-    name: 'Payroll',
+    name: 'Nómina',
     icon: DollarSign,
     path: '/payroll',
     children: [
-      { name: 'Payroll Periods', path: '/payroll/periods' },
-      { name: 'Concepts', path: '/payroll/concepts' },
-      { name: 'Formulas', path: '/payroll/formulas' },
-      { name: 'Reports', path: '/payroll/reports' },
+      { name: 'Períodos de Nómina', path: '/payroll/periods' },
+      { name: 'Conceptos', path: '/payroll/concepts' },
+      { name: 'Fórmulas', path: '/payroll/formulas' },
+      { name: 'Reportes', path: '/payroll/reports' },
     ]
   },
   {
-    name: 'Learning',
+    name: 'Aprendizaje',
     icon: BookOpen,
     path: '/learning',
     children: [
-      { name: 'Courses', path: '/learning/courses' },
-      { name: 'Certifications', path: '/learning/certifications' },
-      { name: 'Skills Matrix', path: '/learning/skills' },
+      { name: 'Cursos', path: '/learning/courses' },
+      { name: 'Certificaciones', path: '/learning/certifications' },
+      { name: 'Matriz de Habilidades', path: '/learning/skills' },
     ]
   },
   {
-    name: 'Documentation',
+    name: 'Documentación',
     icon: FileText,
     path: '/documents',
     children: [
-      { name: 'Policies', path: '/documents/policies' },
-      { name: 'Procedures', path: '/documents/procedures' },
-      { name: 'Forms', path: '/documents/forms' },
+      { name: 'Políticas', path: '/documents/policies' },
+      { name: 'Procedimientos', path: '/documents/procedures' },
+      { name: 'Formularios', path: '/documents/forms' },
     ]
   },
   {
-    name: 'Configuration',
+    name: 'Configuración',
     icon: Settings,
     path: '/config',
     children: [
-      { name: 'Master Data', path: '/config/master-data' },
-      { name: 'Workflows', path: '/config/workflows' },
-      { name: 'Custom Fields', path: '/config/custom-fields' },
-      { name: 'System Parameters', path: '/config/parameters' },
+      { name: 'Datos Maestros', path: '/config/master-data' },
+      { name: 'Flujos de Trabajo', path: '/config/workflows' },
+      { name: 'Campos Personalizados', path: '/config/custom-fields' },
+      { name: 'Parámetros del Sistema', path: '/config/parameters' },
     ]
   },
 ];
 
 export default function Layout({ children }: LayoutProps) {
-  const { employee, signOut } = useAuth();
+  const { user, employee, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [expandedItems, setExpandedItems] = useState<string[]>(['Organization']);
+  const [expandedItems, setExpandedItems] = useState<string[]>(['Organización']);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const toggleExpand = (name: string) => {
     setExpandedItems(prev =>
@@ -165,25 +178,58 @@ export default function Layout({ children }: LayoutProps) {
             ))}
           </nav>
 
-          <div className="p-3 border-t border-slate-200">
-            <div className="flex items-center gap-3 px-3 py-2 mb-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-slate-400 to-slate-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                {employee?.first_name?.[0]}{employee?.last_name?.[0]}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 truncate">
-                  {employee?.first_name} {employee?.last_name}
-                </p>
-                <p className="text-xs text-slate-500 truncate">{employee?.email}</p>
-              </div>
+          <div className="p-3 border-t border-slate-200" ref={userMenuRef}>
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-slate-400 to-slate-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                  {user?.name?.[0] || employee?.first_name?.[0]}{employee?.last_name?.[0]}
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-sm font-medium text-slate-900 truncate">
+                    {user?.name || `${employee?.first_name} ${employee?.last_name}`}
+                  </p>
+                  <p className="text-xs text-slate-500 truncate">{employee?.email || user?.email}</p>
+                </div>
+                <ChevronDown className="w-4 h-4 text-slate-400" />
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-lg shadow-lg border border-slate-200 py-1">
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    <span>Mi Perfil</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span>Configuración</span>
+                  </button>
+                  <div className="border-t border-slate-200 my-1"></div>
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      signOut();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Cerrar Sesión</span>
+                  </button>
+                </div>
+              )}
             </div>
-            <button
-              onClick={() => signOut()}
-              className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-            >
-              <LogOut className="w-5 h-5" />
-              <span>Sign Out</span>
-            </button>
           </div>
         </div>
       </aside>
@@ -199,7 +245,7 @@ export default function Layout({ children }: LayoutProps) {
 
           <div className="flex items-center gap-4">
             <span className="text-sm text-slate-600">
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </span>
           </div>
         </header>

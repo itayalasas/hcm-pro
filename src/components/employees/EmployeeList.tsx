@@ -14,7 +14,6 @@ export default function EmployeeList() {
 
   const loadEmployees = async () => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('employees')
         .select('*')
@@ -47,24 +46,17 @@ export default function EmployeeList() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Employees</h1>
-          <p className="text-slate-600">{filteredEmployees.length} total employees</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Empleados</h1>
+          <p className="text-slate-600">{filteredEmployees.length} empleados en total</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
           <Plus className="w-5 h-5" />
-          Add Employee
+          Agregar Empleado
         </button>
       </div>
 
@@ -75,7 +67,7 @@ export default function EmployeeList() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search employees..."
+                placeholder="Buscar empleados..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -86,19 +78,19 @@ export default function EmployeeList() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="terminated">Terminated</option>
-              <option value="suspended">Suspended</option>
+              <option value="all">Todos los Estados</option>
+              <option value="active">Activo</option>
+              <option value="inactive">Inactivo</option>
+              <option value="terminated">Terminado</option>
+              <option value="suspended">Suspendido</option>
             </select>
             <button className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
               <Filter className="w-5 h-5" />
-              Filters
+              Filtros
             </button>
             <button className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
               <Download className="w-5 h-5" />
-              Export
+              Exportar
             </button>
           </div>
         </div>
@@ -108,25 +100,25 @@ export default function EmployeeList() {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Employee
+                  Empleado
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Contact
+                  Contacto
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Position
+                  Puesto
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Hire Date
+                  Fecha de Contratación
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Status
+                  Estado
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Actions
+                  Acciones
                 </th>
               </tr>
             </thead>
@@ -144,7 +136,7 @@ export default function EmployeeList() {
                         </p>
                         <p className="text-sm text-slate-500 flex items-center gap-1">
                           <MapPin className="w-3 h-3" />
-                          {employee.work_location || 'Not specified'}
+                          {employee.work_location || 'No especificado'}
                         </p>
                       </div>
                     </div>
@@ -164,9 +156,9 @@ export default function EmployeeList() {
                     <div className="text-sm">
                       <p className="text-slate-900 flex items-center gap-1">
                         <Briefcase className="w-3 h-3" />
-                        Position
+                        Puesto
                       </p>
-                      <p className="text-slate-500 text-xs">Department</p>
+                      <p className="text-slate-500 text-xs">Departamento</p>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
@@ -178,8 +170,8 @@ export default function EmployeeList() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button className="text-blue-600 hover:text-blue-900 mr-3">View</button>
-                    <button className="text-slate-600 hover:text-slate-900">Edit</button>
+                    <button className="text-blue-600 hover:text-blue-900 mr-3">Ver</button>
+                    <button className="text-slate-600 hover:text-slate-900">Editar</button>
                   </td>
                 </tr>
               ))}
@@ -187,9 +179,9 @@ export default function EmployeeList() {
           </table>
         </div>
 
-        {filteredEmployees.length === 0 && (
+        {!loading && filteredEmployees.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-slate-500">No employees found</p>
+            <p className="text-slate-500">No se encontraron empleados</p>
           </div>
         )}
       </div>

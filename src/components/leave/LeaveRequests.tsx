@@ -17,7 +17,6 @@ export default function LeaveRequests() {
 
   const loadLeaveRequests = async () => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('leave_requests')
         .select('*')
@@ -53,34 +52,36 @@ export default function LeaveRequests() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'approved': return 'Aprobada';
+      case 'rejected': return 'Rechazada';
+      case 'pending': return 'Pendiente';
+      case 'cancelled': return 'Cancelada';
+      default: return status;
+    }
+  };
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Leave Requests</h1>
-          <p className="text-slate-600">Manage your time off requests</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Solicitudes de Ausencia</h1>
+          <p className="text-slate-600">Gestiona tus solicitudes de tiempo libre</p>
         </div>
         <button
           onClick={() => setShowNewRequest(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          New Request
+          Nueva Solicitud
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="bg-white rounded-xl border border-slate-200 p-6">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-slate-600">Pending</h3>
+            <h3 className="text-sm font-medium text-slate-600">Pendientes</h3>
             <Clock className="w-5 h-5 text-amber-600" />
           </div>
           <p className="text-3xl font-bold text-slate-900">
@@ -90,7 +91,7 @@ export default function LeaveRequests() {
 
         <div className="bg-white rounded-xl border border-slate-200 p-6">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-slate-600">Approved</h3>
+            <h3 className="text-sm font-medium text-slate-600">Aprobadas</h3>
             <CheckCircle className="w-5 h-5 text-green-600" />
           </div>
           <p className="text-3xl font-bold text-slate-900">
@@ -100,7 +101,7 @@ export default function LeaveRequests() {
 
         <div className="bg-white rounded-xl border border-slate-200 p-6">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-slate-600">Rejected</h3>
+            <h3 className="text-sm font-medium text-slate-600">Rechazadas</h3>
             <XCircle className="w-5 h-5 text-red-600" />
           </div>
           <p className="text-3xl font-bold text-slate-900">
@@ -111,7 +112,7 @@ export default function LeaveRequests() {
 
       <div className="bg-white rounded-xl border border-slate-200">
         <div className="p-6 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900">All Requests</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Todas las Solicitudes</h2>
         </div>
 
         <div className="divide-y divide-slate-200">
@@ -122,33 +123,33 @@ export default function LeaveRequests() {
                   <div className="flex items-center gap-3 mb-2">
                     {getStatusIcon(request.status)}
                     <h3 className="text-lg font-medium text-slate-900">
-                      {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}
+                      {new Date(request.start_date).toLocaleDateString('es-ES')} - {new Date(request.end_date).toLocaleDateString('es-ES')}
                     </h3>
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
-                      {request.status}
+                      {getStatusLabel(request.status)}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
-                      <p className="text-sm text-slate-500 mb-1">Duration</p>
-                      <p className="text-sm font-medium text-slate-900">{request.total_days} days</p>
+                      <p className="text-sm text-slate-500 mb-1">Duración</p>
+                      <p className="text-sm font-medium text-slate-900">{request.total_days} días</p>
                     </div>
                     <div>
-                      <p className="text-sm text-slate-500 mb-1">Requested on</p>
+                      <p className="text-sm text-slate-500 mb-1">Solicitado el</p>
                       <p className="text-sm font-medium text-slate-900">
-                        {new Date(request.created_at).toLocaleDateString()}
+                        {new Date(request.created_at).toLocaleDateString('es-ES')}
                       </p>
                     </div>
                   </div>
                   {request.reason && (
                     <div className="mb-3">
-                      <p className="text-sm text-slate-500 mb-1">Reason</p>
+                      <p className="text-sm text-slate-500 mb-1">Motivo</p>
                       <p className="text-sm text-slate-700">{request.reason}</p>
                     </div>
                   )}
                   {request.approval_comments && (
                     <div className="p-3 bg-slate-50 rounded-lg">
-                      <p className="text-sm text-slate-500 mb-1">Manager Comments</p>
+                      <p className="text-sm text-slate-500 mb-1">Comentarios del Manager</p>
                       <p className="text-sm text-slate-700">{request.approval_comments}</p>
                     </div>
                   )}
@@ -156,7 +157,7 @@ export default function LeaveRequests() {
                 {request.status === 'pending' && (
                   <div className="flex gap-2">
                     <button className="px-3 py-1 text-sm text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors">
-                      Cancel
+                      Cancelar
                     </button>
                   </div>
                 )}
@@ -165,15 +166,15 @@ export default function LeaveRequests() {
           ))}
         </div>
 
-        {requests.length === 0 && (
+        {!loading && requests.length === 0 && (
           <div className="text-center py-12">
             <Calendar className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-            <p className="text-slate-500 mb-4">No leave requests found</p>
+            <p className="text-slate-500 mb-4">No se encontraron solicitudes de ausencia</p>
             <button
               onClick={() => setShowNewRequest(true)}
               className="text-blue-600 hover:text-blue-700 font-medium"
             >
-              Create your first request
+              Crear tu primera solicitud
             </button>
           </div>
         )}
@@ -182,22 +183,22 @@ export default function LeaveRequests() {
       {showNewRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl max-w-lg w-full p-6">
-            <h2 className="text-xl font-bold text-slate-900 mb-4">New Leave Request</h2>
+            <h2 className="text-xl font-bold text-slate-900 mb-4">Nueva Solicitud de Ausencia</h2>
             <form className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Leave Type
+                  Tipo de Ausencia
                 </label>
                 <select className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option>Vacation</option>
-                  <option>Sick Leave</option>
+                  <option>Vacaciones</option>
+                  <option>Enfermedad</option>
                   <option>Personal</option>
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Start Date
+                    Fecha de Inicio
                   </label>
                   <input
                     type="date"
@@ -206,7 +207,7 @@ export default function LeaveRequests() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    End Date
+                    Fecha de Fin
                   </label>
                   <input
                     type="date"
@@ -216,12 +217,12 @@ export default function LeaveRequests() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Reason (optional)
+                  Motivo (opcional)
                 </label>
                 <textarea
                   rows={3}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Provide a reason for your request..."
+                  placeholder="Proporciona un motivo para tu solicitud..."
                 ></textarea>
               </div>
               <div className="flex gap-3">
@@ -230,13 +231,13 @@ export default function LeaveRequests() {
                   onClick={() => setShowNewRequest(false)}
                   className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
                 >
-                  Cancel
+                  Cancelar
                 </button>
                 <button
                   type="submit"
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Submit Request
+                  Enviar Solicitud
                 </button>
               </div>
             </form>

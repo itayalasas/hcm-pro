@@ -88,42 +88,42 @@ export default function Dashboard() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Dashboard</h1>
-        <p className="text-slate-600">Welcome back! Here's what's happening with your organization.</p>
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">Tablero</h1>
+        <p className="text-slate-600">¡Bienvenido! Esto es lo que está sucediendo con tu organización.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
-          title="Total Employees"
+          title="Total Empleados"
           value={stats.totalEmployees}
-          change={`${stats.activeEmployees} active`}
+          change={`${stats.activeEmployees} activos`}
           changeType="neutral"
           icon={Users}
           iconBg="bg-blue-50"
           iconColor="text-blue-600"
         />
         <StatCard
-          title="Pending Leave Requests"
+          title="Solicitudes de Ausencia Pendientes"
           value={stats.pendingLeaves}
-          change="Requires attention"
+          change="Requiere atención"
           changeType="neutral"
           icon={Calendar}
           iconBg="bg-amber-50"
           iconColor="text-amber-600"
         />
         <StatCard
-          title="New Hires (This Month)"
+          title="Nuevas Contrataciones (Este Mes)"
           value={stats.newHires}
-          change="+12% vs last month"
+          change="+12% vs mes anterior"
           changeType="positive"
           icon={UserPlus}
           iconBg="bg-green-50"
           iconColor="text-green-600"
         />
         <StatCard
-          title="Pending Evaluations"
+          title="Evaluaciones Pendientes"
           value={stats.pendingEvaluations}
-          change="2 cycles active"
+          change="2 ciclos activos"
           changeType="neutral"
           icon={Award}
           iconBg="bg-purple-50"
@@ -133,33 +133,33 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h2>
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Acciones Rápidas</h2>
           <div className="grid grid-cols-2 gap-4">
             <button className="p-4 border-2 border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left group">
               <UserPlus className="w-8 h-8 text-slate-400 group-hover:text-blue-600 mb-2" />
-              <h3 className="font-medium text-slate-900 mb-1">Add Employee</h3>
-              <p className="text-sm text-slate-500">Onboard a new team member</p>
+              <h3 className="font-medium text-slate-900 mb-1">Agregar Empleado</h3>
+              <p className="text-sm text-slate-500">Incorporar un nuevo miembro al equipo</p>
             </button>
             <button className="p-4 border-2 border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left group">
               <Calendar className="w-8 h-8 text-slate-400 group-hover:text-blue-600 mb-2" />
-              <h3 className="font-medium text-slate-900 mb-1">Approve Leaves</h3>
-              <p className="text-sm text-slate-500">{stats.pendingLeaves} requests pending</p>
+              <h3 className="font-medium text-slate-900 mb-1">Aprobar Ausencias</h3>
+              <p className="text-sm text-slate-500">{stats.pendingLeaves} solicitudes pendientes</p>
             </button>
             <button className="p-4 border-2 border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left group">
               <DollarSign className="w-8 h-8 text-slate-400 group-hover:text-blue-600 mb-2" />
-              <h3 className="font-medium text-slate-900 mb-1">Process Payroll</h3>
-              <p className="text-sm text-slate-500">Run monthly payroll</p>
+              <h3 className="font-medium text-slate-900 mb-1">Procesar Nómina</h3>
+              <p className="text-sm text-slate-500">Ejecutar nómina mensual</p>
             </button>
             <button className="p-4 border-2 border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left group">
               <TrendingUp className="w-8 h-8 text-slate-400 group-hover:text-blue-600 mb-2" />
-              <h3 className="font-medium text-slate-900 mb-1">Evaluations</h3>
-              <p className="text-sm text-slate-500">Manage performance reviews</p>
+              <h3 className="font-medium text-slate-900 mb-1">Evaluaciones</h3>
+              <p className="text-sm text-slate-500">Gestionar revisiones de desempeño</p>
             </button>
           </div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Company Overview</h2>
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Resumen de la Empresa</h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
               <div className="flex items-center gap-3">
@@ -167,8 +167,8 @@ export default function Dashboard() {
                   <Users className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-900">Headcount</p>
-                  <p className="text-xs text-slate-500">Active employees</p>
+                  <p className="text-sm font-medium text-slate-900">Plantilla</p>
+                  <p className="text-xs text-slate-500">Empleados activos</p>
                 </div>
               </div>
               <p className="text-lg font-bold text-slate-900">{stats.activeEmployees}</p>
@@ -180,8 +180,8 @@ export default function Dashboard() {
                   <TrendingUp className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-900">Retention</p>
-                  <p className="text-xs text-slate-500">Past 12 months</p>
+                  <p className="text-sm font-medium text-slate-900">Retención</p>
+                  <p className="text-xs text-slate-500">Últimos 12 meses</p>
                 </div>
               </div>
               <p className="text-lg font-bold text-slate-900">94%</p>
@@ -193,11 +193,11 @@ export default function Dashboard() {
                   <Clock className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-900">Avg Tenure</p>
-                  <p className="text-xs text-slate-500">Company average</p>
+                  <p className="text-sm font-medium text-slate-900">Permanencia Promedio</p>
+                  <p className="text-xs text-slate-500">Promedio de la empresa</p>
                 </div>
               </div>
-              <p className="text-lg font-bold text-slate-900">3.2y</p>
+              <p className="text-lg font-bold text-slate-900">3.2 años</p>
             </div>
           </div>
         </div>
@@ -205,13 +205,13 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Recent Activity</h2>
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Actividad Reciente</h2>
           <div className="space-y-3">
             {[
-              { type: 'leave', text: 'John Smith requested 5 days vacation', time: '2 hours ago', color: 'blue' },
-              { type: 'hire', text: 'New employee Maria Garcia added', time: '5 hours ago', color: 'green' },
-              { type: 'eval', text: 'Q4 Performance reviews started', time: '1 day ago', color: 'purple' },
-              { type: 'doc', text: 'Updated employee handbook published', time: '2 days ago', color: 'amber' },
+              { type: 'leave', text: 'Juan Pérez solicitó 5 días de vacaciones', time: 'Hace 2 horas', color: 'blue' },
+              { type: 'hire', text: 'Nuevo empleado María García agregada', time: 'Hace 5 horas', color: 'green' },
+              { type: 'eval', text: 'Revisiones de desempeño Q4 iniciadas', time: 'Hace 1 día', color: 'purple' },
+              { type: 'doc', text: 'Manual del empleado actualizado publicado', time: 'Hace 2 días', color: 'amber' },
             ].map((activity, idx) => (
               <div key={idx} className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors">
                 <div className={`w-2 h-2 rounded-full mt-2 bg-${activity.color}-500`}></div>
@@ -225,13 +225,13 @@ export default function Dashboard() {
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Upcoming Events</h2>
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Próximos Eventos</h2>
           <div className="space-y-3">
             {[
-              { date: 'Nov 20', title: 'Payroll Processing Deadline', type: 'deadline' },
-              { date: 'Nov 22', title: 'Company Town Hall Meeting', type: 'meeting' },
-              { date: 'Nov 25', title: 'Performance Review Cycle Ends', type: 'deadline' },
-              { date: 'Nov 30', title: 'Monthly HR Reports Due', type: 'report' },
+              { date: 'Nov 20', title: 'Fecha límite de procesamiento de nómina', type: 'fecha límite' },
+              { date: 'Nov 22', title: 'Reunión general de la empresa', type: 'reunión' },
+              { date: 'Nov 25', title: 'Fin del ciclo de revisión de desempeño', type: 'fecha límite' },
+              { date: 'Nov 30', title: 'Vencimiento de informes mensuales de RH', type: 'informe' },
             ].map((event, idx) => (
               <div key={idx} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200">
                 <div className="text-center">

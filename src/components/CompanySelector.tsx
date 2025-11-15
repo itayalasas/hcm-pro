@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Building2, Check, Loader2, Shield } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { getStoredAuthData } from '../lib/externalAuth';
+import { getStoredAuthData, clearAuthData } from '../lib/externalAuth';
 import Button from './ui/Button';
 
 interface Company {
@@ -32,6 +32,12 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
   useEffect(() => {
     loadUserCompanies();
   }, []);
+
+  const handleSignOut = () => {
+    clearAuthData();
+    localStorage.removeItem('selected_company_id');
+    window.location.href = '/';
+  };
 
   const checkSystemAdmin = () => {
     try {
@@ -198,7 +204,7 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
             </p>
             <Button
               variant="secondary"
-              onClick={() => supabase.auth.signOut()}
+              onClick={handleSignOut}
             >
               Cerrar Sesión
             </Button>
@@ -324,7 +330,7 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
             <div className="flex gap-3">
               <Button
                 variant="secondary"
-                onClick={() => supabase.auth.signOut()}
+                onClick={handleSignOut}
               >
                 Cerrar Sesión
               </Button>

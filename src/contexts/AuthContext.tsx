@@ -67,9 +67,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     clearAuthData();
+    localStorage.removeItem('selected_company_id');
     setUser(null);
     setEmployee(null);
     setTenant(null);
+    window.location.href = '/';
   };
 
   const isAuthenticated = !!user && !!getStoredAuthData().token && !isTokenExpired();

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Search, Filter, Download, Plus, Mail, Phone, MapPin, Briefcase } from 'lucide-react';
+import { Search, Filter, Download, Plus, Mail, Phone, MapPin, Briefcase, Eye } from 'lucide-react';
 import { supabase, Employee } from '../../lib/supabase';
 import AddEmployeeWizard from './AddEmployeeWizard';
+import EmployeeProfile from './EmployeeProfile';
 
 export default function EmployeeList() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -9,6 +10,7 @@ export default function EmployeeList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showAddWizard, setShowAddWizard] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
 
   useEffect(() => {
     loadEmployees();
@@ -48,6 +50,15 @@ export default function EmployeeList() {
     }
   };
 
+
+  if (selectedEmployeeId) {
+    return (
+      <EmployeeProfile
+        employeeId={selectedEmployeeId}
+        onBack={() => setSelectedEmployeeId(null)}
+      />
+    );
+  }
 
   return (
     <div>
@@ -175,8 +186,13 @@ export default function EmployeeList() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button className="text-blue-600 hover:text-blue-900 mr-3">Ver</button>
-                    <button className="text-slate-600 hover:text-slate-900">Editar</button>
+                    <button
+                      onClick={() => setSelectedEmployeeId(employee.id)}
+                      className="flex items-center gap-1 text-blue-600 hover:text-blue-900 transition-colors"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Ver Perfil
+                    </button>
                   </td>
                 </tr>
               ))}

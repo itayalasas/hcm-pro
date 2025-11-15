@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NavigationProvider, useNavigation } from './contexts/NavigationContext';
+import { CompanyProvider, useCompany } from './contexts/CompanyContext';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import EmployeeList from './components/employees/EmployeeList';
@@ -8,7 +9,9 @@ import LeaveRequests from './components/leave/LeaveRequests';
 import Evaluations from './components/performance/Evaluations';
 import PayrollPeriods from './components/payroll/PayrollPeriods';
 import Companies from './components/organization/Companies';
+import ConfigurationPanel from './components/settings/ConfigurationPanel';
 import AuthCallback from './components/AuthCallback';
+import CompanySelector from './components/CompanySelector';
 import { Briefcase, ExternalLink } from 'lucide-react';
 import { getAuthLoginUrl } from './lib/externalAuth';
 
@@ -64,6 +67,7 @@ function LoginPage() {
 function AppContent() {
   const { user, loading, isAuthenticated, refreshAuth } = useAuth();
   const { currentView } = useNavigation();
+  const { selectedCompanyId, selectCompany, loading: companyLoading } = useCompany();
   const [isCallback, setIsCallback] = useState(false);
 
   useEffect(() => {
@@ -78,7 +82,7 @@ function AppContent() {
     refreshAuth();
   };
 
-  if (loading) {
+  if (loading || companyLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
@@ -99,6 +103,10 @@ function AppContent() {
     return <LoginPage />;
   }
 
+  if (!selectedCompanyId) {
+    return <CompanySelector onCompanySelected={selectCompany} />;
+  }
+
   const renderView = () => {
     switch (currentView) {
       case '/':
@@ -114,6 +122,8 @@ function AppContent() {
         return <PayrollPeriods />;
       case '/organization/companies':
         return <Companies />;
+      case '/configuration':
+        return <ConfigurationPanel />;
       default:
         return (
           <div className="text-center py-12">
@@ -135,9 +145,11 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <NavigationProvider>
-        <AppContent />
-      </NavigationProvider>
+      <CompanyProvider>
+        <NavigationProvider>
+          <AppContent />
+        </NavigationProvider>
+      </CompanyProvider>
     </AuthProvider>
   );
 }

@@ -3,6 +3,7 @@ import { Building2, Check, Loader2, Shield } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getStoredAuthData, clearAuthData } from '../lib/externalAuth';
 import Button from './ui/Button';
+import Logo from './ui/Logo';
 
 interface Company {
   id: string;
@@ -218,22 +219,18 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
     <div className="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-8 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white bg-opacity-20 backdrop-blur rounded-xl flex items-center justify-center">
-                <Building2 className="w-6 h-6" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold">Selecciona una Empresa</h2>
-                <p className="text-blue-100 text-sm">Elige la empresa con la que deseas trabajar</p>
-              </div>
-            </div>
+          <div className="flex items-center justify-between mb-4">
+            <Logo size="md" showText={true} className="filter brightness-0 invert" />
             {isSystemAdmin && (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-white bg-opacity-20 backdrop-blur rounded-lg">
                 <Shield className="w-4 h-4" />
                 <span className="text-sm font-medium">Admin Sistema</span>
               </div>
             )}
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold">Selecciona una Empresa</h2>
+            <p className="text-blue-100 text-sm">Elige la empresa con la que deseas trabajar</p>
           </div>
         </div>
 

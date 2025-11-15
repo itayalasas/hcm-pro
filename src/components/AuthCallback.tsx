@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Briefcase, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { exchangeCodeForToken, storeAuthData, parseCallbackUrl } from '../lib/externalAuth';
 import { supabase } from '../lib/supabase';
+import { LogoIcon } from './ui/Logo';
 
 interface AuthCallbackProps {
   onSuccess: () => void;
@@ -130,11 +131,8 @@ export default function AuthCallback({ onSuccess }: AuthCallbackProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-2xl mb-4">
-            <Briefcase className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">HCM Pro</h1>
+        <div className="text-center mb-8 flex justify-center">
+          <LogoIcon size={64} />
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">

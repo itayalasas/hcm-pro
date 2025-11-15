@@ -2,10 +2,11 @@ import { ReactNode, useState, useRef, useEffect } from 'react';
 import {
   LayoutDashboard, Users, Building2, Calendar, TrendingUp,
   FileText, DollarSign, Settings, LogOut, Menu, X, ChevronDown,
-  Briefcase, Award, BookOpen, FolderTree, User
+  Award, BookOpen, FolderTree, User
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '../contexts/NavigationContext';
+import Logo, { LogoIcon } from './ui/Logo';
 
 interface LayoutProps {
   children: ReactNode;
@@ -134,12 +135,7 @@ export default function Layout({ children }: LayoutProps) {
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transform transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between h-16 px-6 border-b border-slate-200">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-lg flex items-center justify-center">
-                <Briefcase className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-lg font-semibold text-slate-900">HCM Pro</span>
-            </div>
+            <Logo size="sm" showText={true} />
           </div>
 
           <nav className="flex-1 px-3 py-4 overflow-y-auto">

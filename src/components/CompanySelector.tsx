@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, Check, Loader2 } from 'lucide-react';
+import { Building2, Check, Loader2, Shield } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import Button from './ui/Button';
 
@@ -23,40 +23,121 @@ interface CompanySelectorProps {
 
 export default function CompanySelector({ onCompanySelected }: CompanySelectorProps) {
   const [companies, setCompanies] = useState<UserCompany[]>([]);
+  const [allCompanies, setAllCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
 
   useEffect(() => {
     loadUserCompanies();
   }, []);
 
+  const checkSystemAdmin = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) return false;
+
+      // Verificar si tiene rol de administrador en user_metadata o app_metadata
+      const userMetadata = user.user_metadata || {};
+      const appMetadata = user.app_metadata || {};
+
+      // El usuario es admin del sistema si:
+      // 1. Tiene system_role = 'administrator' en metadata
+      // 2. O tiene role = 'admin' en al menos una empresa
+      const isSystemAdminMeta = userMetadata.system_role === 'administrator' ||
+                                appMetadata.system_role === 'administrator';
+
+      if (isSystemAdminMeta) {
+        return true;
+      }
+
+      // Verificar si es admin en alguna empresa
+      const { data: userCompanies } = await supabase
+        .from('user_companies')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .limit(1);
+
+      return (userCompanies && userCompanies.length > 0);
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
+  };
+
   const loadUserCompanies = async () => {
     try {
-      const { data, error } = await supabase
-        .from('user_companies')
-        .select(`
-          company_id,
-          role,
-          is_default,
-          companies:company_id (
-            id,
-            code,
-            legal_name,
-            trade_name
-          )
-        `)
-        .eq('active', true)
-        .order('is_default', { ascending: false });
+      // Verificar si es administrador del sistema
+      const isAdmin = await checkSystemAdmin();
+      setIsSystemAdmin(isAdmin);
 
-      if (error) throw error;
+      if (isAdmin) {
+        // Si es admin, cargar TODAS las empresas
+        const { data: allCompaniesData, error: allError } = await supabase
+          .from('companies')
+          .select('id, code, legal_name, trade_name')
+          .eq('active', true)
+          .order('legal_name', { ascending: true });
 
-      setCompanies(data as any);
+        if (allError) throw allError;
 
-      const defaultCompany = data?.find((uc: any) => uc.is_default);
-      if (defaultCompany) {
-        setSelectedCompany(defaultCompany.company_id);
-      } else if (data && data.length === 1) {
-        setSelectedCompany((data[0] as any).company_id);
+        // Obtener las empresas asignadas para saber el rol
+        const { data: userCompaniesData } = await supabase
+          .from('user_companies')
+          .select('company_id, role, is_default')
+          .eq('active', true);
+
+        // Mapear todas las empresas con información de rol si la tiene
+        const companiesWithRole = allCompaniesData?.map(company => {
+          const userCompany = userCompaniesData?.find(uc => uc.company_id === company.id);
+          return {
+            company_id: company.id,
+            role: userCompany?.role || 'admin',
+            is_default: userCompany?.is_default || false,
+            companies: company
+          };
+        }) || [];
+
+        setCompanies(companiesWithRole);
+        setAllCompanies(allCompaniesData || []);
+
+        // Seleccionar empresa por defecto
+        const defaultCompany = companiesWithRole.find(uc => uc.is_default);
+        if (defaultCompany) {
+          setSelectedCompany(defaultCompany.company_id);
+        } else if (companiesWithRole.length > 0) {
+          setSelectedCompany(companiesWithRole[0].company_id);
+        }
+      } else {
+        // Si no es admin, solo cargar sus empresas asignadas
+        const { data, error } = await supabase
+          .from('user_companies')
+          .select(`
+            company_id,
+            role,
+            is_default,
+            companies:company_id (
+              id,
+              code,
+              legal_name,
+              trade_name
+            )
+          `)
+          .eq('active', true)
+          .order('is_default', { ascending: false });
+
+        if (error) throw error;
+
+        setCompanies(data as any);
+
+        const defaultCompany = data?.find((uc: any) => uc.is_default);
+        if (defaultCompany) {
+          setSelectedCompany(defaultCompany.company_id);
+        } else if (data && data.length === 1) {
+          setSelectedCompany((data[0] as any).company_id);
+        }
       }
     } catch (error) {
       console.error('Error loading companies:', error);
@@ -68,6 +149,30 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
   const handleContinue = async () => {
     if (selectedCompany) {
       localStorage.setItem('selected_company_id', selectedCompany);
+
+      // Si es admin del sistema y la empresa no está en user_companies, crear la relación
+      if (isSystemAdmin) {
+        const { data: existing } = await supabase
+          .from('user_companies')
+          .select('id')
+          .eq('company_id', selectedCompany)
+          .maybeSingle();
+
+        if (!existing) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await supabase
+              .from('user_companies')
+              .insert({
+                user_id: user.id,
+                company_id: selectedCompany,
+                role: 'admin',
+                active: true
+              });
+          }
+        }
+      }
+
       onCompanySelected(selectedCompany);
     }
   };
@@ -113,18 +218,40 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
     <div className="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-8 text-white">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-white bg-opacity-20 backdrop-blur rounded-xl flex items-center justify-center">
-              <Building2 className="w-6 h-6" />
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white bg-opacity-20 backdrop-blur rounded-xl flex items-center justify-center">
+                <Building2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">Selecciona una Empresa</h2>
+                <p className="text-blue-100 text-sm">Elige la empresa con la que deseas trabajar</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-2xl font-bold">Selecciona una Empresa</h2>
-              <p className="text-blue-100 text-sm">Elige la empresa con la que deseas trabajar</p>
-            </div>
+            {isSystemAdmin && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white bg-opacity-20 backdrop-blur rounded-lg">
+                <Shield className="w-4 h-4" />
+                <span className="text-sm font-medium">Admin Sistema</span>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="p-6 max-h-[60vh] overflow-y-auto">
+          {isSystemAdmin && (
+            <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+              <div className="flex items-start gap-3">
+                <Shield className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-purple-900">Acceso de Administrador</p>
+                  <p className="text-xs text-purple-700 mt-1">
+                    Tienes acceso a todas las empresas del sistema ({companies.length} en total)
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-3">
             {companies.map((userCompany) => {
               const company = userCompany.companies;
@@ -166,7 +293,7 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
                         {company.trade_name}
                       </p>
 
-                      <div className="flex items-center gap-3 text-xs">
+                      <div className="flex items-center gap-3 text-xs flex-wrap">
                         <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded font-medium">
                           {company.code}
                         </span>
@@ -198,6 +325,7 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
           <div className="flex items-center justify-between gap-4">
             <p className="text-sm text-slate-600">
               {companies.length} {companies.length === 1 ? 'empresa disponible' : 'empresas disponibles'}
+              {isSystemAdmin && ' (Acceso total)'}
             </p>
             <div className="flex gap-3">
               <Button

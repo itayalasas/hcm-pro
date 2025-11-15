@@ -134,8 +134,8 @@ export default function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-slate-50">
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transform transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between h-16 px-6 border-b border-slate-200">
-            <Logo size="sm" showText={true} />
+          <div className="flex items-center justify-center h-16 px-4 border-b border-slate-200">
+            <Logo size="md" showText={true} />
           </div>
 
           <nav className="flex-1 px-3 py-4 overflow-y-auto">

@@ -220,7 +220,7 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-8 text-white">
           <div className="flex items-center justify-between mb-4">
-            <Logo size="md" showText={true} className="filter brightness-0 invert" />
+            <Logo size="md" showText={true} variant="white" />
             {isSystemAdmin && (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-white bg-opacity-20 backdrop-blur rounded-lg">
                 <Shield className="w-4 h-4" />

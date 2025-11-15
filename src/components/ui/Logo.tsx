@@ -2,18 +2,25 @@ interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   showText?: boolean;
   className?: string;
+  variant?: 'default' | 'white';
 }
 
-export default function Logo({ size = 'md', showText = true, className = '' }: LogoProps) {
+export default function Logo({ size = 'md', showText = true, className = '', variant = 'default' }: LogoProps) {
   const sizes = {
-    sm: { width: 90, height: 24, iconSize: 24, fontSize: 14, subFontSize: 5 },
-    md: { width: 140, height: 38, iconSize: 32, fontSize: 18, subFontSize: 6 },
-    lg: { width: 180, height: 48, iconSize: 36, fontSize: 20, subFontSize: 7 },
-    xl: { width: 240, height: 64, iconSize: 48, fontSize: 28, subFontSize: 9 },
+    sm: { width: 120, height: 32, iconSize: 28, fontSize: 15, subFontSize: 5 },
+    md: { width: 160, height: 42, iconSize: 36, fontSize: 19, subFontSize: 6 },
+    lg: { width: 200, height: 52, iconSize: 44, fontSize: 23, subFontSize: 7 },
+    xl: { width: 260, height: 68, iconSize: 56, fontSize: 30, subFontSize: 9 },
   };
 
   const { width, height, iconSize, fontSize, subFontSize } = sizes[size];
   const iconPadding = (height - iconSize) / 2;
+
+  const isWhite = variant === 'white';
+  const textColor = isWhite ? '#ffffff' : '#1e293b';
+  const accentColor = isWhite ? '#ffffff' : '#3b82f6';
+  const subTextColor = isWhite ? 'rgba(255, 255, 255, 0.8)' : '#64748b';
+  const iconBg = isWhite ? 'rgba(255, 255, 255, 0.2)' : 'url(#gradient1)';
 
   return (
     <svg
@@ -30,7 +37,7 @@ export default function Logo({ size = 'md', showText = true, className = '' }: L
         width={iconSize}
         height={iconSize}
         rx={iconSize * 0.22}
-        fill="url(#gradient1)"
+        fill={iconBg}
       />
 
       <path
@@ -55,21 +62,21 @@ export default function Logo({ size = 'md', showText = true, className = '' }: L
         <>
           <text
             x={iconSize + 8}
-            y={height * 0.625}
+            y={height * 0.6}
             fontFamily="system-ui, -apple-system, sans-serif"
             fontSize={fontSize}
             fontWeight="700"
-            fill="#1e293b"
+            fill={textColor}
           >
-            Emply<tspan fill="#3b82f6">Sys</tspan>
+            Emply<tspan fill={accentColor}>Sys</tspan>
           </text>
           <text
             x={iconSize + 8}
-            y={height * 0.8125}
+            y={height * 0.82}
             fontFamily="system-ui, -apple-system, sans-serif"
             fontSize={subFontSize}
             fontWeight="500"
-            fill="#64748b"
+            fill={subTextColor}
             letterSpacing="1"
           >
             HUMAN CAPITAL MANAGEMENT
@@ -94,7 +101,10 @@ export default function Logo({ size = 'md', showText = true, className = '' }: L
   );
 }
 
-export function LogoIcon({ size = 32, className = '' }: { size?: number; className?: string }) {
+export function LogoIcon({ size = 32, className = '', variant = 'default' }: { size?: number; className?: string; variant?: 'default' | 'white' }) {
+  const isWhite = variant === 'white';
+  const iconBg = isWhite ? 'rgba(255, 255, 255, 0.2)' : 'url(#gradient-icon)';
+
   return (
     <svg
       width={size}
@@ -110,7 +120,7 @@ export function LogoIcon({ size = 32, className = '' }: { size?: number; classNa
         width={size}
         height={size}
         rx={size * 0.22}
-        fill="url(#gradient-icon)"
+        fill={iconBg}
       />
 
       <path

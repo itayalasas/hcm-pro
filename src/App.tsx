@@ -12,8 +12,9 @@ import Companies from './components/organization/Companies';
 import ConfigurationPanel from './components/settings/ConfigurationPanel';
 import AuthCallback from './components/AuthCallback';
 import CompanySelector from './components/CompanySelector';
-import { Briefcase, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { getAuthLoginUrl } from './lib/externalAuth';
+import Logo, { LogoIcon } from './components/ui/Logo';
 
 function LoginPage() {
   const handleExternalLogin = () => {
@@ -22,42 +23,38 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-2xl mb-4">
-            <Briefcase className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">HCM Pro</h1>
-          <p className="text-slate-600">Enterprise Human Capital Management</p>
+        <div className="text-center mb-8 flex justify-center">
+          <Logo size="xl" showText={true} />
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
-          <h2 className="text-2xl font-bold text-slate-900 mb-6 text-center">
-            Iniciar Sesión
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8 backdrop-blur-sm bg-opacity-95">
+          <h2 className="text-2xl font-bold text-slate-900 mb-2 text-center">
+            Bienvenido
           </h2>
 
-          <p className="text-slate-600 text-center mb-6">
-            Utiliza tu cuenta corporativa para acceder al sistema
+          <p className="text-slate-600 text-center mb-8">
+            Gestiona el capital humano de tu empresa de manera eficiente
           </p>
 
           <button
             onClick={handleExternalLogin}
-            className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
           >
             <ExternalLink className="w-5 h-5" />
             Iniciar sesión con cuenta corporativa
           </button>
 
-          <div className="mt-6 p-4 bg-slate-50 rounded-lg">
-            <p className="text-xs text-slate-600 text-center">
-              Serás redirigido a nuestro sistema de autenticación seguro
+          <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
+            <p className="text-xs text-slate-700 text-center font-medium">
+              Sistema seguro de autenticación empresarial
             </p>
           </div>
         </div>
 
         <div className="mt-8 text-center text-sm text-slate-600">
-          <p>© 2025 HCM Pro. All rights reserved.</p>
+          <p>© 2025 EmplySys. Todos los derechos reservados.</p>
         </div>
       </div>
     </div>
@@ -84,12 +81,12 @@ function AppContent() {
 
   if (loading || companyLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-2xl mb-4 animate-pulse">
-            <Briefcase className="w-8 h-8 text-white" />
+          <div className="mb-4 animate-pulse">
+            <LogoIcon size={64} />
           </div>
-          <p className="text-slate-600">Cargando...</p>
+          <p className="text-slate-700 font-medium">Cargando...</p>
         </div>
       </div>
     );

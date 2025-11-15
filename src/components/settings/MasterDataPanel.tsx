@@ -8,6 +8,7 @@ import {
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
+import PositionsTab from './PositionsTab';
 
 type MasterDataType = 'departments' | 'locations' | 'positions';
 
@@ -728,11 +729,3 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
   );
 }
 
-function PositionsTab({ searchTerm }: { searchTerm: string }) {
-  return (
-    <div className="text-center py-12">
-      <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-      <p className="text-slate-600">Gestión de puestos próximamente</p>
-    </div>
-  );
-}

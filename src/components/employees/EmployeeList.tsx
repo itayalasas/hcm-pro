@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Search, Filter, Download, Plus, Mail, Phone, MapPin, Briefcase } from 'lucide-react';
 import { supabase, Employee } from '../../lib/supabase';
+import AddEmployeeWizard from './AddEmployeeWizard';
 
 export default function EmployeeList() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [showAddWizard, setShowAddWizard] = useState(false);
 
   useEffect(() => {
     loadEmployees();
@@ -54,7 +56,10 @@ export default function EmployeeList() {
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Empleados</h1>
           <p className="text-slate-600">{filteredEmployees.length} empleados en total</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        <button
+          onClick={() => setShowAddWizard(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
           <Plus className="w-5 h-5" />
           Agregar Empleado
         </button>
@@ -185,6 +190,15 @@ export default function EmployeeList() {
           </div>
         )}
       </div>
+
+      <AddEmployeeWizard
+        isOpen={showAddWizard}
+        onClose={() => setShowAddWizard(false)}
+        onSuccess={() => {
+          setShowAddWizard(false);
+          loadEmployees();
+        }}
+      />
     </div>
   );
 }

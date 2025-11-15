@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { NavigationProvider, useNavigation } from './contexts/NavigationContext';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import EmployeeList from './components/employees/EmployeeList';
 import LeaveRequests from './components/leave/LeaveRequests';
 import Evaluations from './components/performance/Evaluations';
 import PayrollPeriods from './components/payroll/PayrollPeriods';
+import Companies from './components/organization/Companies';
 import AuthCallback from './components/AuthCallback';
 import { Briefcase, ExternalLink } from 'lucide-react';
 import { getAuthLoginUrl } from './lib/externalAuth';
@@ -61,7 +63,7 @@ function LoginPage() {
 
 function AppContent() {
   const { user, loading, isAuthenticated, refreshAuth } = useAuth();
-  const [currentView, setCurrentView] = useState('dashboard');
+  const { currentView } = useNavigation();
   const [isCallback, setIsCallback] = useState(false);
 
   useEffect(() => {
@@ -99,75 +101,32 @@ function AppContent() {
 
   const renderView = () => {
     switch (currentView) {
+      case '/':
       case 'dashboard':
         return <Dashboard />;
-      case 'employees':
+      case '/employees':
         return <EmployeeList />;
-      case 'leave':
+      case '/time/requests':
         return <LeaveRequests />;
-      case 'performance':
+      case '/performance/evaluations':
         return <Evaluations />;
-      case 'payroll':
+      case '/payroll/periods':
         return <PayrollPeriods />;
+      case '/organization/companies':
+        return <Companies />;
       default:
-        return <Dashboard />;
+        return (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Sección en Desarrollo</h2>
+            <p className="text-slate-600">Esta funcionalidad estará disponible pronto.</p>
+            <p className="text-sm text-slate-400 mt-2">Vista: {currentView}</p>
+          </div>
+        );
     }
   };
 
   return (
     <Layout>
-      <div className="mb-4 flex gap-2 flex-wrap">
-        <button
-          onClick={() => setCurrentView('dashboard')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            currentView === 'dashboard'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-          }`}
-        >
-          Dashboard
-        </button>
-        <button
-          onClick={() => setCurrentView('employees')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            currentView === 'employees'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-          }`}
-        >
-          Employees
-        </button>
-        <button
-          onClick={() => setCurrentView('leave')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            currentView === 'leave'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-          }`}
-        >
-          Leave Requests
-        </button>
-        <button
-          onClick={() => setCurrentView('performance')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            currentView === 'performance'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-          }`}
-        >
-          Performance
-        </button>
-        <button
-          onClick={() => setCurrentView('payroll')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            currentView === 'payroll'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-          }`}
-        >
-          Payroll
-        </button>
-      </div>
       {renderView()}
     </Layout>
   );
@@ -176,7 +135,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <NavigationProvider>
+        <AppContent />
+      </NavigationProvider>
     </AuthProvider>
   );
 }

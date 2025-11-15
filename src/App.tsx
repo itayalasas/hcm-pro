@@ -9,7 +9,7 @@ import LeaveRequests from './components/leave/LeaveRequests';
 import Evaluations from './components/performance/Evaluations';
 import PayrollPeriods from './components/payroll/PayrollPeriods';
 import Companies from './components/organization/Companies';
-import ConfigurationPanel from './components/settings/ConfigurationPanel';
+import MasterDataPanel from './components/settings/MasterDataPanel';
 import AuthCallback from './components/AuthCallback';
 import CompanySelector from './components/CompanySelector';
 import { ExternalLink } from 'lucide-react';
@@ -119,8 +119,8 @@ function AppContent() {
         return <PayrollPeriods />;
       case '/organization/companies':
         return <Companies />;
-      case '/configuration':
-        return <ConfigurationPanel />;
+      case '/config/master-data':
+        return <MasterDataPanel />;
       default:
         return (
           <div className="text-center py-12">

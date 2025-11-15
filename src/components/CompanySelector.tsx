@@ -78,10 +78,14 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
         if (allError) throw allError;
 
         // Obtener las empresas asignadas para saber el rol
+        const authData = getStoredAuthData();
+        const userId = authData?.user?.id;
+
         const { data: userCompaniesData } = await supabase
           .from('user_companies')
           .select('company_id, role, is_default')
-          .eq('active', true);
+          .eq('user_id', userId)
+          .eq('is_active', true);
 
         // Mapear todas las empresas con información de rol si la tiene
         const companiesWithRole = allCompaniesData?.map(company => {
@@ -106,6 +110,9 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
         }
       } else {
         // Si no es admin, solo cargar sus empresas asignadas
+        const authData = getStoredAuthData();
+        const userId = authData?.user?.id;
+
         const { data, error } = await supabase
           .from('user_companies')
           .select(`
@@ -119,7 +126,8 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
               trade_name
             )
           `)
-          .eq('active', true)
+          .eq('user_id', userId)
+          .eq('is_active', true)
           .order('is_default', { ascending: false });
 
         if (error) throw error;

@@ -1,17 +1,19 @@
 import { useState } from 'react';
-import { Database, GitBranch, ListTree, Settings as SettingsIcon } from 'lucide-react';
+import { Database, GitBranch, ListTree, Settings as SettingsIcon, Users } from 'lucide-react';
 import MasterDataPanel from './MasterDataPanel';
 import WorkflowsPanel from './WorkflowsPanel';
 import CustomFieldsPanel from './CustomFieldsPanel';
 import SystemParametersPanel from './SystemParametersPanel';
+import UsersPanel from './UsersPanel';
 
-type ConfigSection = 'master-data' | 'workflows' | 'custom-fields' | 'parameters';
+type ConfigSection = 'master-data' | 'workflows' | 'custom-fields' | 'parameters' | 'users';
 
 export default function ConfigurationMain() {
   const [activeSection, setActiveSection] = useState<ConfigSection>('master-data');
 
   const sections = [
     { id: 'master-data' as ConfigSection, label: 'Datos Maestros', icon: Database },
+    { id: 'users' as ConfigSection, label: 'Usuarios', icon: Users },
     { id: 'workflows' as ConfigSection, label: 'Flujos de Trabajo', icon: GitBranch },
     { id: 'custom-fields' as ConfigSection, label: 'Campos Personalizados', icon: ListTree },
     { id: 'parameters' as ConfigSection, label: 'Parámetros del Sistema', icon: SettingsIcon },
@@ -21,6 +23,8 @@ export default function ConfigurationMain() {
     switch (activeSection) {
       case 'master-data':
         return <MasterDataPanel />;
+      case 'users':
+        return <UsersPanel />;
       case 'workflows':
         return <WorkflowsPanel />;
       case 'custom-fields':
@@ -37,7 +41,7 @@ export default function ConfigurationMain() {
         <p className="text-slate-600">Administra la configuración de tu sistema</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         {sections.map((section) => (
           <button
             key={section.id}
@@ -58,6 +62,7 @@ export default function ConfigurationMain() {
             </h3>
             <p className="text-sm text-slate-600">
               {section.id === 'master-data' && 'Departamentos, ubicaciones, puestos'}
+              {section.id === 'users' && 'Gestión y asignación de empresas'}
               {section.id === 'workflows' && 'Aprobaciones y procesos'}
               {section.id === 'custom-fields' && 'Campos adicionales por módulo'}
               {section.id === 'parameters' && 'Configuración general del sistema'}

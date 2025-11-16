@@ -25,7 +25,7 @@ jobs:
         env:
           PAT: ${{ secrets.HCM_PRO_PAT }}
         run: |
-          git remote add dest https://x-access-token:${{ secrets.HCM_PRO_PAT }}@github.com/itayalasas/hcm-pro.git
+          git remote add dest https://x-access-token:${{ secrets.HCM_PRO_PAT_NEW }}@github.com/itayalasas/hcm-pro.git
           echo "==== Remotes configurados ===="
           git remote -v
 

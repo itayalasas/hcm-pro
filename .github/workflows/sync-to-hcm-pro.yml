@@ -22,7 +22,7 @@ jobs:
 
       - name: Add destination remote (hcm-pro)
         run: |
-          git remote add dest https://x-access-token:${{ secrets.HCM_PRO_PAT }}@github.com/itayalasas/hcm-pro.git
+          git remote add dest https://github.com/itayalasas/hcm-pro.git
 
       - name: Push branch to hcm-pro
         run: |

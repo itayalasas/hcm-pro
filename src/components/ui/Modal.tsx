@@ -37,7 +37,6 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', s
       <div className="flex min-h-screen items-center justify-center p-4">
         <div
           className="fixed inset-0 bg-slate-900 bg-opacity-75 transition-opacity"
-          onClick={onClose}
         />
 
         <div className={`relative bg-white rounded-2xl shadow-2xl w-full ${sizeClasses[size]} transform transition-all`}>

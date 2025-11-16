@@ -130,7 +130,6 @@ export default function CountryCitySelector({
           País *
         </label>
         <Autocomplete
-          key={`country-${countryNames.length}`}
           options={countryNames}
           value={selectedCountry || ''}
           onChange={handleCountrySelect}
@@ -148,7 +147,6 @@ export default function CountryCitySelector({
           Ciudad *
         </label>
         <Autocomplete
-          key={`city-${selectedCountry}-${cityNames.length}`}
           options={cityNames}
           value={selectedCity || ''}
           onChange={handleCitySelect}

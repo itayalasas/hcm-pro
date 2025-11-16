@@ -53,12 +53,12 @@ export default function Autocomplete({
   const selectedLabel = useMemo(() => {
     console.log('Autocomplete selectedLabel useMemo - value:', value);
     console.log('Autocomplete selectedLabel useMemo - normalizedOptions:', normalizedOptions);
-    if (value) {
-      const selected = normalizedOptions.find(opt => opt.value === value);
-      console.log('Autocomplete selectedLabel useMemo - selected:', selected);
-      return selected?.label || value;
-    }
-    return '';
+    if (!value) return '';
+
+    const selected = normalizedOptions.find(opt => opt.value === value);
+    console.log('Autocomplete selectedLabel useMemo - selected:', selected);
+
+    return selected?.label || value;
   }, [value, normalizedOptions]);
 
   useEffect(() => {
@@ -122,7 +122,10 @@ export default function Autocomplete({
             </div>
           )}
           <span className={selectedLabel ? 'text-slate-900' : 'text-slate-400'}>
-            {selectedLabel || placeholder}
+            {(() => {
+              console.log('Rendering span - selectedLabel:', selectedLabel, 'placeholder:', placeholder);
+              return selectedLabel || placeholder;
+            })()}
           </span>
           <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </div>

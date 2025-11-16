@@ -18,7 +18,7 @@ import CompanySelector from './components/CompanySelector';
 import { ExternalLink } from 'lucide-react';
 import { getAuthLoginUrl } from './lib/externalAuth';
 import Logo, { LogoIcon } from './components/ui/Logo';
-
+//prueba
 function LoginPage() {
   const handleExternalLogin = () => {
     const loginUrl = getAuthLoginUrl();

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, GraduationCap, Briefcase, FileText, CheckCircle } from 'lucide-react';
 import Modal from '../ui/Modal';
 import StepWizard from '../ui/StepWizard';
@@ -219,6 +219,10 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
     });
   };
 
+  useEffect(() => {
+    console.log('employeeData.personalInfo.country changed:', employeeData.personalInfo.country);
+  }, [employeeData.personalInfo.country]);
+
   const updatePersonalInfo = (field: string, value: string) => {
     setEmployeeData({
       ...employeeData,
@@ -344,14 +348,18 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
               selectedCountryISO3={employeeData.personalInfo.countryISO3}
               onCountryChange={(country, iso3) => {
                 console.log('onCountryChange callback:', country, iso3);
-                setEmployeeData({
-                  ...employeeData,
-                  personalInfo: {
-                    ...employeeData.personalInfo,
-                    country: country,
-                    countryISO3: iso3,
-                    city: ''
-                  }
+                setEmployeeData(prev => {
+                  const newData = {
+                    ...prev,
+                    personalInfo: {
+                      ...prev.personalInfo,
+                      country: country,
+                      countryISO3: iso3,
+                      city: ''
+                    }
+                  };
+                  console.log('New employeeData:', newData);
+                  return newData;
                 });
               }}
               onCityChange={(city) => updatePersonalInfo('city', city)}

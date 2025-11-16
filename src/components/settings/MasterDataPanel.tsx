@@ -703,7 +703,7 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
             selectedCity={formData.city}
             selectedCountryISO3={formData.country_iso3}
             onCountryChange={(country, iso3) => {
-              setFormData({ ...formData, country, country_iso3: iso3, state: '' });
+              setFormData({ ...formData, country, country_iso3: iso3, city: '' });
             }}
             onCityChange={(city) => {
               setFormData({ ...formData, city });

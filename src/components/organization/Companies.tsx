@@ -15,12 +15,10 @@ interface Company {
   tax_id: string;
   email: string | null;
   phone: string | null;
-  website: string | null;
   address: string | null;
-  city: string | null;
-  state: string | null;
-  country: string | null;
-  postal_code: string | null;
+  logo_url: string | null;
+  primary_color: string | null;
+  country_id: string | null;
   active: boolean;
   created_at: string;
 }
@@ -42,12 +40,7 @@ export default function Companies() {
     tax_id: '',
     email: '',
     phone: '',
-    website: '',
     address: '',
-    city: '',
-    state: '',
-    country: 'México',
-    postal_code: '',
     active: true,
   });
 
@@ -118,12 +111,7 @@ export default function Companies() {
       tax_id: company.tax_id,
       email: company.email || '',
       phone: company.phone || '',
-      website: company.website || '',
       address: company.address || '',
-      city: company.city || '',
-      state: company.state || '',
-      country: company.country || 'México',
-      postal_code: company.postal_code || '',
       active: company.active,
     });
     setShowModal(true);
@@ -160,12 +148,7 @@ export default function Companies() {
       tax_id: '',
       email: '',
       phone: '',
-      website: '',
       address: '',
-      city: '',
-      state: '',
-      country: 'México',
-      postal_code: '',
       active: true,
     });
   };
@@ -354,56 +337,13 @@ export default function Companies() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Sitio Web</label>
-            <Input
-              value={formData.website}
-              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-              placeholder="https://www.empresa.com"
-            />
-          </div>
-
-          <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Dirección</label>
-            <Input
+            <textarea
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder="Calle, número, colonia"
-            />
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Ciudad</label>
-              <Input
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                placeholder="Ciudad"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Estado</label>
-              <Input
-                value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                placeholder="Estado"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">CP</label>
-              <Input
-                value={formData.postal_code}
-                onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-                placeholder="12345"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">País</label>
-            <Input
-              value={formData.country}
-              onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-              placeholder="México"
+              placeholder="Dirección completa de la empresa"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={3}
             />
           </div>
 
@@ -473,7 +413,7 @@ export default function Companies() {
               </div>
             </div>
 
-            {(viewingCompany.email || viewingCompany.phone || viewingCompany.website) && (
+            {(viewingCompany.email || viewingCompany.phone) && (
               <div className="space-y-3">
                 <h4 className="font-semibold text-slate-900">Contacto</h4>
                 {viewingCompany.email && (
@@ -488,28 +428,16 @@ export default function Companies() {
                     <span className="text-slate-700">{viewingCompany.phone}</span>
                   </div>
                 )}
-                {viewingCompany.website && (
-                  <div className="flex items-center gap-3 text-sm">
-                    <Building2 className="w-4 h-4 text-slate-400" />
-                    <a href={viewingCompany.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                      {viewingCompany.website}
-                    </a>
-                  </div>
-                )}
               </div>
             )}
 
-            {(viewingCompany.address || viewingCompany.city || viewingCompany.state) && (
+            {viewingCompany.address && (
               <div className="space-y-3">
-                <h4 className="font-semibold text-slate-900">Ubicación</h4>
+                <h4 className="font-semibold text-slate-900">Dirección</h4>
                 <div className="flex items-start gap-3 text-sm">
                   <MapPin className="w-4 h-4 text-slate-400 mt-0.5" />
                   <div className="text-slate-700">
-                    {viewingCompany.address && <p>{viewingCompany.address}</p>}
-                    <p>
-                      {[viewingCompany.city, viewingCompany.state, viewingCompany.postal_code].filter(Boolean).join(', ')}
-                    </p>
-                    {viewingCompany.country && <p>{viewingCompany.country}</p>}
+                    <p>{viewingCompany.address}</p>
                   </div>
                 </div>
               </div>

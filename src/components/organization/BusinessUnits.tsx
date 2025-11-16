@@ -63,7 +63,7 @@ export default function BusinessUnits() {
   };
 
   const handleSave = async () => {
-    if (!formData.code || !formData.name) {
+    if (!formData.name) {
       toast.warning('Por favor complete todos los campos requeridos');
       return;
     }
@@ -74,10 +74,26 @@ export default function BusinessUnits() {
     }
 
     try {
+      let code = formData.code;
+
+      if (!editingId && !code) {
+        const { data: generatedCode, error: codeError } = await supabase
+          .rpc('generate_entity_code', {
+            p_entity_type: 'department',
+            p_company_id: selectedCompanyId
+          });
+
+        if (codeError) throw codeError;
+        code = generatedCode;
+      }
+
       const dataToSave = {
-        ...formData,
+        code: code || formData.code,
+        name: formData.name,
+        description: formData.description || null,
         company_id: selectedCompanyId,
         parent_id: formData.parent_id || null,
+        active: formData.active,
       };
 
       if (editingId) {
@@ -287,12 +303,13 @@ export default function BusinessUnits() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Código <span className="text-red-500">*</span>
+                Código {!editingId && <span className="text-xs text-slate-500">(se generará automáticamente si se deja vacío)</span>}
               </label>
               <Input
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                placeholder="UNI001"
+                placeholder={editingId ? formData.code : "Se generará automáticamente"}
+                disabled={!!editingId}
               />
             </div>
             <div>

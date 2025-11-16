@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Database, GitBranch, ListTree, Settings as SettingsIcon, Users } from 'lucide-react';
+import { Database, GitBranch, ListTree, Settings as SettingsIcon, Users, Hash } from 'lucide-react';
 import MasterDataPanel from './MasterDataPanel';
 import WorkflowsPanel from './WorkflowsPanel';
 import CustomFieldsPanel from './CustomFieldsPanel';
 import SystemParametersPanel from './SystemParametersPanel';
 import UsersPanel from './UsersPanel';
+import CodeConfigurationPanel from './CodeConfigurationPanel';
 
-type ConfigSection = 'master-data' | 'workflows' | 'custom-fields' | 'parameters' | 'users';
+type ConfigSection = 'master-data' | 'workflows' | 'custom-fields' | 'parameters' | 'users' | 'codes';
 
 export default function ConfigurationMain() {
   const [activeSection, setActiveSection] = useState<ConfigSection>('master-data');
@@ -14,6 +15,7 @@ export default function ConfigurationMain() {
   const sections = [
     { id: 'master-data' as ConfigSection, label: 'Datos Maestros', icon: Database },
     { id: 'users' as ConfigSection, label: 'Usuarios', icon: Users },
+    { id: 'codes' as ConfigSection, label: 'Códigos Automáticos', icon: Hash },
     { id: 'workflows' as ConfigSection, label: 'Flujos de Trabajo', icon: GitBranch },
     { id: 'custom-fields' as ConfigSection, label: 'Campos Personalizados', icon: ListTree },
     { id: 'parameters' as ConfigSection, label: 'Parámetros del Sistema', icon: SettingsIcon },
@@ -25,6 +27,8 @@ export default function ConfigurationMain() {
         return <MasterDataPanel />;
       case 'users':
         return <UsersPanel />;
+      case 'codes':
+        return <CodeConfigurationPanel />;
       case 'workflows':
         return <WorkflowsPanel />;
       case 'custom-fields':
@@ -41,7 +45,7 @@ export default function ConfigurationMain() {
         <p className="text-slate-600">Administra la configuración de tu sistema</p>
       </div>
 
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         {sections.map((section) => (
           <button
             key={section.id}

@@ -124,9 +124,22 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
         throw new Error('No company found');
       }
 
+      let employeeNumber = employeeData.employment.employeeNumber;
+
+      if (!employeeNumber) {
+        const { data: generatedCode, error: codeError } = await supabase
+          .rpc('generate_entity_code', {
+            p_entity_type: 'employee',
+            p_company_id: companyData.id
+          });
+
+        if (codeError) throw codeError;
+        employeeNumber = generatedCode;
+      }
+
       const { error } = await supabase.from('employees').insert({
         company_id: companyData.id,
-        employee_number: employeeData.employment.employeeNumber,
+        employee_number: employeeNumber,
         first_name: employeeData.personalInfo.firstName,
         last_name: employeeData.personalInfo.lastName,
         email: employeeData.personalInfo.email,
@@ -408,13 +421,16 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Número de Empleado"
-                value={employeeData.employment.employeeNumber}
-                onChange={(e) => updateEmployment('employeeNumber', e.target.value)}
-                required
-                placeholder="EMP-001"
-              />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Número de Empleado <span className="text-xs text-slate-500">(se generará automáticamente si se deja vacío)</span>
+                </label>
+                <Input
+                  value={employeeData.employment.employeeNumber}
+                  onChange={(e) => updateEmployment('employeeNumber', e.target.value)}
+                  placeholder="Se generará automáticamente"
+                />
+              </div>
               <Input
                 label="Fecha de Contratación"
                 type="date"

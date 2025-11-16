@@ -104,7 +104,7 @@ export default function Positions() {
   };
 
   const handleSave = async () => {
-    if (!formData.code || !formData.title) {
+    if (!formData.title) {
       toast.warning('Por favor complete todos los campos requeridos');
       return;
     }
@@ -115,8 +115,21 @@ export default function Positions() {
     }
 
     try {
+      let code = formData.code;
+
+      if (!editingId && !code) {
+        const { data: generatedCode, error: codeError } = await supabase
+          .rpc('generate_entity_code', {
+            p_entity_type: 'position',
+            p_company_id: selectedCompanyId
+          });
+
+        if (codeError) throw codeError;
+        code = generatedCode;
+      }
+
       const dataToSave = {
-        code: formData.code,
+        code: code || formData.code,
         title: formData.title,
         description: formData.description || null,
         department_id: formData.department_id || null,
@@ -369,12 +382,13 @@ export default function Positions() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Código <span className="text-red-500">*</span>
+                Código {!editingId && <span className="text-xs text-slate-500">(se generará automáticamente si se deja vacío)</span>}
               </label>
               <Input
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                placeholder="PUE001"
+                placeholder={editingId ? formData.code : "Se generará automáticamente"}
+                disabled={!!editingId}
               />
             </div>
             <div>

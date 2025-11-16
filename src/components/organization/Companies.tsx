@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Building2, Plus, Edit, Eye, Trash2, X, Save, Search, MapPin, Mail, Phone } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useToast } from '../../hooks/useToast';
 import Button from '../ui/Button';
@@ -24,6 +25,7 @@ interface Company {
 }
 
 export default function Companies() {
+  const { user } = useAuth();
   const { selectedCompanyId } = useCompany();
   const toast = useToast();
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -50,9 +52,28 @@ export default function Companies() {
 
   const loadCompanies = async () => {
     try {
+      if (!user) return;
+
+      const { data: userCompanies, error: ucError } = await supabase
+        .from('user_companies')
+        .select('company_id')
+        .eq('user_id', user.id)
+        .eq('active', true);
+
+      if (ucError) throw ucError;
+
+      const companyIds = userCompanies?.map(uc => uc.company_id) || [];
+
+      if (companyIds.length === 0) {
+        setCompanies([]);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('companies')
         .select('*')
+        .in('id', companyIds)
         .order('legal_name', { ascending: true });
 
       if (error) throw error;
@@ -66,12 +87,14 @@ export default function Companies() {
   };
 
   const handleSave = async () => {
-    if (!formData.code || !formData.legal_name || !formData.trade_name || !formData.tax_id) {
+    if (!formData.legal_name || !formData.trade_name || !formData.tax_id) {
       toast.warning('Por favor complete todos los campos requeridos');
       return;
     }
 
     try {
+      let code = formData.code;
+
       if (editingId) {
         const { error } = await supabase
           .from('companies')
@@ -84,11 +107,39 @@ export default function Companies() {
         if (error) throw error;
         toast.success('Empresa actualizada correctamente');
       } else {
-        const { error } = await supabase
+        if (!code) {
+          const { data: generatedCode, error: codeError } = await supabase
+            .rpc('generate_entity_code', {
+              p_entity_type: 'company',
+              p_company_id: null
+            });
+
+          if (codeError) throw codeError;
+          code = generatedCode;
+        }
+
+        const { data: newCompany, error } = await supabase
           .from('companies')
-          .insert(formData);
+          .insert({ ...formData, code })
+          .select()
+          .single();
 
         if (error) throw error;
+
+        if (newCompany && user) {
+          const { error: ucError } = await supabase
+            .from('user_companies')
+            .insert({
+              user_id: user.id,
+              company_id: newCompany.id,
+              role: 'admin',
+              is_default: companies.length === 0,
+              active: true
+            });
+
+          if (ucError) throw ucError;
+        }
+
         toast.success('Empresa creada correctamente');
       }
 
@@ -274,12 +325,13 @@ export default function Companies() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Código <span className="text-red-500">*</span>
+                Código {!editingId && <span className="text-xs text-slate-500">(se generará automáticamente si se deja vacío)</span>}
               </label>
               <Input
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                placeholder="EMP001"
+                placeholder={editingId ? formData.code : "Se generará automáticamente"}
+                disabled={!!editingId}
               />
             </div>
             <div>

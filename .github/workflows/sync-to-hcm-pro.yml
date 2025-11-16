@@ -23,7 +23,7 @@ jobs:
 
       - name: Add destination remote (hcm-pro)
         env:
-          PAT: ${{ secrets.HCM_PRO_PAT }}
+          PAT: ${{ secrets.HCM_PRO_PAT_NEW }}
         run: |
           git remote add dest https://x-access-token:${{ secrets.HCM_PRO_PAT_NEW }}@github.com/itayalasas/hcm-pro.git
           echo "==== Remotes configurados ===="
@@ -31,7 +31,7 @@ jobs:
 
       - name: Push main branch to hcm-pro
         env:
-          PAT: ${{ secrets.HCM_PRO_PAT }}
+          PAT: ${{ secrets.HCM_PRO_PAT_NEW }}
         run: |
           echo "Syncing main -> itayalasas/hcm-pro..."
           git push dest main:main

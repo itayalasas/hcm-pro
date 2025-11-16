@@ -79,12 +79,25 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
 
         // Obtener las empresas asignadas para saber el rol
         const authData = getStoredAuthData();
-        const userId = authData?.user?.id;
+        const userEmail = authData?.user?.email;
+
+        // Buscar el usuario en app_users por email
+        const { data: appUser } = await supabase
+          .from('app_users')
+          .select('id')
+          .eq('email', userEmail)
+          .maybeSingle();
+
+        if (!appUser) {
+          console.error('Usuario no encontrado en app_users');
+          setLoading(false);
+          return;
+        }
 
         const { data: userCompaniesData } = await supabase
           .from('user_companies')
           .select('company_id, role, is_default')
-          .eq('user_id', userId)
+          .eq('user_id', appUser.id)
           .eq('active', true);
 
         // Mapear todas las empresas con información de rol si la tiene
@@ -111,7 +124,20 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
       } else {
         // Si no es admin, solo cargar sus empresas asignadas
         const authData = getStoredAuthData();
-        const userId = authData?.user?.id;
+        const userEmail = authData?.user?.email;
+
+        // Buscar el usuario en app_users por email
+        const { data: appUser } = await supabase
+          .from('app_users')
+          .select('id')
+          .eq('email', userEmail)
+          .maybeSingle();
+
+        if (!appUser) {
+          console.error('Usuario no encontrado en app_users');
+          setLoading(false);
+          return;
+        }
 
         const { data, error } = await supabase
           .from('user_companies')
@@ -126,7 +152,7 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
               trade_name
             )
           `)
-          .eq('user_id', userId)
+          .eq('user_id', appUser.id)
           .eq('active', true)
           .order('is_default', { ascending: false });
 
@@ -157,22 +183,27 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
         const authData = getStoredAuthData();
 
         if (authData.user) {
-          // Verificar si el usuario ya tiene relación con esta empresa
-          const { data: existing } = await supabase
-            .from('user_companies')
+          // Buscar el usuario en app_users por email
+          const { data: appUser } = await supabase
+            .from('app_users')
             .select('id')
-            .eq('company_id', selectedCompany)
+            .eq('email', authData.user.email)
             .maybeSingle();
 
-          if (!existing) {
-            // Obtener el user_id de Supabase basado en el email
-            const { data: supabaseUser } = await supabase.auth.getUser();
+          if (appUser) {
+            // Verificar si el usuario ya tiene relación con esta empresa
+            const { data: existing } = await supabase
+              .from('user_companies')
+              .select('id')
+              .eq('user_id', appUser.id)
+              .eq('company_id', selectedCompany)
+              .maybeSingle();
 
-            if (supabaseUser?.user) {
+            if (!existing) {
               await supabase
                 .from('user_companies')
                 .insert({
-                  user_id: supabaseUser.user.id,
+                  user_id: appUser.id,
                   company_id: selectedCompany,
                   role: 'admin',
                   active: true

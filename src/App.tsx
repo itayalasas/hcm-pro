@@ -9,6 +9,9 @@ import LeaveRequests from './components/leave/LeaveRequests';
 import Evaluations from './components/performance/Evaluations';
 import PayrollPeriods from './components/payroll/PayrollPeriods';
 import Companies from './components/organization/Companies';
+import BusinessUnits from './components/organization/BusinessUnits';
+import Positions from './components/organization/Positions';
+import Organigram from './components/organization/Organigram';
 import ConfigurationMain from './components/settings/ConfigurationMain';
 import AuthCallback from './components/AuthCallback';
 import CompanySelector from './components/CompanySelector';
@@ -119,6 +122,12 @@ function AppContent() {
         return <PayrollPeriods />;
       case '/organization/companies':
         return <Companies />;
+      case '/organization/units':
+        return <BusinessUnits />;
+      case '/organization/positions':
+        return <Positions />;
+      case '/organization/chart':
+        return <Organigram />;
       case '/config/master-data':
       case '/config/workflows':
       case '/config/custom-fields':

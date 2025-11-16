@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, ReactNode } from 'react';
+import { useState, useEffect, useRef, ReactNode, useMemo } from 'react';
 import { Search, ChevronDown, Plus, Check } from 'lucide-react';
 
 interface AutocompleteOption {
@@ -44,14 +44,19 @@ export default function Autocomplete({
   const [selectedLabel, setSelectedLabel] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const normalizedOptions: AutocompleteOption[] = options.map(opt =>
-    typeof opt === 'string' ? { value: opt, label: opt } : opt
+  const normalizedOptions: AutocompleteOption[] = useMemo(() =>
+    options.map(opt =>
+      typeof opt === 'string' ? { value: opt, label: opt } : opt
+    ),
+    [options]
   );
 
   useEffect(() => {
+    console.log('Autocomplete useEffect - value:', value);
     const selected = normalizedOptions.find(opt => opt.value === value);
+    console.log('Autocomplete useEffect - selected:', selected);
     setSelectedLabel(selected?.label || '');
-  }, [value, options]);
+  }, [value, normalizedOptions]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

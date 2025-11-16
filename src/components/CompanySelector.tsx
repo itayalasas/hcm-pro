@@ -85,7 +85,7 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
           .from('user_companies')
           .select('company_id, role, is_default')
           .eq('user_id', userId)
-          .eq('is_active', true);
+          .eq('active', true);
 
         // Mapear todas las empresas con información de rol si la tiene
         const companiesWithRole = allCompaniesData?.map(company => {
@@ -127,7 +127,7 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
             )
           `)
           .eq('user_id', userId)
-          .eq('is_active', true)
+          .eq('active', true)
           .order('is_default', { ascending: false });
 
         if (error) throw error;

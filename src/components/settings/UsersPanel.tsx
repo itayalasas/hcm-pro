@@ -85,7 +85,7 @@ export default function UsersPanel() {
               company:companies(id, legal_name)
             `)
             .eq('user_id', user.id)
-            .eq('is_active', true);
+            .eq('active', true);
 
           return {
             ...user,

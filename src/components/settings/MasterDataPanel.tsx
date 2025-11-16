@@ -3,7 +3,7 @@ import { useCompany } from '../../contexts/CompanyContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import {
-  Building2, MapPin, Briefcase, Plus, Edit2, Trash2, Save, X, Search
+  Building2, MapPin, Briefcase, Plus, Edit2, Trash2, Save, X, Search, GraduationCap, BookOpen, UserCheck, FileText
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -11,7 +11,7 @@ import Modal from '../ui/Modal';
 import PositionsTab from './PositionsTab';
 import { useToast } from '../../hooks/useToast';
 
-type MasterDataType = 'departments' | 'locations' | 'positions';
+type MasterDataType = 'departments' | 'locations' | 'positions' | 'academic_levels' | 'institutions' | 'fields_of_study' | 'employment_types';
 
 interface Department {
   id: string;
@@ -63,6 +63,10 @@ export default function MasterDataPanel() {
     { id: 'departments' as MasterDataType, label: 'Departamentos', icon: Building2 },
     { id: 'locations' as MasterDataType, label: 'Ubicaciones', icon: MapPin },
     { id: 'positions' as MasterDataType, label: 'Puestos', icon: Briefcase },
+    { id: 'academic_levels' as MasterDataType, label: 'Niveles Académicos', icon: GraduationCap },
+    { id: 'institutions' as MasterDataType, label: 'Instituciones', icon: BookOpen },
+    { id: 'fields_of_study' as MasterDataType, label: 'Campos de Estudio', icon: FileText },
+    { id: 'employment_types' as MasterDataType, label: 'Tipos de Empleo', icon: UserCheck },
   ];
 
   return (
@@ -73,13 +77,13 @@ export default function MasterDataPanel() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200">
-        <div className="border-b border-slate-200">
-          <nav className="flex">
+        <div className="border-b border-slate-200 overflow-x-auto">
+          <nav className="flex min-w-max">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-6 py-4 font-medium transition-colors relative ${
+                className={`flex items-center gap-2 px-6 py-4 font-medium transition-colors relative whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'text-blue-600 border-b-2 border-blue-600'
                     : 'text-slate-600 hover:text-slate-900'
@@ -109,6 +113,10 @@ export default function MasterDataPanel() {
           {activeTab === 'departments' && <DepartmentsTab searchTerm={searchTerm} />}
           {activeTab === 'locations' && <LocationsTab searchTerm={searchTerm} />}
           {activeTab === 'positions' && <PositionsTab searchTerm={searchTerm} />}
+          {activeTab === 'academic_levels' && <AcademicLevelsTab searchTerm={searchTerm} />}
+          {activeTab === 'institutions' && <InstitutionsTab searchTerm={searchTerm} />}
+          {activeTab === 'fields_of_study' && <FieldsOfStudyTab searchTerm={searchTerm} />}
+          {activeTab === 'employment_types' && <EmploymentTypesTab searchTerm={searchTerm} />}
         </div>
       </div>
     </div>
@@ -372,6 +380,7 @@ function DepartmentsTab({ searchTerm }: { searchTerm: string }) {
 function LocationsTab({ searchTerm }: { searchTerm: string }) {
   const { selectedCompanyId } = useCompany();
   const { user } = useAuth();
+  const toast = useToast();
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -733,8 +742,320 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
           </div>
         </div>
       </Modal>
-      <toast.ToastContainer />
     </div>
   );
 }
 
+
+
+// Generic Simple Master Data Tab Component (without code generation)
+interface SimpleItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  active: boolean;
+}
+
+interface SimpleTabProps {
+  searchTerm: string;
+  tableName: string;
+  singularLabel: string;
+  pluralLabel: string;
+  hasDescription?: boolean;
+}
+
+function SimpleMasterDataTab({ searchTerm, tableName, singularLabel, pluralLabel, hasDescription = true }: SimpleTabProps) {
+  const { selectedCompanyId } = useCompany();
+  const toast = useToast();
+  const [items, setItems] = useState<SimpleItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    active: true,
+  });
+
+  useEffect(() => {
+    loadItems();
+  }, [selectedCompanyId]);
+
+  const loadItems = async () => {
+    if (!selectedCompanyId) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('*')
+        .eq('company_id', selectedCompanyId)
+        .order('name');
+
+      if (error) throw error;
+      setItems(data || []);
+    } catch (error) {
+      console.error(`Error loading ${pluralLabel}:`, error);
+      toast.error(`Error al cargar ${pluralLabel}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!selectedCompanyId) return;
+    if (!formData.name.trim()) {
+      toast.error('El nombre es requerido');
+      return;
+    }
+
+    try {
+      const dataToSave = {
+        company_id: selectedCompanyId,
+        name: formData.name.trim(),
+        ...(hasDescription && { description: formData.description.trim() || null }),
+        active: formData.active,
+      };
+
+      if (editingId) {
+        const { error } = await supabase
+          .from(tableName)
+          .update(dataToSave)
+          .eq('id', editingId);
+        if (error) throw error;
+        toast.success(`${singularLabel} actualizado correctamente`);
+      } else {
+        const { error } = await supabase
+          .from(tableName)
+          .insert(dataToSave);
+        if (error) throw error;
+        toast.success(`${singularLabel} creado correctamente`);
+      }
+
+      setShowModal(false);
+      resetForm();
+      loadItems();
+    } catch (error) {
+      console.error(`Error saving ${singularLabel}:`, error);
+      toast.error(`Error al guardar ${singularLabel}`);
+    }
+  };
+
+  const handleEdit = (item: SimpleItem) => {
+    setEditingId(item.id);
+    setFormData({
+      name: item.name,
+      description: item.description || '',
+      active: item.active,
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm(`¿Estás seguro de eliminar este ${singularLabel}?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from(tableName)
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success(`${singularLabel} eliminado correctamente`);
+      loadItems();
+    } catch (error) {
+      console.error(`Error deleting ${singularLabel}:`, error);
+      toast.error(`Error al eliminar ${singularLabel}`);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      active: true,
+    });
+    setEditingId(null);
+  };
+
+  const filteredItems = items.filter(item =>
+    item.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) {
+    return <div className="text-center py-8 text-slate-600">Cargando...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-slate-600">{filteredItems.length} {pluralLabel}</p>
+        <Button onClick={() => {
+          resetForm();
+          setShowModal(true);
+        }}>
+          <Plus className="w-4 h-4 mr-2" />
+          Nuevo {singularLabel}
+        </Button>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-slate-200">
+              <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">NOMBRE</th>
+              {hasDescription && <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">DESCRIPCIÓN</th>}
+              <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">ESTADO</th>
+              <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">ACCIONES</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredItems.map((item) => (
+              <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
+                <td className="py-3 px-4 text-sm text-slate-900">{item.name}</td>
+                {hasDescription && <td className="py-3 px-4 text-sm text-slate-600">{item.description || '-'}</td>}
+                <td className="py-3 px-4">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    item.active
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-slate-100 text-slate-800'
+                  }`}>
+                    {item.active ? 'Activo' : 'Inactivo'}
+                  </span>
+                </td>
+                <td className="py-3 px-4">
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => handleEdit(item)}
+                      className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                    >
+                      <Edit2 className="w-4 h-4 text-slate-600" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filteredItems.length === 0 && (
+          <div className="text-center py-8 text-slate-600">
+            No se encontraron {pluralLabel}
+          </div>
+        )}
+      </div>
+
+      <Modal
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false);
+          resetForm();
+        }}
+        title={editingId ? `Editar ${singularLabel}` : `Nuevo ${singularLabel}`}
+      >
+        <div className="space-y-4">
+          <Input
+            label="Nombre"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+            placeholder={`Nombre del ${singularLabel}`}
+          />
+
+          {hasDescription && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Descripción
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Descripción opcional"
+              />
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="active-simple"
+              checked={formData.active}
+              onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
+              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <label htmlFor="active-simple" className="text-sm font-medium text-slate-700 cursor-pointer">
+              Activo
+            </label>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button variant="secondary" onClick={() => {
+              setShowModal(false);
+              resetForm();
+            }} className="flex-1">
+              Cancelar
+            </Button>
+            <Button onClick={handleSave} className="flex-1">
+              {editingId ? 'Guardar' : 'Crear'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+// Tab components using the generic component
+function AcademicLevelsTab({ searchTerm }: { searchTerm: string }) {
+  return (
+    <SimpleMasterDataTab
+      searchTerm={searchTerm}
+      tableName="academic_levels"
+      singularLabel="Nivel Académico"
+      pluralLabel="niveles académicos"
+      hasDescription={true}
+    />
+  );
+}
+
+function InstitutionsTab({ searchTerm }: { searchTerm: string }) {
+  return (
+    <SimpleMasterDataTab
+      searchTerm={searchTerm}
+      tableName="educational_institutions"
+      singularLabel="Institución"
+      pluralLabel="instituciones"
+      hasDescription={false}
+    />
+  );
+}
+
+function FieldsOfStudyTab({ searchTerm }: { searchTerm: string }) {
+  return (
+    <SimpleMasterDataTab
+      searchTerm={searchTerm}
+      tableName="fields_of_study"
+      singularLabel="Campo de Estudio"
+      pluralLabel="campos de estudio"
+      hasDescription={true}
+    />
+  );
+}
+
+function EmploymentTypesTab({ searchTerm }: { searchTerm: string }) {
+  return (
+    <SimpleMasterDataTab
+      searchTerm={searchTerm}
+      tableName="employment_types"
+      singularLabel="Tipo de Empleo"
+      pluralLabel="tipos de empleo"
+      hasDescription={true}
+    />
+  );
+}

@@ -9,6 +9,7 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
 import PositionsTab from './PositionsTab';
+import { useToast } from '../../hooks/useToast';
 
 type MasterDataType = 'departments' | 'locations' | 'positions';
 
@@ -54,6 +55,7 @@ interface Position {
 export default function MasterDataPanel() {
   const { selectedCompanyId } = useCompany();
   const { user } = useAuth();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<MasterDataType>('departments');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -153,7 +155,7 @@ function DepartmentsTab({ searchTerm }: { searchTerm: string }) {
 
   const handleSave = async () => {
     if (!selectedCompanyId || !formData.code || !formData.name) {
-      alert('Por favor complete los campos requeridos');
+      toast.warning('Por favor complete los campos requeridos');
       return;
     }
 
@@ -184,9 +186,11 @@ function DepartmentsTab({ searchTerm }: { searchTerm: string }) {
       setEditingId(null);
       setFormData({ code: '', name: '', description: '', active: true });
       loadDepartments();
+      toast.success(editingId ? 'Departamento actualizado correctamente' : 'Departamento creado correctamente');
     } catch (error) {
       console.error('Error saving department:', error);
-      alert('Error al guardar el departamento');
+      const errorMsg = (error as any).message || 'Error al guardar el departamento';
+      toast.error(errorMsg);
     }
   };
 
@@ -212,9 +216,10 @@ function DepartmentsTab({ searchTerm }: { searchTerm: string }) {
 
       if (error) throw error;
       loadDepartments();
+      toast.success('Departamento eliminado correctamente');
     } catch (error) {
       console.error('Error deleting department:', error);
-      alert('Error al eliminar el departamento');
+      toast.error('Error al eliminar el departamento');
     }
   };
 
@@ -410,7 +415,7 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
 
   const handleSave = async () => {
     if (!selectedCompanyId || !formData.code || !formData.name) {
-      alert('Por favor complete los campos requeridos');
+      toast.warning('Por favor complete los campos requeridos');
       return;
     }
 
@@ -452,9 +457,11 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
         active: true,
       });
       loadLocations();
+      toast.success(editingId ? 'Ubicación actualizada correctamente' : 'Ubicación creada correctamente');
     } catch (error) {
       console.error('Error saving location:', error);
-      alert('Error al guardar la ubicación');
+      const errorMsg = (error as any).message || 'Error al guardar la ubicación';
+      toast.error(errorMsg);
     }
   };
 
@@ -486,9 +493,10 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
 
       if (error) throw error;
       loadLocations();
+      toast.success('Ubicación eliminada correctamente');
     } catch (error) {
       console.error('Error deleting location:', error);
-      alert('Error al eliminar la ubicación');
+      toast.error('Error al eliminar la ubicación');
     }
   };
 
@@ -725,6 +733,7 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
           </div>
         </div>
       </Modal>
+      <toast.ToastContainer />
     </div>
   );
 }

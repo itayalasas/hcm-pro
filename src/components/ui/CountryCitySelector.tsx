@@ -36,8 +36,14 @@ export default function CountryCitySelector({
   }, []);
 
   useEffect(() => {
+    console.log('=== useEffect for currentCountryData ===');
+    console.log('selectedCountry:', selectedCountry);
+    console.log('countries.length:', countries.length);
     if (selectedCountry && countries.length > 0) {
+      console.log('Looking for country:', selectedCountry);
+      console.log('Available countries:', countries.map(c => c.country));
       const countryData = countries.find(c => c.country === selectedCountry);
+      console.log('Found countryData:', countryData);
       setCurrentCountryData(countryData || null);
     } else {
       setCurrentCountryData(null);

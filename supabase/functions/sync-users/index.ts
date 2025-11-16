@@ -11,13 +11,9 @@ interface User {
   email: string;
   name: string;
   role: string;
-  permissions: Record<string, any>;
+  permissions: string[];
   metadata: Record<string, any>;
   created_at: string;
-}
-
-interface SyncUserRequest {
-  user: User;
 }
 
 interface ExternalAPIResponse {
@@ -36,81 +32,102 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const authApiUrl = Deno.env.get('AUTH_API_URL') || 'https://auth-api-url.com/users';
+    const authAppId = Deno.env.get('VITE_AUTH_APP_ID')!;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Obtener el usuario del body de la request (POST)
-    const body: SyncUserRequest = await req.json();
+    console.log('Fetching users from external API...');
 
-    if (!body.user) {
-      throw new Error('User data is required');
+    const response = await fetch(authApiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Application-ID': authAppId,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`External API error: ${response.statusText}`);
     }
 
-    const user = body.user;
+    const data: ExternalAPIResponse = await response.json();
 
-    console.log(`Syncing user: ${user.email} (${user.id})`);
-
-    // Verificar si el usuario ya existe
-    const { data: existing, error: fetchError } = await supabase
-      .from('app_users')
-      .select('id')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (fetchError) {
-      throw new Error(`Error checking user: ${fetchError.message}`);
+    if (!data.success || !data.users) {
+      throw new Error('Invalid response from external API');
     }
 
-    const userData = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      permissions: user.permissions,
-      metadata: user.metadata,
-      is_active: true,
-      last_sync_at: new Date().toISOString(),
+    console.log(`Found ${data.users.length} users to sync`);
+
+    let syncedCount = 0;
+    let updatedCount = 0;
+    const errors: string[] = [];
+
+    for (const user of data.users) {
+      try {
+        const { data: existing, error: fetchError } = await supabase
+          .from('app_users')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (fetchError) {
+          errors.push(`Error checking user ${user.email}: ${fetchError.message}`);
+          continue;
+        }
+
+        const userData = {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          permissions: user.permissions,
+          metadata: user.metadata,
+          is_active: true,
+          last_sync_at: new Date().toISOString(),
+        };
+
+        if (existing) {
+          const { error: updateError } = await supabase
+            .from('app_users')
+            .update({
+              ...userData,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', user.id);
+
+          if (updateError) {
+            errors.push(`Error updating user ${user.email}: ${updateError.message}`);
+          } else {
+            updatedCount++;
+          }
+        } else {
+          const { error: insertError } = await supabase
+            .from('app_users')
+            .insert(userData);
+
+          if (insertError) {
+            errors.push(`Error inserting user ${user.email}: ${insertError.message}`);
+          } else {
+            syncedCount++;
+          }
+        }
+      } catch (userError) {
+        errors.push(`Error processing user ${user.email}: ${userError.message}`);
+      }
+    }
+
+    const result = {
+      success: true,
+      message: 'User sync completed',
+      stats: {
+        total: data.users.length,
+        synced: syncedCount,
+        updated: updatedCount,
+        errors: errors.length,
+      },
+      errors: errors.length > 0 ? errors : undefined,
     };
-
-    let result;
-
-    if (existing) {
-      // Actualizar usuario existente
-      const { error: updateError } = await supabase
-        .from('app_users')
-        .update({
-          ...userData,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
-
-      if (updateError) {
-        throw new Error(`Error updating user: ${updateError.message}`);
-      }
-
-      result = {
-        success: true,
-        message: 'User updated successfully',
-        user: userData,
-        action: 'updated',
-      };
-    } else {
-      // Insertar nuevo usuario
-      const { error: insertError } = await supabase
-        .from('app_users')
-        .insert(userData);
-
-      if (insertError) {
-        throw new Error(`Error inserting user: ${insertError.message}`);
-      }
-
-      result = {
-        success: true,
-        message: 'User synced successfully',
-        user: userData,
-        action: 'created',
-      };
-    }
 
     console.log('Sync completed:', result);
 

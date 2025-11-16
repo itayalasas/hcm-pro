@@ -224,31 +224,31 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
   }, [employeeData.personalInfo.country]);
 
   const updatePersonalInfo = (field: string, value: string) => {
-    setEmployeeData({
-      ...employeeData,
-      personalInfo: { ...employeeData.personalInfo, [field]: value }
-    });
+    setEmployeeData(prev => ({
+      ...prev,
+      personalInfo: { ...prev.personalInfo, [field]: value }
+    }));
   };
 
   const updateEducation = (field: string, value: string) => {
-    setEmployeeData({
-      ...employeeData,
-      education: { ...employeeData.education, [field]: value }
-    });
+    setEmployeeData(prev => ({
+      ...prev,
+      education: { ...prev.education, [field]: value }
+    }));
   };
 
   const updateEmployment = (field: string, value: string) => {
-    setEmployeeData({
-      ...employeeData,
-      employment: { ...employeeData.employment, [field]: value }
-    });
+    setEmployeeData(prev => ({
+      ...prev,
+      employment: { ...prev.employment, [field]: value }
+    }));
   };
 
   const updateDocuments = (field: string, value: any) => {
-    setEmployeeData({
-      ...employeeData,
-      documents: { ...employeeData.documents, [field]: value }
-    });
+    setEmployeeData(prev => ({
+      ...prev,
+      documents: { ...prev.documents, [field]: value }
+    }));
   };
 
   const renderStepContent = () => {

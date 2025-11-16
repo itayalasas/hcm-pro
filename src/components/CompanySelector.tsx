@@ -47,14 +47,15 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
 
       if (!authData.user) return false;
 
-      // Verificar si el rol es "administrador" (tal como viene de la API externa)
-      const isAdmin = authData.user.role === 'administrador' ||
-                      authData.user.role === 'administrator' ||
-                      authData.user.role === 'admin';
+      // Solo el rol "superadmin" tiene acceso a TODAS las empresas
+      // Los roles "admin", "administrador" solo tienen acceso a sus empresas asignadas
+      const isSuperAdmin = authData.user.role === 'superadmin' ||
+                           authData.user.role === 'super_admin' ||
+                           authData.user.role === 'superadministrador';
 
-      console.log('[CompanySelector] User role:', authData.user.role, '| Is Admin:', isAdmin);
+      console.log('[CompanySelector] User role:', authData.user.role, '| Is SuperAdmin:', isSuperAdmin);
 
-      return isAdmin;
+      return isSuperAdmin;
     } catch (error) {
       console.error('Error checking admin status:', error);
       return false;
@@ -63,12 +64,12 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
 
   const loadUserCompanies = async () => {
     try {
-      // Verificar si es administrador del sistema
-      const isAdmin = checkSystemAdmin();
-      setIsSystemAdmin(isAdmin);
+      // Verificar si es superadministrador del sistema
+      const isSuperAdmin = checkSystemAdmin();
+      setIsSystemAdmin(isSuperAdmin);
 
-      if (isAdmin) {
-        // Si es admin, cargar TODAS las empresas
+      if (isSuperAdmin) {
+        // Si es superadmin, cargar TODAS las empresas
         const { data: allCompaniesData, error: allError } = await supabase
           .from('companies')
           .select('id, code, legal_name, trade_name')
@@ -122,7 +123,7 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
           setSelectedCompany(companiesWithRole[0].company_id);
         }
       } else {
-        // Si no es admin, solo cargar sus empresas asignadas
+        // Si NO es superadmin, solo cargar sus empresas asignadas en user_companies
         const authData = getStoredAuthData();
         const userEmail = authData?.user?.email;
 
@@ -178,7 +179,7 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
     if (selectedCompany) {
       localStorage.setItem('selected_company_id', selectedCompany);
 
-      // Si es admin del sistema y la empresa no está en user_companies, crear la relación
+      // Si es superadmin del sistema y la empresa no está en user_companies, crear la relación
       if (isSystemAdmin) {
         const authData = getStoredAuthData();
 
@@ -275,12 +276,12 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
 
         <div className="p-6 max-h-[60vh] overflow-y-auto">
           {isSystemAdmin && (
-            <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+            <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
               <div className="flex items-start gap-3">
-                <Shield className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                <Shield className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-purple-900">Acceso de Administrador</p>
-                  <p className="text-xs text-purple-700 mt-1">
+                  <p className="text-sm font-medium text-amber-900">Acceso de SuperAdministrador</p>
+                  <p className="text-xs text-amber-700 mt-1">
                     Tienes acceso a todas las empresas del sistema ({companies.length} en total)
                   </p>
                 </div>

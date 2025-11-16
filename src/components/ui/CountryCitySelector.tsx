@@ -94,6 +94,7 @@ export default function CountryCitySelector({
     console.log('found countryData:', countryData);
     if (countryData) {
       console.log('calling onCountryChange with:', country, countryData.iso3);
+      setCurrentCountryData(countryData);
       onCountryChange(country, countryData.iso3);
       onCityChange('');
     }

@@ -703,9 +703,14 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
             selectedCity={formData.city}
             selectedCountryISO3={formData.country_iso3}
             onCountryChange={(country, iso3) => {
+              console.log('=== MasterDataPanel onCountryChange ===');
+              console.log('country:', country, 'iso3:', iso3);
+              console.log('current formData:', formData);
               setFormData({ ...formData, country, country_iso3: iso3, city: '' });
             }}
             onCityChange={(city) => {
+              console.log('=== MasterDataPanel onCityChange ===');
+              console.log('city:', city);
               setFormData({ ...formData, city });
             }}
           />

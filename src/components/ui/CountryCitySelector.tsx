@@ -81,8 +81,13 @@ export default function CountryCitySelector({
   };
 
   const handleCountrySelect = (country: string, _option?: any) => {
+    console.log('=== handleCountrySelect ===');
+    console.log('country parameter:', country);
+    console.log('countries array length:', countries.length);
     const countryData = countries.find(c => c.country === country);
+    console.log('found countryData:', countryData);
     if (countryData) {
+      console.log('calling onCountryChange with:', country, countryData.iso3);
       onCountryChange(country, countryData.iso3);
       onCityChange('');
     }
@@ -119,6 +124,13 @@ export default function CountryCitySelector({
 
   const countryNames = countries.map(c => c.country);
   const cityNames = currentCountryData?.cities || [];
+
+  console.log('=== CountryCitySelector Render ===');
+  console.log('selectedCountry:', selectedCountry);
+  console.log('selectedCountryISO3:', selectedCountryISO3);
+  console.log('currentCountryData:', currentCountryData);
+  console.log('cityNames.length:', cityNames.length);
+  console.log('disabled condition:', !selectedCountry || cityNames.length === 0);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

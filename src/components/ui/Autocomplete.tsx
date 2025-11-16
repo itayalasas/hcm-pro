@@ -53,9 +53,14 @@ export default function Autocomplete({
 
   useEffect(() => {
     console.log('Autocomplete useEffect - value:', value);
-    const selected = normalizedOptions.find(opt => opt.value === value);
-    console.log('Autocomplete useEffect - selected:', selected);
-    setSelectedLabel(selected?.label || '');
+    console.log('Autocomplete useEffect - normalizedOptions:', normalizedOptions);
+    if (value) {
+      const selected = normalizedOptions.find(opt => opt.value === value);
+      console.log('Autocomplete useEffect - selected:', selected);
+      setSelectedLabel(selected?.label || value);
+    } else {
+      setSelectedLabel('');
+    }
   }, [value, normalizedOptions]);
 
   useEffect(() => {

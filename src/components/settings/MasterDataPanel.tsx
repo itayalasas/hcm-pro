@@ -710,28 +710,15 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
             }}
           />
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Estado/Provincia
-              </label>
-              <Input
-                value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                placeholder="Estado o provincia"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Código Postal
-              </label>
-              <Input
-                value={formData.postal_code}
-                onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-                placeholder="12345"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Código Postal
+            </label>
+            <Input
+              value={formData.postal_code}
+              onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+              placeholder="12345"
+            />
           </div>
 
           <div>

@@ -53,9 +53,7 @@ export default function Autocomplete({
   const [displayValue, setDisplayValue] = useState(value);
 
   useEffect(() => {
-    if (value) {
-      setDisplayValue(value);
-    }
+    setDisplayValue(value);
   }, [value]);
 
   const selectedLabel = useMemo(() => {
@@ -127,10 +125,7 @@ export default function Autocomplete({
             </div>
           )}
           <span className={selectedLabel ? 'text-slate-900' : 'text-slate-400'}>
-            {(() => {
-              console.log('Rendering span - selectedLabel:', selectedLabel, 'placeholder:', placeholder);
-              return selectedLabel || placeholder;
-            })()}
+            {selectedLabel || placeholder}
           </span>
           <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </div>

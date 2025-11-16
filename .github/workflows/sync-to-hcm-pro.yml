@@ -3,7 +3,7 @@ name: Sync to hcm-pro
 on:
   push:
     branches:
-      - "**"     # se dispara en cualquier rama; puedes limitar a "main" si quieres
+      - main   # solo cuando haces push a main
 
 jobs:
   sync:
@@ -13,19 +13,25 @@ jobs:
       - name: Checkout source repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # historial completo
+          fetch-depth: 0          # historial completo
+          persist-credentials: false  # MUY IMPORTANTE: no usar github-actions[bot]
 
       - name: Configure Git
         run: |
           git config user.name "Sync Bot"
-          git config user.email "sync-bot@example.com"
+          git config user.email "sync-bot@users.noreply.github.com"
 
       - name: Add destination remote (hcm-pro)
+        env:
+          PAT: ${{ secrets.HCM_PRO_PAT }}
         run: |
-          git remote add dest https://github.com/itayalasas/hcm-pro.git
+          git remote add dest https://x-access-token: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@github.com/itayalasas/hcm-pro.git
+          echo "==== Remotes configurados ===="
+          git remote -v
 
-      - name: Push branch to hcm-pro
+      - name: Push main branch to hcm-pro
+        env:
+          PAT: ${{ secrets.HCM_PRO_PAT }}
         run: |
-          BRANCH=${GITHUB_REF#refs/heads/}
-          echo "Syncing branch $BRANCH to itayalasas/hcm-pro..."
-          git push dest "$BRANCH":"$BRANCH"
+          echo "Syncing main -> itayalasas/hcm-pro..."
+          git push dest main:main

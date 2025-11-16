@@ -81,7 +81,9 @@ export default function CountryCitySelector({
   };
 
   const handleCountrySelect = (country: string, _option?: any) => {
+    console.log('handleCountrySelect called with:', country, _option);
     const countryData = countries.find(c => c.country === country);
+    console.log('Found country data:', countryData);
     if (countryData) {
       onCountryChange(country, countryData.iso3);
       onCityChange('');

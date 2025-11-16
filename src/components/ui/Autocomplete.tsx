@@ -70,6 +70,7 @@ export default function Autocomplete({
   );
 
   const handleSelect = (option: AutocompleteOption) => {
+    console.log('handleSelect called with:', option);
     onChange(option.value, option);
     setSelectedLabel(option.label);
     setSearchTerm('');
@@ -144,7 +145,12 @@ export default function Autocomplete({
                 filteredOptions.map((option) => (
                   <button
                     key={option.value}
-                    onClick={() => handleSelect(option)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSelect(option);
+                    }}
+                    type="button"
                     className={`
                       w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors
                       flex items-center gap-3 border-b border-slate-100 last:border-0

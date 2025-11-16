@@ -24,7 +24,12 @@ const entityTypes = [
   { value: 'company', label: 'Empresas', icon: '🏢' },
   { value: 'employee', label: 'Empleados', icon: '👤' },
   { value: 'department', label: 'Departamentos', icon: '📁' },
+  { value: 'work_location', label: 'Ubicaciones', icon: '📍' },
   { value: 'position', label: 'Puestos', icon: '💼' },
+  { value: 'academic_level', label: 'Niveles Académicos', icon: '🎓' },
+  { value: 'educational_institution', label: 'Instituciones Educativas', icon: '🏫' },
+  { value: 'field_of_study', label: 'Campos de Estudio', icon: '📚' },
+  { value: 'employment_type', label: 'Tipos de Empleo', icon: '📝' },
 ];
 
 export default function CodeConfigurationPanel() {

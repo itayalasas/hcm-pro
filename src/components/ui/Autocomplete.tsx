@@ -12,7 +12,7 @@ interface AutocompleteProps {
   label?: string;
   value: string;
   onChange: (value: string, option?: AutocompleteOption) => void;
-  options: AutocompleteOption[];
+  options: AutocompleteOption[] | string[];
   placeholder?: string;
   required?: boolean;
   error?: string;
@@ -21,6 +21,7 @@ interface AutocompleteProps {
   onCreate?: (value: string) => void;
   loading?: boolean;
   icon?: ReactNode;
+  disabled?: boolean;
 }
 
 export default function Autocomplete({
@@ -35,7 +36,8 @@ export default function Autocomplete({
   allowCreate,
   onCreate,
   loading,
-  icon
+  icon,
+  disabled = false
 }: AutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -58,7 +60,11 @@ export default function Autocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredOptions = options.filter(option =>
+  const normalizedOptions: AutocompleteOption[] = options.map(opt =>
+    typeof opt === 'string' ? { value: opt, label: opt } : opt
+  );
+
+  const filteredOptions = normalizedOptions.filter(option =>
     option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
     option.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -93,10 +99,11 @@ export default function Autocomplete({
 
       <div className="relative">
         <div
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => !disabled && setIsOpen(!isOpen)}
           className={`
-            w-full px-4 py-2.5 bg-white border rounded-lg cursor-pointer
+            w-full px-4 py-2.5 bg-white border rounded-lg
             transition-all flex items-center justify-between
+            ${disabled ? 'cursor-not-allowed bg-slate-50 opacity-60' : 'cursor-pointer'}
             ${isOpen ? 'ring-2 ring-blue-500 border-blue-500' : error ? 'border-red-300' : 'border-slate-300'}
             ${icon ? 'pl-10' : ''}
           `}

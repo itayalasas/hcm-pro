@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Search, Filter, Download, Plus, Mail, Phone, MapPin, Briefcase, Eye } from 'lucide-react';
 import { supabase, Employee } from '../../lib/supabase';
+import { useCompany } from '../../contexts/CompanyContext';
+import { useNavigation } from '../../contexts/NavigationContext';
 import AddEmployeeWizard from './AddEmployeeWizard';
 import EmployeeProfile from './EmployeeProfile';
 
 export default function EmployeeList() {
+  const { selectedCompanyId } = useCompany();
+  const { currentView, navigate } = useNavigation();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -13,14 +17,28 @@ export default function EmployeeList() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadEmployees();
-  }, []);
+    if (selectedCompanyId) {
+      loadEmployees();
+    }
+  }, [selectedCompanyId]);
+
+  useEffect(() => {
+    if (currentView === '/employees/new') {
+      setShowAddWizard(true);
+    }
+  }, [currentView]);
 
   const loadEmployees = async () => {
     try {
+      if (!selectedCompanyId) {
+        setEmployees([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('employees')
         .select('*')
+        .eq('company_id', selectedCompanyId)
         .order('last_name', { ascending: true });
 
       if (error) throw error;
@@ -57,6 +75,15 @@ export default function EmployeeList() {
         employeeId={selectedEmployeeId}
         onBack={() => setSelectedEmployeeId(null)}
       />
+    );
+  }
+
+  if (!selectedCompanyId) {
+    return (
+      <div className="text-center py-12">
+        <Briefcase className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+        <p className="text-slate-500">Seleccione una empresa para ver los empleados</p>
+      </div>
     );
   }
 
@@ -209,9 +236,13 @@ export default function EmployeeList() {
 
       <AddEmployeeWizard
         isOpen={showAddWizard}
-        onClose={() => setShowAddWizard(false)}
+        onClose={() => {
+          setShowAddWizard(false);
+          navigate('/employees');
+        }}
         onSuccess={() => {
           setShowAddWizard(false);
+          navigate('/employees');
           loadEmployees();
         }}
       />

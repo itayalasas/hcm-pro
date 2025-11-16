@@ -5,6 +5,7 @@ import StepWizard from '../ui/StepWizard';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import { supabase } from '../../lib/supabase';
+import { useCompany } from '../../contexts/CompanyContext';
 
 interface AddEmployeeWizardProps {
   isOpen: boolean;
@@ -59,6 +60,7 @@ const steps = [
 ];
 
 export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmployeeWizardProps) {
+  const { selectedCompanyId } = useCompany();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [employeeData, setEmployeeData] = useState<EmployeeData>({
@@ -114,14 +116,8 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const { data: companyData } = await supabase
-        .from('companies')
-        .select('id')
-        .limit(1)
-        .single();
-
-      if (!companyData) {
-        throw new Error('No company found');
+      if (!selectedCompanyId) {
+        throw new Error('No hay empresa seleccionada');
       }
 
       let employeeNumber = employeeData.employment.employeeNumber;
@@ -130,7 +126,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
         const { data: generatedCode, error: codeError } = await supabase
           .rpc('generate_entity_code', {
             p_entity_type: 'employee',
-            p_company_id: companyData.id
+            p_company_id: selectedCompanyId
           });
 
         if (codeError) throw codeError;
@@ -138,7 +134,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
       }
 
       const { error } = await supabase.from('employees').insert({
-        company_id: companyData.id,
+        company_id: selectedCompanyId,
         employee_number: employeeNumber,
         first_name: employeeData.personalInfo.firstName,
         last_name: employeeData.personalInfo.lastName,

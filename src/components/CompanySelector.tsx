@@ -45,15 +45,24 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
       // Obtener datos del usuario autenticado desde el sistema externo
       const authData = getStoredAuthData();
 
-      if (!authData.user) return false;
+      if (!authData.user) {
+        console.log('[CompanySelector] No user data found');
+        return false;
+      }
+
+      // Normalizar el rol a minúsculas para comparación
+      const userRole = (authData.user.role || '').toLowerCase();
 
       // Solo el rol "superadmin" tiene acceso a TODAS las empresas
-      // Los roles "admin", "administrador" solo tienen acceso a sus empresas asignadas
-      const isSuperAdmin = authData.user.role === 'superadmin' ||
-                           authData.user.role === 'super_admin' ||
-                           authData.user.role === 'superadministrador';
+      // Los roles "admin", "administrador", "manager", "employee" solo tienen acceso a sus empresas asignadas
+      const isSuperAdmin = userRole === 'superadmin' ||
+                           userRole === 'super_admin' ||
+                           userRole === 'superadministrador';
 
-      console.log('[CompanySelector] User role:', authData.user.role, '| Is SuperAdmin:', isSuperAdmin);
+      console.log('[CompanySelector] User email:', authData.user.email);
+      console.log('[CompanySelector] User role (original):', authData.user.role);
+      console.log('[CompanySelector] User role (normalized):', userRole);
+      console.log('[CompanySelector] Is SuperAdmin:', isSuperAdmin);
 
       return isSuperAdmin;
     } catch (error) {
@@ -68,7 +77,10 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
       const isSuperAdmin = checkSystemAdmin();
       setIsSystemAdmin(isSuperAdmin);
 
+      console.log('[CompanySelector] Loading companies for SuperAdmin:', isSuperAdmin);
+
       if (isSuperAdmin) {
+        console.log('[CompanySelector] Loading ALL companies (SuperAdmin mode)');
         // Si es superadmin, cargar TODAS las empresas
         const { data: allCompaniesData, error: allError } = await supabase
           .from('companies')
@@ -123,9 +135,11 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
           setSelectedCompany(companiesWithRole[0].company_id);
         }
       } else {
+        console.log('[CompanySelector] Loading ASSIGNED companies only (Regular user mode)');
         // Si NO es superadmin, solo cargar sus empresas asignadas en user_companies
         const authData = getStoredAuthData();
         const userEmail = authData?.user?.email;
+        console.log('[CompanySelector] Looking up companies for email:', userEmail);
 
         // Buscar el usuario en app_users por email
         const { data: appUser } = await supabase
@@ -158,6 +172,9 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
           .order('is_default', { ascending: false });
 
         if (error) throw error;
+
+        console.log('[CompanySelector] Found assigned companies:', data?.length || 0);
+        console.log('[CompanySelector] Companies data:', data);
 
         setCompanies(data as any);
 

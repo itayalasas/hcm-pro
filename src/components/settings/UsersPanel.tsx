@@ -166,6 +166,10 @@ export default function UsersPanel() {
       'manager': 'manager',
       'employee': 'employee',
       'user': 'employee',
+      'Administrador': 'admin',
+      'Gerente': 'manager',
+      'Empleado': 'employee',
+      'Usuario': 'employee',
     };
 
     const userRole = roleMapping[selectedUser.role] || 'employee';
@@ -369,8 +373,8 @@ export default function UsersPanel() {
               Rol en la Empresa
             </label>
             <div className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg text-slate-700">
-              {selectedUser?.role === 'admin' ? 'Administrador' :
-               selectedUser?.role === 'manager' ? 'Gerente' : 'Empleado'}
+              {selectedUser?.role === 'admin' || selectedUser?.role === 'Administrador' ? 'Administrador' :
+               selectedUser?.role === 'manager' || selectedUser?.role === 'Gerente' ? 'Gerente' : 'Empleado'}
             </div>
             <p className="mt-1 text-xs text-slate-500">
               El rol se sincroniza automáticamente desde el sistema de autenticación

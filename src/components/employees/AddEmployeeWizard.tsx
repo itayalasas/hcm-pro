@@ -4,9 +4,11 @@ import Modal from '../ui/Modal';
 import StepWizard from '../ui/StepWizard';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
+import Autocomplete from '../ui/Autocomplete';
 import CountryCitySelector from '../ui/CountryCitySelector';
 import { supabase } from '../../lib/supabase';
 import { useCompany } from '../../contexts/CompanyContext';
+import { useToast } from '../../hooks/useToast';
 
 interface AddEmployeeWizardProps {
   isOpen: boolean;
@@ -63,8 +65,18 @@ const steps = [
 
 export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmployeeWizardProps) {
   const { selectedCompanyId } = useCompany();
+  const toast = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  const [academicLevels, setAcademicLevels] = useState<Array<{id: string, name: string}>>([]);
+  const [institutions, setInstitutions] = useState<Array<{id: string, name: string}>>([]);
+  const [fieldsOfStudy, setFieldsOfStudy] = useState<Array<{id: string, name: string}>>([]);
+  const [departments, setDepartments] = useState<Array<{id: string, name: string}>>([]);
+  const [positions, setPositions] = useState<Array<{id: string, name: string}>>([]);
+  const [employmentTypes, setEmploymentTypes] = useState<Array<{id: string, name: string}>>([]);
+  const [workLocations, setWorkLocations] = useState<Array<{id: string, name: string}>>([]);
   const [employeeData, setEmployeeData] = useState<EmployeeData>({
     personalInfo: {
       firstName: '',
@@ -104,8 +116,36 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
     }
   });
 
+  const validateCurrentStep = (): boolean => {
+    const errors: string[] = [];
+
+    switch (currentStep) {
+      case 0: // Personal Info
+        if (!employeeData.personalInfo.firstName.trim()) errors.push('Nombre es requerido');
+        if (!employeeData.personalInfo.lastName.trim()) errors.push('Apellido es requerido');
+        if (!employeeData.personalInfo.email.trim()) errors.push('Correo Electrónico es requerido');
+        if (!employeeData.personalInfo.country.trim()) errors.push('País es requerido');
+        break;
+      case 1: // Education - No required fields
+        break;
+      case 2: // Employment
+        if (!employeeData.employment.hireDate.trim()) errors.push('Fecha de Contratación es requerida');
+        break;
+      case 3: // Documents - No required fields
+        break;
+    }
+
+    setValidationErrors(errors);
+    if (errors.length > 0) {
+      toast.error(errors.join(', '));
+      return false;
+    }
+    return true;
+  };
+
   const handleNext = () => {
-    if (currentStep < steps.length - 1) {
+    if (validateCurrentStep() && currentStep < steps.length - 1) {
+      setValidationErrors([]);
       setCurrentStep(currentStep + 1);
     }
   };
@@ -220,8 +260,44 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
   };
 
   useEffect(() => {
-    console.log('employeeData.personalInfo.country changed:', employeeData.personalInfo.country);
-  }, [employeeData.personalInfo.country]);
+    if (selectedCompanyId && isOpen) {
+      loadMasterData();
+    }
+  }, [selectedCompanyId, isOpen]);
+
+  const loadMasterData = async () => {
+    if (!selectedCompanyId) return;
+
+    try {
+      const [
+        { data: academicData },
+        { data: institutionData },
+        { data: fieldData },
+        { data: deptData },
+        { data: posData },
+        { data: empTypeData },
+        { data: locData }
+      ] = await Promise.all([
+        supabase.from('academic_levels').select('id, name').eq('company_id', selectedCompanyId).eq('active', true),
+        supabase.from('educational_institutions').select('id, name').eq('company_id', selectedCompanyId).eq('active', true),
+        supabase.from('fields_of_study').select('id, name').eq('company_id', selectedCompanyId).eq('active', true),
+        supabase.from('departments').select('id, name').eq('company_id', selectedCompanyId).eq('active', true),
+        supabase.from('positions').select('id, title as name').eq('company_id', selectedCompanyId).eq('active', true),
+        supabase.from('employment_types').select('id, name').eq('company_id', selectedCompanyId).eq('active', true),
+        supabase.from('work_locations').select('id, name').eq('company_id', selectedCompanyId).eq('active', true)
+      ]);
+
+      setAcademicLevels(academicData || []);
+      setInstitutions(institutionData || []);
+      setFieldsOfStudy(fieldData || []);
+      setDepartments(deptData || []);
+      setPositions(posData || []);
+      setEmploymentTypes(empTypeData || []);
+      setWorkLocations(locData || []);
+    } catch (error) {
+      console.error('Error loading master data:', error);
+    }
+  };
 
   const updatePersonalInfo = (field: string, value: string) => {
     setEmployeeData(prev => ({
@@ -389,37 +465,35 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Nivel Académico Más Alto
-                </label>
-                <select
-                  value={employeeData.education.highestDegree}
-                  onChange={(e) => updateEducation('highestDegree', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccionar</option>
-                  <option value="high-school">Preparatoria</option>
-                  <option value="associate">Técnico</option>
-                  <option value="bachelor">Licenciatura</option>
-                  <option value="master">Maestría</option>
-                  <option value="doctorate">Doctorado</option>
-                </select>
-              </div>
-              <Input
+              <Autocomplete
+                label="Nivel Académico Más Alto"
+                value={employeeData.education.highestDegree}
+                options={academicLevels.map(level => ({ value: level.name, label: level.name }))}
+                onChange={(value) => updateEducation('highestDegree', value)}
+                onSelect={(value) => updateEducation('highestDegree', value)}
+                placeholder="Escribe para buscar nivel académico..."
+                allowCustomValue={true}
+              />
+              <Autocomplete
                 label="Institución"
                 value={employeeData.education.institution}
-                onChange={(e) => updateEducation('institution', e.target.value)}
-                placeholder="Universidad Nacional"
+                options={institutions.map(inst => ({ value: inst.name, label: inst.name }))}
+                onChange={(value) => updateEducation('institution', value)}
+                onSelect={(value) => updateEducation('institution', value)}
+                placeholder="Escribe para buscar institución..."
+                allowCustomValue={true}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Input
+              <Autocomplete
                 label="Campo de Estudio"
                 value={employeeData.education.fieldOfStudy}
-                onChange={(e) => updateEducation('fieldOfStudy', e.target.value)}
-                placeholder="Ingeniería en Sistemas"
+                options={fieldsOfStudy.map(field => ({ value: field.name, label: field.name }))}
+                onChange={(value) => updateEducation('fieldOfStudy', value)}
+                onSelect={(value) => updateEducation('fieldOfStudy', value)}
+                placeholder="Escribe para buscar campo de estudio..."
+                allowCustomValue={true}
               />
               <Input
                 label="Año de Graduación"
@@ -490,41 +564,44 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Input
+              <Autocomplete
                 label="Departamento"
                 value={employeeData.employment.department}
-                onChange={(e) => updateEmployment('department', e.target.value)}
-                placeholder="Tecnología"
+                options={departments.map(dept => ({ value: dept.name, label: dept.name }))}
+                onChange={(value) => updateEmployment('department', value)}
+                onSelect={(value) => updateEmployment('department', value)}
+                placeholder="Escribe para buscar departamento..."
+                allowCustomValue={true}
               />
-              <Input
+              <Autocomplete
                 label="Puesto"
                 value={employeeData.employment.position}
-                onChange={(e) => updateEmployment('position', e.target.value)}
-                placeholder="Desarrollador Senior"
+                options={positions.map(pos => ({ value: pos.name, label: pos.name }))}
+                onChange={(value) => updateEmployment('position', value)}
+                onSelect={(value) => updateEmployment('position', value)}
+                placeholder="Escribe para buscar puesto..."
+                allowCustomValue={true}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Tipo de Empleo
-                </label>
-                <select
-                  value={employeeData.employment.employmentType}
-                  onChange={(e) => updateEmployment('employmentType', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="full-time">Tiempo Completo</option>
-                  <option value="part-time">Medio Tiempo</option>
-                  <option value="contract">Por Contrato</option>
-                  <option value="temporary">Temporal</option>
-                </select>
-              </div>
-              <Input
+              <Autocomplete
+                label="Tipo de Empleo"
+                value={employeeData.employment.employmentType}
+                options={employmentTypes.map(type => ({ value: type.name, label: type.name }))}
+                onChange={(value) => updateEmployment('employmentType', value)}
+                onSelect={(value) => updateEmployment('employmentType', value)}
+                placeholder="Escribe para buscar tipo de empleo..."
+                allowCustomValue={true}
+              />
+              <Autocomplete
                 label="Ubicación de Trabajo"
                 value={employeeData.employment.workLocation}
-                onChange={(e) => updateEmployment('workLocation', e.target.value)}
-                placeholder="Oficina Central / Remoto"
+                options={workLocations.map(loc => ({ value: loc.name, label: loc.name }))}
+                onChange={(value) => updateEmployment('workLocation', value)}
+                onSelect={(value) => updateEmployment('workLocation', value)}
+                placeholder="Escribe para buscar ubicación..."
+                allowCustomValue={true}
               />
             </div>
 

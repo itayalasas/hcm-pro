@@ -41,7 +41,6 @@ export default function UsersPanel() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'manager' | 'employee'>('employee');
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
@@ -162,13 +161,22 @@ export default function UsersPanel() {
       return;
     }
 
+    const roleMapping: Record<string, 'admin' | 'manager' | 'employee'> = {
+      'admin': 'admin',
+      'manager': 'manager',
+      'employee': 'employee',
+      'user': 'employee',
+    };
+
+    const userRole = roleMapping[selectedUser.role] || 'employee';
+
     try {
       const { error } = await supabase
         .from('user_companies')
         .insert({
           user_id: selectedUser.id,
           company_id: selectedCompanyId,
-          role: selectedRole,
+          role: userRole,
           active: true,
         });
 
@@ -184,7 +192,6 @@ export default function UsersPanel() {
       setShowAssignModal(false);
       setSelectedUser(null);
       setSelectedCompanyId('');
-      setSelectedRole('employee');
       setToast({ message: 'Empresa asignada exitosamente', type: 'success' });
       loadUsers();
     } catch (error) {
@@ -359,19 +366,14 @@ export default function UsersPanel() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Rol en la Empresa *
+              Rol en la Empresa
             </label>
-            <select
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'manager' | 'employee')}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="employee">Empleado</option>
-              <option value="manager">Gerente</option>
-              <option value="admin">Administrador</option>
-            </select>
+            <div className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg text-slate-700">
+              {selectedUser?.role === 'admin' ? 'Administrador' :
+               selectedUser?.role === 'manager' ? 'Gerente' : 'Empleado'}
+            </div>
             <p className="mt-1 text-xs text-slate-500">
-              Define el nivel de acceso del usuario en esta empresa
+              El rol se sincroniza automáticamente desde el sistema de autenticación
             </p>
           </div>
 
@@ -382,7 +384,6 @@ export default function UsersPanel() {
                 setShowAssignModal(false);
                 setSelectedUser(null);
                 setSelectedCompanyId('');
-                setSelectedRole('employee');
               }}
               className="flex-1"
             >

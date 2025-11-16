@@ -705,13 +705,17 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
             onCountryChange={(country, iso3) => {
               console.log('=== MasterDataPanel onCountryChange ===');
               console.log('country:', country, 'iso3:', iso3);
-              console.log('current formData:', formData);
-              setFormData({ ...formData, country, country_iso3: iso3, city: '' });
+              setFormData(prev => {
+                console.log('previous formData:', prev);
+                const updated = { ...prev, country, country_iso3: iso3, city: '' };
+                console.log('updated formData:', updated);
+                return updated;
+              });
             }}
             onCityChange={(city) => {
               console.log('=== MasterDataPanel onCityChange ===');
               console.log('city:', city);
-              setFormData({ ...formData, city });
+              setFormData(prev => ({ ...prev, city }));
             }}
           />
 

@@ -8,6 +8,7 @@ import {
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
+import CountryCitySelector from '../ui/CountryCitySelector';
 import PositionsTab from './PositionsTab';
 import { useToast } from '../../hooks/useToast';
 
@@ -414,7 +415,8 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
     address: '',
     city: '',
     state: '',
-    country: 'México',
+    country: '',
+    country_iso3: '',
     postal_code: '',
     timezone: 'America/Mexico_City',
     is_remote: false,
@@ -513,7 +515,8 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
         address: '',
         city: '',
         state: '',
-        country: 'México',
+        country: '',
+        country_iso3: '',
         postal_code: '',
         timezone: 'America/Mexico_City',
         is_remote: false,
@@ -537,6 +540,7 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
       city: loc.city || '',
       state: loc.state || '',
       country: loc.country,
+      country_iso3: '',
       postal_code: loc.postal_code || '',
       timezone: loc.timezone,
       is_remote: loc.is_remote,
@@ -581,7 +585,7 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-600">{filteredLocations.length} ubicaciones</p>
-        <Button onClick={() => { setEditingId(null); setFormData({ code: '', name: '', address: '', city: '', state: '', country: 'México', postal_code: '', timezone: 'America/Mexico_City', is_remote: false, active: true }); setShowModal(true); }}>
+        <Button onClick={() => { setEditingId(null); setFormData({ code: '', name: '', address: '', city: '', state: '', country: '', country_iso3: '', postal_code: '', timezone: 'America/Mexico_City', is_remote: false, active: true }); setShowModal(true); }}>
           <Plus className="w-4 h-4 mr-2" />
           Nueva Ubicación
         </Button>
@@ -694,18 +698,19 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Ciudad
-              </label>
-              <Input
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                placeholder="Ciudad"
-              />
-            </div>
+          <CountryCitySelector
+            selectedCountry={formData.country}
+            selectedCity={formData.city}
+            selectedCountryISO3={formData.country_iso3}
+            onCountryChange={(country, iso3) => {
+              setFormData({ ...formData, country, country_iso3: iso3, state: '' });
+            }}
+            onCityChange={(city) => {
+              setFormData({ ...formData, city });
+            }}
+          />
 
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Estado/Provincia
@@ -713,20 +718,7 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
               <Input
                 value={formData.state}
                 onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                placeholder="Estado"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                País
-              </label>
-              <Input
-                value={formData.country}
-                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                placeholder="País"
+                placeholder="Estado o provincia"
               />
             </div>
 

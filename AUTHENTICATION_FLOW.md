@@ -90,11 +90,16 @@ Una vez recibida la respuesta, el sistema automáticamente:
    - `external_auth_tenant`
    - `external_auth_expires_at`
 
-2. **Busca/Crea la empresa (Company):**
+2. **Sincroniza usuario con app_users:** ⭐ NUEVO
+   - Llama al edge function `sync-users`
+   - Crea o actualiza el registro en `app_users`
+   - Permite asignar empresas posteriormente
+
+3. **Busca/Crea la empresa (Company):**
    - Si existe una empresa con el nombre de la organización del tenant → la usa
    - Si no existe → crea una nueva empresa con los datos del tenant
 
-3. **Busca/Crea el empleado (Employee):**
+4. **Busca/Crea el empleado (Employee):**
    - Si existe un empleado con el email del usuario → lo vincula
    - Si no existe → crea un nuevo registro de empleado con:
      - Nombre completo parseado del campo `name`
@@ -102,9 +107,23 @@ Una vez recibida la respuesta, el sistema automáticamente:
      - Número de empleado autogenerado
      - Vinculado a la empresa
 
-4. **Redirección al Dashboard:**
-   - El usuario es redirigido automáticamente al dashboard
-   - Tiene acceso a todos los módulos del sistema
+### 5. Selección de Empresa
+
+**Para SuperAdmin (role = 'superadmin'):**
+- Ve TODAS las empresas del sistema
+- Puede seleccionar cualquier empresa
+
+**Para otros roles (admin, manager, employee):**
+- Solo ve las empresas asignadas en `user_companies`
+- Si no tiene empresas asignadas: Mensaje informativo
+- Debe esperar a que un administrador le asigne una empresa
+
+### 6. Acceso al Sistema
+
+Una vez seleccionada la empresa:
+- La empresa se guarda en `localStorage` como `selected_company_id`
+- Se carga en `CompanyContext`
+- Todos los datos se filtran automáticamente por `company_id`
 
 ## Archivos Clave
 
@@ -179,10 +198,63 @@ Componente principal que maneja el flujo:
 └─────────────────────┘
 ```
 
+## Control de Acceso por Empresa
+
+### Roles y Permisos
+
+**SuperAdmin:**
+- Role en API: `superadmin`, `super_admin`, o `superadministrador`
+- Acceso: Todas las empresas del sistema
+
+**Administrador:**
+- Role en API: `administrador`, `administrator`, o `admin`
+- Acceso: Solo empresas asignadas en `user_companies`
+
+**Manager/Employee:**
+- Role en API: `manager` o `employee`
+- Acceso: Solo empresas asignadas en `user_companies`
+
+### Asignación de Empresas
+
+Los administradores pueden asignar empresas a usuarios desde:
+```
+Configuración > Usuarios > [Usuario] > Asignar Empresa
+```
+
+Esto crea un registro en `user_companies`:
+```sql
+INSERT INTO user_companies (user_id, company_id, role, is_default)
+VALUES ('user-uuid', 'company-uuid', 'admin', true);
+```
+
+### Mensaje sin Empresas Asignadas
+
+Si un usuario no tiene empresas asignadas, verá:
+```
+Sin Empresas Asignadas
+
+Tu cuenta ha sido creada exitosamente, pero aún no
+tienes acceso a ninguna empresa.
+
+Siguiente paso:
+Un administrador de la empresa debe asignarte acceso
+antes de que puedas ingresar al sistema.
+```
+
+## Documentación Adicional
+
+Ver `COMPANY_ACCESS_CONTROL.md` para:
+- Detalles de implementación
+- Políticas RLS
+- Ejemplos de código
+- Queries de verificación
+
 ## Próximos Pasos
 
 1. ✅ Integración de autenticación externa
-2. ⏳ Implementar refresh token automático
-3. ⏳ Agregar manejo de permisos basado en `user.permissions`
-4. ⏳ Implementar lógica de suscripciones con `has_access` y `available_plans`
-5. ⏳ Agregar multi-tenant completo basado en `tenant.id`
+2. ✅ Sincronización automática de usuarios a app_users
+3. ✅ Control de acceso basado en empresas asignadas
+4. ✅ Aislamiento de datos por company_id
+5. ⏳ Implementar refresh token automático
+6. ⏳ Agregar manejo de permisos basado en `user.permissions`
+7. ⏳ Implementar lógica de suscripciones con `has_access` y `available_plans`

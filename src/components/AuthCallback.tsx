@@ -59,6 +59,27 @@ export default function AuthCallback({ onSuccess }: AuthCallbackProps) {
 
       const { user, tenant } = authResponse.data;
 
+      // Sincronizar usuario con app_users
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        const syncResponse = await fetch(`${supabaseUrl}/functions/v1/sync-users`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+          },
+          body: JSON.stringify({ user }),
+        });
+
+        if (!syncResponse.ok) {
+          console.error('Failed to sync user to app_users');
+        }
+      } catch (syncError) {
+        console.error('Error syncing user:', syncError);
+      }
+
       const { data: existingEmployee, error: checkError } = await supabase
         .from('employees')
         .select('id')

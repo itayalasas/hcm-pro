@@ -240,9 +240,16 @@ export default function CompanySelector({ onCompanySelected }: CompanySelectorPr
               <Building2 className="w-8 h-8 text-amber-600" />
             </div>
             <h2 className="text-2xl font-bold text-slate-900 mb-2">Sin Empresas Asignadas</h2>
-            <p className="text-slate-600 mb-6">
-              No tienes acceso a ninguna empresa. Por favor contacta a tu administrador.
+            <p className="text-slate-600 mb-4">
+              Tu cuenta ha sido creada exitosamente, pero aún no tienes acceso a ninguna empresa.
             </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-left">
+              <p className="text-sm text-blue-900 font-medium mb-2">Siguiente paso:</p>
+              <p className="text-sm text-blue-700">
+                Un administrador de la empresa debe asignarte acceso antes de que puedas ingresar al sistema.
+                Por favor, contacta a tu administrador.
+              </p>
+            </div>
             <Button
               variant="secondary"
               onClick={handleSignOut}

@@ -168,7 +168,7 @@ export default function UsersPanel() {
           user_id: selectedUser.id,
           company_id: selectedCompanyId,
           role: selectedUser.role || 'user',
-          is_active: true,
+          active: true,
         });
 
       if (error) {

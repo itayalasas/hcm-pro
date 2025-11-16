@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Users, RefreshCw, Plus, Trash2, Building2, AlertCircle } from 'lucide-react';
+import { Users, RefreshCw, Plus, Trash2, Building2, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 import Button from '../ui/Button';
 import Modal from '../ui/Modal';
 
@@ -21,6 +21,18 @@ interface Company {
   code: string;
 }
 
+interface SyncResult {
+  success: boolean;
+  message: string;
+  stats: {
+    total: number;
+    synced: number;
+    updated: number;
+    errors: number;
+  };
+  errors?: string[];
+}
+
 export default function UsersPanel() {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -30,6 +42,8 @@ export default function UsersPanel() {
   const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [selectedRole, setSelectedRole] = useState('user');
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+  const [showSyncModal, setShowSyncModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -100,6 +114,7 @@ export default function UsersPanel() {
 
   const handleSync = async () => {
     setSyncing(true);
+    setSyncResult(null);
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -113,16 +128,21 @@ export default function UsersPanel() {
       });
 
       const result = await response.json();
+      setSyncResult(result);
+      setShowSyncModal(true);
 
-      if (result.success) {
-        alert(`Sincronización completada:\n- Nuevos: ${result.stats.synced}\n- Actualizados: ${result.stats.updated}\n- Errores: ${result.stats.errors}`);
+      if (result.success && result.stats.errors === 0) {
         loadUsers();
-      } else {
-        alert(`Error en sincronización: ${result.error}`);
       }
     } catch (error) {
       console.error('Error syncing users:', error);
-      alert('Error al sincronizar usuarios');
+      setSyncResult({
+        success: false,
+        message: 'Error de conexión',
+        stats: { total: 0, synced: 0, updated: 0, errors: 1 },
+        errors: ['No se pudo conectar con el servicio de sincronización'],
+      });
+      setShowSyncModal(true);
     } finally {
       setSyncing(false);
     }
@@ -361,6 +381,114 @@ export default function UsersPanel() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        isOpen={showSyncModal}
+        onClose={() => {
+          setShowSyncModal(false);
+          if (syncResult?.success && syncResult.stats.errors === 0) {
+            loadUsers();
+          }
+        }}
+        title="Resultado de Sincronización"
+      >
+        {syncResult && (
+          <div className="space-y-4">
+            <div className={`p-4 rounded-lg border-2 ${
+              syncResult.success && syncResult.stats.errors === 0
+                ? 'bg-green-50 border-green-200'
+                : syncResult.stats.errors > 0
+                ? 'bg-amber-50 border-amber-200'
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <div className="flex items-start gap-3">
+                {syncResult.success && syncResult.stats.errors === 0 ? (
+                  <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+                ) : syncResult.stats.errors > 0 ? (
+                  <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0" />
+                ) : (
+                  <XCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
+                )}
+                <div className="flex-1">
+                  <h3 className={`font-semibold mb-1 ${
+                    syncResult.success && syncResult.stats.errors === 0
+                      ? 'text-green-900'
+                      : syncResult.stats.errors > 0
+                      ? 'text-amber-900'
+                      : 'text-red-900'
+                  }`}>
+                    {syncResult.success && syncResult.stats.errors === 0
+                      ? 'Sincronización Completada'
+                      : syncResult.stats.errors > 0
+                      ? 'Sincronización Completada con Advertencias'
+                      : 'Error en Sincronización'}
+                  </h3>
+                  <p className={`text-sm ${
+                    syncResult.success && syncResult.stats.errors === 0
+                      ? 'text-green-700'
+                      : syncResult.stats.errors > 0
+                      ? 'text-amber-700'
+                      : 'text-red-700'
+                  }`}>
+                    {syncResult.message}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                <p className="text-xs text-slate-500 uppercase font-medium mb-1">Total Procesados</p>
+                <p className="text-2xl font-bold text-slate-900">{syncResult.stats.total}</p>
+              </div>
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                <p className="text-xs text-green-600 uppercase font-medium mb-1">Nuevos</p>
+                <p className="text-2xl font-bold text-green-700">{syncResult.stats.synced}</p>
+              </div>
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-xs text-blue-600 uppercase font-medium mb-1">Actualizados</p>
+                <p className="text-2xl font-bold text-blue-700">{syncResult.stats.updated}</p>
+              </div>
+              <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                <p className="text-xs text-red-600 uppercase font-medium mb-1">Errores</p>
+                <p className="text-2xl font-bold text-red-700">{syncResult.stats.errors}</p>
+              </div>
+            </div>
+
+            {syncResult.errors && syncResult.errors.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-slate-900">Detalles de Errores:</h4>
+                <div className="max-h-48 overflow-y-auto space-y-2">
+                  {syncResult.errors.map((error, index) => (
+                    <div key={index} className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+                      {error}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-xs text-blue-900">
+                    <strong>Nota:</strong> Si ves el error "Could not find the table 'public.app_users'",
+                    necesitas ejecutar las migraciones de base de datos. Contacta al administrador del sistema.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-4">
+              <Button
+                onClick={() => {
+                  setShowSyncModal(false);
+                  if (syncResult.success && syncResult.stats.errors === 0) {
+                    loadUsers();
+                  }
+                }}
+              >
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

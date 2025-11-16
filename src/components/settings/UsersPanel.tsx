@@ -131,8 +131,8 @@ export default function UsersPanel() {
       setSyncResult(result);
       setShowSyncModal(true);
 
-      if (result.success && result.stats.errors === 0) {
-        loadUsers();
+      if (result.success) {
+        await loadUsers();
       }
     } catch (error) {
       console.error('Error syncing users:', error);
@@ -150,7 +150,7 @@ export default function UsersPanel() {
 
   const handleAssignCompany = async () => {
     if (!selectedUser || !selectedCompanyId) {
-      alert('Por favor seleccione una empresa');
+      setToast({ message: 'Por favor seleccione una empresa', type: 'warning' });
       return;
     }
 
@@ -166,7 +166,7 @@ export default function UsersPanel() {
 
       if (error) {
         if (error.code === '23505') {
-          alert('Este usuario ya está asignado a esta empresa');
+          setToast({ message: 'Este usuario ya está asignado a esta empresa', type: 'warning' });
         } else {
           throw error;
         }
@@ -177,10 +177,11 @@ export default function UsersPanel() {
       setSelectedUser(null);
       setSelectedCompanyId('');
       setSelectedRole('user');
+      setToast({ message: 'Empresa asignada exitosamente', type: 'success' });
       loadUsers();
     } catch (error) {
       console.error('Error assigning company:', error);
-      alert('Error al asignar empresa');
+      setToast({ message: 'Error al asignar empresa', type: 'error' });
     }
   };
 
@@ -195,10 +196,11 @@ export default function UsersPanel() {
         .eq('company_id', companyId);
 
       if (error) throw error;
+      setToast({ message: 'Empresa removida exitosamente', type: 'success' });
       loadUsers();
     } catch (error) {
       console.error('Error removing company:', error);
-      alert('Error al quitar empresa');
+      setToast({ message: 'Error al quitar empresa', type: 'error' });
     }
   };
 
@@ -387,9 +389,6 @@ export default function UsersPanel() {
         isOpen={showSyncModal}
         onClose={() => {
           setShowSyncModal(false);
-          if (syncResult?.success && syncResult.stats.errors === 0) {
-            loadUsers();
-          }
         }}
         title="Resultado de Sincronización"
       >
@@ -479,9 +478,6 @@ export default function UsersPanel() {
               <Button
                 onClick={() => {
                   setShowSyncModal(false);
-                  if (syncResult.success && syncResult.stats.errors === 0) {
-                    loadUsers();
-                  }
                 }}
               >
                 Cerrar

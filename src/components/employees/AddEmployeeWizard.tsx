@@ -4,6 +4,7 @@ import Modal from '../ui/Modal';
 import StepWizard from '../ui/StepWizard';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
+import CountryCitySelector from '../ui/CountryCitySelector';
 import { supabase } from '../../lib/supabase';
 import { useCompany } from '../../contexts/CompanyContext';
 
@@ -25,6 +26,7 @@ interface EmployeeData {
     address: string;
     city: string;
     country: string;
+    countryISO3: string;
   };
   education: {
     highestDegree: string;
@@ -74,7 +76,8 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
       nationalId: '',
       address: '',
       city: '',
-      country: 'México'
+      country: '',
+      countryISO3: ''
     },
     education: {
       highestDegree: '',
@@ -133,6 +136,16 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
         employeeNumber = generatedCode;
       }
 
+      const convertDateToISO = (dateStr: string) => {
+        if (!dateStr) return null;
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+          const [day, month, year] = parts;
+          return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+        return dateStr;
+      };
+
       const { error } = await supabase.from('employees').insert({
         company_id: selectedCompanyId,
         employee_number: employeeNumber,
@@ -140,10 +153,14 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
         last_name: employeeData.personalInfo.lastName,
         email: employeeData.personalInfo.email,
         phone: employeeData.personalInfo.phone,
-        birth_date: employeeData.personalInfo.birthDate,
+        birth_date: convertDateToISO(employeeData.personalInfo.birthDate),
         gender: employeeData.personalInfo.gender,
         national_id: employeeData.personalInfo.nationalId,
-        hire_date: employeeData.employment.hireDate,
+        address_street: employeeData.personalInfo.address,
+        address_city: employeeData.personalInfo.city,
+        address_country: employeeData.personalInfo.country,
+        address_country_iso3: employeeData.personalInfo.countryISO3,
+        hire_date: convertDateToISO(employeeData.employment.hireDate),
         work_location: employeeData.employment.workLocation,
         status: 'active'
       });
@@ -283,9 +300,20 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
             <div className="grid grid-cols-3 gap-4">
               <Input
                 label="Fecha de Nacimiento"
-                type="date"
+                type="text"
                 value={employeeData.personalInfo.birthDate}
-                onChange={(e) => updatePersonalInfo('birthDate', e.target.value)}
+                onChange={(e) => {
+                  let value = e.target.value.replace(/[^\d]/g, '');
+                  if (value.length >= 2) {
+                    value = value.slice(0, 2) + '/' + value.slice(2);
+                  }
+                  if (value.length >= 5) {
+                    value = value.slice(0, 5) + '/' + value.slice(5, 9);
+                  }
+                  updatePersonalInfo('birthDate', value);
+                }}
+                placeholder="dd/mm/aaaa"
+                maxLength={10}
               />
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -310,26 +338,23 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
               />
             </div>
 
+            <CountryCitySelector
+              selectedCountry={employeeData.personalInfo.country}
+              selectedCity={employeeData.personalInfo.city}
+              selectedCountryISO3={employeeData.personalInfo.countryISO3}
+              onCountryChange={(country, iso3) => {
+                updatePersonalInfo('country', country);
+                updatePersonalInfo('countryISO3', iso3);
+              }}
+              onCityChange={(city) => updatePersonalInfo('city', city)}
+            />
+
             <Input
               label="Dirección"
               value={employeeData.personalInfo.address}
               onChange={(e) => updatePersonalInfo('address', e.target.value)}
               placeholder="Calle, número, colonia"
             />
-
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Ciudad"
-                value={employeeData.personalInfo.city}
-                onChange={(e) => updatePersonalInfo('city', e.target.value)}
-                placeholder="Ciudad de México"
-              />
-              <Input
-                label="País"
-                value={employeeData.personalInfo.country}
-                onChange={(e) => updatePersonalInfo('country', e.target.value)}
-              />
-            </div>
           </div>
         );
 
@@ -429,9 +454,20 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
               </div>
               <Input
                 label="Fecha de Contratación"
-                type="date"
+                type="text"
                 value={employeeData.employment.hireDate}
-                onChange={(e) => updateEmployment('hireDate', e.target.value)}
+                onChange={(e) => {
+                  let value = e.target.value.replace(/[^\d]/g, '');
+                  if (value.length >= 2) {
+                    value = value.slice(0, 2) + '/' + value.slice(2);
+                  }
+                  if (value.length >= 5) {
+                    value = value.slice(0, 5) + '/' + value.slice(5, 9);
+                  }
+                  updateEmployment('hireDate', value);
+                }}
+                placeholder="dd/mm/aaaa"
+                maxLength={10}
                 required
               />
             </div>

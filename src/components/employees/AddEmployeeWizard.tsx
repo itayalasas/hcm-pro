@@ -343,8 +343,16 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
               selectedCity={employeeData.personalInfo.city}
               selectedCountryISO3={employeeData.personalInfo.countryISO3}
               onCountryChange={(country, iso3) => {
-                updatePersonalInfo('country', country);
-                updatePersonalInfo('countryISO3', iso3);
+                console.log('onCountryChange callback:', country, iso3);
+                setEmployeeData({
+                  ...employeeData,
+                  personalInfo: {
+                    ...employeeData.personalInfo,
+                    country: country,
+                    countryISO3: iso3,
+                    city: ''
+                  }
+                });
               }}
               onCityChange={(city) => updatePersonalInfo('city', city)}
             />

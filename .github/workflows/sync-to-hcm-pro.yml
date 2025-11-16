@@ -1,0 +1,31 @@
+name: Sync to hcm-pro
+
+on:
+  push:
+    branches:
+      - "**"     # se dispara en cualquier rama; puedes limitar a "main" si quieres
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # historial completo
+
+      - name: Configure Git
+        run: |
+          git config user.name "Sync Bot"
+          git config user.email "sync-bot@example.com"
+
+      - name: Add destination remote (hcm-pro)
+        run: |
+          git remote add dest https://x-access-token:${{ secrets.HCM_PRO_PAT }}@github.com/itayalasas/hcm-pro.git
+
+      - name: Push branch to hcm-pro
+        run: |
+          BRANCH=${GITHUB_REF#refs/heads/}
+          echo "Syncing branch $BRANCH to itayalasas/hcm-pro..."
+          git push dest "$BRANCH":"$BRANCH"

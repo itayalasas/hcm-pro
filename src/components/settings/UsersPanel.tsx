@@ -41,13 +41,20 @@ export default function UsersPanel() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
-  const [selectedRole, setSelectedRole] = useState('user');
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const loadData = async () => {
     setLoading(true);
@@ -160,7 +167,7 @@ export default function UsersPanel() {
         .insert({
           user_id: selectedUser.id,
           company_id: selectedCompanyId,
-          role: selectedRole,
+          role: selectedUser.role || 'user',
           is_active: true,
         });
 
@@ -176,7 +183,6 @@ export default function UsersPanel() {
       setShowAssignModal(false);
       setSelectedUser(null);
       setSelectedCompanyId('');
-      setSelectedRole('user');
       setToast({ message: 'Empresa asignada exitosamente', type: 'success' });
       loadUsers();
     } catch (error) {
@@ -327,7 +333,6 @@ export default function UsersPanel() {
           setShowAssignModal(false);
           setSelectedUser(null);
           setSelectedCompanyId('');
-          setSelectedRole('user');
         }}
         title={`Asignar Empresa a ${selectedUser?.name}`}
       >
@@ -354,15 +359,12 @@ export default function UsersPanel() {
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Rol en la Empresa
             </label>
-            <select
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="user">Usuario</option>
-              <option value="manager">Manager</option>
-              <option value="admin">Administrador</option>
-            </select>
+            <div className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg text-slate-700">
+              {selectedUser?.role || 'Usuario'}
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              El rol se sincroniza automáticamente desde el sistema de autenticación
+            </p>
           </div>
 
           <div className="flex gap-3 pt-4">
@@ -372,7 +374,6 @@ export default function UsersPanel() {
                 setShowAssignModal(false);
                 setSelectedUser(null);
                 setSelectedCompanyId('');
-                setSelectedRole('user');
               }}
               className="flex-1"
             >
@@ -486,6 +487,21 @@ export default function UsersPanel() {
           </div>
         )}
       </Modal>
+
+      {toast && (
+        <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
+          <div className={`px-6 py-4 rounded-lg shadow-lg border-2 flex items-center gap-3 ${
+            toast.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
+            toast.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
+            'bg-amber-50 border-amber-200 text-amber-800'
+          }`}>
+            {toast.type === 'success' && <CheckCircle className="w-5 h-5" />}
+            {toast.type === 'error' && <XCircle className="w-5 h-5" />}
+            {toast.type === 'warning' && <AlertCircle className="w-5 h-5" />}
+            <span className="font-medium">{toast.message}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

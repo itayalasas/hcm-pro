@@ -41,7 +41,6 @@ export default function Autocomplete({
 }: AutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedLabel, setSelectedLabel] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
   const normalizedOptions: AutocompleteOption[] = useMemo(() =>
@@ -51,16 +50,15 @@ export default function Autocomplete({
     [options]
   );
 
-  useEffect(() => {
-    console.log('Autocomplete useEffect - value:', value);
-    console.log('Autocomplete useEffect - normalizedOptions:', normalizedOptions);
+  const selectedLabel = useMemo(() => {
+    console.log('Autocomplete selectedLabel useMemo - value:', value);
+    console.log('Autocomplete selectedLabel useMemo - normalizedOptions:', normalizedOptions);
     if (value) {
       const selected = normalizedOptions.find(opt => opt.value === value);
-      console.log('Autocomplete useEffect - selected:', selected);
-      setSelectedLabel(selected?.label || value);
-    } else {
-      setSelectedLabel('');
+      console.log('Autocomplete selectedLabel useMemo - selected:', selected);
+      return selected?.label || value;
     }
+    return '';
   }, [value, normalizedOptions]);
 
   useEffect(() => {
@@ -82,7 +80,6 @@ export default function Autocomplete({
   const handleSelect = (option: AutocompleteOption) => {
     console.log('handleSelect called with:', option);
     onChange(option.value, option);
-    setSelectedLabel(option.label);
     setSearchTerm('');
     setIsOpen(false);
   };

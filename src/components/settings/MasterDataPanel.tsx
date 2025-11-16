@@ -748,9 +748,10 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
 
 
 
-// Generic Simple Master Data Tab Component (without code generation)
+// Generic Simple Master Data Tab Component (with code generation)
 interface SimpleItem {
   id: string;
+  code?: string;
   name: string;
   description?: string | null;
   active: boolean;
@@ -759,12 +760,13 @@ interface SimpleItem {
 interface SimpleTabProps {
   searchTerm: string;
   tableName: string;
+  entityType: string;
   singularLabel: string;
   pluralLabel: string;
   hasDescription?: boolean;
 }
 
-function SimpleMasterDataTab({ searchTerm, tableName, singularLabel, pluralLabel, hasDescription = true }: SimpleTabProps) {
+function SimpleMasterDataTab({ searchTerm, tableName, entityType, singularLabel, pluralLabel, hasDescription = true }: SimpleTabProps) {
   const { selectedCompanyId } = useCompany();
   const toast = useToast();
   const [items, setItems] = useState<SimpleItem[]>([]);
@@ -772,6 +774,7 @@ function SimpleMasterDataTab({ searchTerm, tableName, singularLabel, pluralLabel
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
+    code: '',
     name: '',
     description: '',
     active: true,
@@ -809,8 +812,23 @@ function SimpleMasterDataTab({ searchTerm, tableName, singularLabel, pluralLabel
     }
 
     try {
+      let code = formData.code.trim();
+
+      // Generate code if not provided and not editing
+      if (!code && !editingId) {
+        const { data: generatedCode, error: codeError } = await supabase
+          .rpc('generate_entity_code', {
+            p_entity_type: entityType,
+            p_company_id: selectedCompanyId
+          });
+
+        if (codeError) throw codeError;
+        code = generatedCode;
+      }
+
       const dataToSave = {
         company_id: selectedCompanyId,
+        ...(code && { code }),
         name: formData.name.trim(),
         ...(hasDescription && { description: formData.description.trim() || null }),
         active: formData.active,
@@ -843,6 +861,7 @@ function SimpleMasterDataTab({ searchTerm, tableName, singularLabel, pluralLabel
   const handleEdit = (item: SimpleItem) => {
     setEditingId(item.id);
     setFormData({
+      code: item.code || '',
       name: item.name,
       description: item.description || '',
       active: item.active,
@@ -870,6 +889,7 @@ function SimpleMasterDataTab({ searchTerm, tableName, singularLabel, pluralLabel
 
   const resetForm = () => {
     setFormData({
+      code: '',
       name: '',
       description: '',
       active: true,
@@ -902,6 +922,7 @@ function SimpleMasterDataTab({ searchTerm, tableName, singularLabel, pluralLabel
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-200">
+              <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">CÓDIGO</th>
               <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">NOMBRE</th>
               {hasDescription && <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">DESCRIPCIÓN</th>}
               <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">ESTADO</th>
@@ -911,6 +932,7 @@ function SimpleMasterDataTab({ searchTerm, tableName, singularLabel, pluralLabel
           <tbody>
             {filteredItems.map((item) => (
               <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
+                <td className="py-3 px-4 text-sm font-medium text-blue-600">{item.code || '-'}</td>
                 <td className="py-3 px-4 text-sm text-slate-900">{item.name}</td>
                 {hasDescription && <td className="py-3 px-4 text-sm text-slate-600">{item.description || '-'}</td>}
                 <td className="py-3 px-4">
@@ -958,6 +980,18 @@ function SimpleMasterDataTab({ searchTerm, tableName, singularLabel, pluralLabel
         title={editingId ? `Editar ${singularLabel}` : `Nuevo ${singularLabel}`}
       >
         <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Código {!editingId && <span className="text-xs text-slate-500">(se generará automáticamente si se deja vacío)</span>}
+            </label>
+            <Input
+              value={formData.code}
+              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+              placeholder={editingId ? "Código" : "Se generará automáticamente"}
+              disabled={!!editingId}
+            />
+          </div>
+
           <Input
             label="Nombre"
             value={formData.name}
@@ -1017,6 +1051,7 @@ function AcademicLevelsTab({ searchTerm }: { searchTerm: string }) {
     <SimpleMasterDataTab
       searchTerm={searchTerm}
       tableName="academic_levels"
+      entityType="academic_level"
       singularLabel="Nivel Académico"
       pluralLabel="niveles académicos"
       hasDescription={true}
@@ -1029,6 +1064,7 @@ function InstitutionsTab({ searchTerm }: { searchTerm: string }) {
     <SimpleMasterDataTab
       searchTerm={searchTerm}
       tableName="educational_institutions"
+      entityType="educational_institution"
       singularLabel="Institución"
       pluralLabel="instituciones"
       hasDescription={false}
@@ -1041,6 +1077,7 @@ function FieldsOfStudyTab({ searchTerm }: { searchTerm: string }) {
     <SimpleMasterDataTab
       searchTerm={searchTerm}
       tableName="fields_of_study"
+      entityType="field_of_study"
       singularLabel="Campo de Estudio"
       pluralLabel="campos de estudio"
       hasDescription={true}
@@ -1053,6 +1090,7 @@ function EmploymentTypesTab({ searchTerm }: { searchTerm: string }) {
     <SimpleMasterDataTab
       searchTerm={searchTerm}
       tableName="employment_types"
+      entityType="employment_type"
       singularLabel="Tipo de Empleo"
       pluralLabel="tipos de empleo"
       hasDescription={true}

@@ -44,8 +44,12 @@ export default function Autocomplete({
   const [selectedLabel, setSelectedLabel] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const normalizedOptions: AutocompleteOption[] = options.map(opt =>
+    typeof opt === 'string' ? { value: opt, label: opt } : opt
+  );
+
   useEffect(() => {
-    const selected = options.find(opt => opt.value === value);
+    const selected = normalizedOptions.find(opt => opt.value === value);
     setSelectedLabel(selected?.label || '');
   }, [value, options]);
 
@@ -59,10 +63,6 @@ export default function Autocomplete({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const normalizedOptions: AutocompleteOption[] = options.map(opt =>
-    typeof opt === 'string' ? { value: opt, label: opt } : opt
-  );
 
   const filteredOptions = normalizedOptions.filter(option =>
     option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||

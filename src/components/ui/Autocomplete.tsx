@@ -50,16 +50,25 @@ export default function Autocomplete({
     [options]
   );
 
-  const selectedLabel = useMemo(() => {
-    console.log('Autocomplete selectedLabel useMemo - value:', value);
-    console.log('Autocomplete selectedLabel useMemo - normalizedOptions:', normalizedOptions);
-    if (!value) return '';
+  const [displayValue, setDisplayValue] = useState(value);
 
-    const selected = normalizedOptions.find(opt => opt.value === value);
+  useEffect(() => {
+    console.log('Autocomplete value changed to:', value);
+    if (value) {
+      setDisplayValue(value);
+    }
+  }, [value]);
+
+  const selectedLabel = useMemo(() => {
+    console.log('Autocomplete selectedLabel useMemo - displayValue:', displayValue);
+    console.log('Autocomplete selectedLabel useMemo - normalizedOptions:', normalizedOptions);
+    if (!displayValue) return '';
+
+    const selected = normalizedOptions.find(opt => opt.value === displayValue);
     console.log('Autocomplete selectedLabel useMemo - selected:', selected);
 
-    return selected?.label || value;
-  }, [value, normalizedOptions]);
+    return selected?.label || displayValue;
+  }, [displayValue, normalizedOptions]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -79,6 +88,7 @@ export default function Autocomplete({
 
   const handleSelect = (option: AutocompleteOption) => {
     console.log('handleSelect called with:', option);
+    setDisplayValue(option.value);
     onChange(option.value, option);
     setSearchTerm('');
     setIsOpen(false);

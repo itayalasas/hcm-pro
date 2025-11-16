@@ -80,7 +80,7 @@ export default function CountryCitySelector({
     }
   };
 
-  const handleCountrySelect = (country: string) => {
+  const handleCountrySelect = (country: string, _option?: any) => {
     const countryData = countries.find(c => c.country === country);
     if (countryData) {
       onCountryChange(country, countryData.iso3);
@@ -88,7 +88,7 @@ export default function CountryCitySelector({
     }
   };
 
-  const handleCitySelect = (city: string) => {
+  const handleCitySelect = (city: string, _option?: any) => {
     onCityChange(city);
   };
 

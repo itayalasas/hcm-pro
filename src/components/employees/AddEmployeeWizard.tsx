@@ -353,7 +353,8 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
               label="Dirección"
               value={employeeData.personalInfo.address}
               onChange={(e) => updatePersonalInfo('address', e.target.value)}
-              placeholder="Calle, número, colonia"
+              placeholder={employeeData.personalInfo.city ? "Calle, número, colonia" : "Primero selecciona país y ciudad"}
+              disabled={!employeeData.personalInfo.city}
             />
           </div>
         );

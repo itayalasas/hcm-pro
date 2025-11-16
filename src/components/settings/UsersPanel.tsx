@@ -41,6 +41,7 @@ export default function UsersPanel() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'manager' | 'employee'>('employee');
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
@@ -167,7 +168,7 @@ export default function UsersPanel() {
         .insert({
           user_id: selectedUser.id,
           company_id: selectedCompanyId,
-          role: selectedUser.role || 'user',
+          role: selectedRole,
           active: true,
         });
 
@@ -183,6 +184,7 @@ export default function UsersPanel() {
       setShowAssignModal(false);
       setSelectedUser(null);
       setSelectedCompanyId('');
+      setSelectedRole('employee');
       setToast({ message: 'Empresa asignada exitosamente', type: 'success' });
       loadUsers();
     } catch (error) {
@@ -357,13 +359,19 @@ export default function UsersPanel() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Rol en la Empresa
+              Rol en la Empresa *
             </label>
-            <div className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg text-slate-700">
-              {selectedUser?.role || 'Usuario'}
-            </div>
+            <select
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'manager' | 'employee')}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="employee">Empleado</option>
+              <option value="manager">Gerente</option>
+              <option value="admin">Administrador</option>
+            </select>
             <p className="mt-1 text-xs text-slate-500">
-              El rol se sincroniza automáticamente desde el sistema de autenticación
+              Define el nivel de acceso del usuario en esta empresa
             </p>
           </div>
 
@@ -374,6 +382,7 @@ export default function UsersPanel() {
                 setShowAssignModal(false);
                 setSelectedUser(null);
                 setSelectedCompanyId('');
+                setSelectedRole('employee');
               }}
               className="flex-1"
             >

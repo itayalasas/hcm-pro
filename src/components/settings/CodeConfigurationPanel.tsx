@@ -26,6 +26,7 @@ const entityTypes = [
   { value: 'department', label: 'Departamentos', icon: '📁' },
   { value: 'work_location', label: 'Ubicaciones', icon: '📍' },
   { value: 'position', label: 'Puestos', icon: '💼' },
+  { value: 'position_level', label: 'Niveles de Puesto', icon: '📊' },
   { value: 'academic_level', label: 'Niveles Académicos', icon: '🎓' },
   { value: 'educational_institution', label: 'Instituciones Educativas', icon: '🏫' },
   { value: 'field_of_study', label: 'Campos de Estudio', icon: '📚' },

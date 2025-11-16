@@ -3,7 +3,7 @@ import { useCompany } from '../../contexts/CompanyContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import {
-  Building2, MapPin, Briefcase, Plus, Edit2, Trash2, Save, X, Search, GraduationCap, BookOpen, UserCheck, FileText
+  Building2, MapPin, Briefcase, Plus, Edit2, Trash2, Save, X, Search, GraduationCap, BookOpen, UserCheck, FileText, BarChart3
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -11,7 +11,7 @@ import Modal from '../ui/Modal';
 import PositionsTab from './PositionsTab';
 import { useToast } from '../../hooks/useToast';
 
-type MasterDataType = 'departments' | 'locations' | 'positions' | 'academic_levels' | 'institutions' | 'fields_of_study' | 'employment_types';
+type MasterDataType = 'departments' | 'locations' | 'positions' | 'position_levels' | 'academic_levels' | 'institutions' | 'fields_of_study' | 'employment_types';
 
 interface Department {
   id: string;
@@ -63,6 +63,7 @@ export default function MasterDataPanel() {
     { id: 'departments' as MasterDataType, label: 'Departamentos', icon: Building2 },
     { id: 'locations' as MasterDataType, label: 'Ubicaciones', icon: MapPin },
     { id: 'positions' as MasterDataType, label: 'Puestos', icon: Briefcase },
+    { id: 'position_levels' as MasterDataType, label: 'Niveles de Puesto', icon: BarChart3 },
     { id: 'academic_levels' as MasterDataType, label: 'Niveles Académicos', icon: GraduationCap },
     { id: 'institutions' as MasterDataType, label: 'Instituciones', icon: BookOpen },
     { id: 'fields_of_study' as MasterDataType, label: 'Campos de Estudio', icon: FileText },
@@ -113,6 +114,7 @@ export default function MasterDataPanel() {
           {activeTab === 'departments' && <DepartmentsTab searchTerm={searchTerm} />}
           {activeTab === 'locations' && <LocationsTab searchTerm={searchTerm} />}
           {activeTab === 'positions' && <PositionsTab searchTerm={searchTerm} />}
+          {activeTab === 'position_levels' && <PositionLevelsTab searchTerm={searchTerm} />}
           {activeTab === 'academic_levels' && <AcademicLevelsTab searchTerm={searchTerm} />}
           {activeTab === 'institutions' && <InstitutionsTab searchTerm={searchTerm} />}
           {activeTab === 'fields_of_study' && <FieldsOfStudyTab searchTerm={searchTerm} />}
@@ -1146,6 +1148,19 @@ function EmploymentTypesTab({ searchTerm }: { searchTerm: string }) {
       entityType="employment_type"
       singularLabel="Tipo de Empleo"
       pluralLabel="tipos de empleo"
+      hasDescription={true}
+    />
+  );
+}
+
+function PositionLevelsTab({ searchTerm }: { searchTerm: string }) {
+  return (
+    <SimpleMasterDataTab
+      searchTerm={searchTerm}
+      tableName="position_levels"
+      entityType="position_level"
+      singularLabel="Nivel de Puesto"
+      pluralLabel="niveles de puesto"
       hasDescription={true}
     />
   );

@@ -36,11 +36,8 @@ export default function CountryCitySelector({
   }, []);
 
   useEffect(() => {
-    console.log('CountryCitySelector - selectedCountry changed:', selectedCountry);
-    console.log('CountryCitySelector - countries.length:', countries.length);
     if (selectedCountry && countries.length > 0) {
       const countryData = countries.find(c => c.country === selectedCountry);
-      console.log('CountryCitySelector - found countryData:', countryData);
       setCurrentCountryData(countryData || null);
     } else {
       setCurrentCountryData(null);
@@ -84,9 +81,7 @@ export default function CountryCitySelector({
   };
 
   const handleCountrySelect = (country: string, _option?: any) => {
-    console.log('handleCountrySelect called with:', country, _option);
     const countryData = countries.find(c => c.country === country);
-    console.log('Found country data:', countryData);
     if (countryData) {
       onCountryChange(country, countryData.iso3);
       onCityChange('');
@@ -124,10 +119,6 @@ export default function CountryCitySelector({
 
   const countryNames = countries.map(c => c.country);
   const cityNames = currentCountryData?.cities || [];
-
-  console.log('CountryCitySelector render - selectedCountry:', selectedCountry);
-  console.log('CountryCitySelector render - currentCountryData:', currentCountryData);
-  console.log('CountryCitySelector render - cityNames.length:', cityNames.length);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

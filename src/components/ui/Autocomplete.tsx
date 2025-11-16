@@ -53,19 +53,15 @@ export default function Autocomplete({
   const [displayValue, setDisplayValue] = useState(value);
 
   useEffect(() => {
-    console.log('Autocomplete value changed to:', value);
     if (value) {
       setDisplayValue(value);
     }
   }, [value]);
 
   const selectedLabel = useMemo(() => {
-    console.log('Autocomplete selectedLabel useMemo - displayValue:', displayValue);
-    console.log('Autocomplete selectedLabel useMemo - normalizedOptions:', normalizedOptions);
     if (!displayValue) return '';
 
     const selected = normalizedOptions.find(opt => opt.value === displayValue);
-    console.log('Autocomplete selectedLabel useMemo - selected:', selected);
 
     return selected?.label || displayValue;
   }, [displayValue, normalizedOptions]);
@@ -87,7 +83,6 @@ export default function Autocomplete({
   );
 
   const handleSelect = (option: AutocompleteOption) => {
-    console.log('handleSelect called with:', option);
     setDisplayValue(option.value);
     onChange(option.value, option);
     setSearchTerm('');

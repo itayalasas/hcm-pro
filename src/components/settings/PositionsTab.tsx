@@ -6,6 +6,7 @@ import { Briefcase, Plus, Edit2, Trash2 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
+import { useToast } from '../../hooks/useToast';
 
 interface Position {
   id: string;
@@ -32,6 +33,7 @@ interface Department {
 export default function PositionsTab({ searchTerm }: { searchTerm: string }) {
   const { selectedCompanyId } = useCompany();
   const { user } = useAuth();
+  const toast = useToast();
   const [positions, setPositions] = useState<Position[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,17 +100,38 @@ export default function PositionsTab({ searchTerm }: { searchTerm: string }) {
   };
 
   const handleSave = async () => {
-    if (!selectedCompanyId || !formData.code || !formData.title) {
-      alert('Por favor complete los campos requeridos');
+    if (!selectedCompanyId || !formData.title) {
+      toast.error('Por favor complete los campos requeridos');
       return;
     }
 
     try {
+      let code = formData.code.trim();
+
+      // Generate code if not provided and not editing
+      if (!code && !editingId) {
+        const { data: generatedCode, error: codeError } = await supabase
+          .rpc('generate_entity_code', {
+            p_entity_type: 'position',
+            p_company_id: selectedCompanyId
+          });
+
+        if (codeError) throw codeError;
+        code = generatedCode;
+      }
+
       const dataToSave = {
-        ...formData,
+        code,
+        title: formData.title,
+        description: formData.description,
         department_id: formData.department_id || null,
+        job_family: formData.job_family,
+        job_level: formData.job_level,
+        requirements: formData.requirements,
+        responsibilities: formData.responsibilities,
         salary_band_min: formData.salary_band_min ? parseFloat(formData.salary_band_min) : null,
         salary_band_max: formData.salary_band_max ? parseFloat(formData.salary_band_max) : null,
+        active: formData.active,
       };
 
       if (editingId) {
@@ -121,6 +144,7 @@ export default function PositionsTab({ searchTerm }: { searchTerm: string }) {
           .eq('id', editingId);
 
         if (error) throw error;
+        toast.success('Puesto actualizado correctamente');
       } else {
         const { error } = await supabase
           .from('positions')
@@ -131,6 +155,7 @@ export default function PositionsTab({ searchTerm }: { searchTerm: string }) {
           });
 
         if (error) throw error;
+        toast.success('Puesto creado correctamente');
       }
 
       setShowModal(false);
@@ -285,12 +310,13 @@ export default function PositionsTab({ searchTerm }: { searchTerm: string }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Código *
+                Código {!editingId && <span className="text-xs text-slate-500">(se generará automáticamente si se deja vacío)</span>}
               </label>
               <Input
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                placeholder="POS001"
+                placeholder={editingId ? "Código" : "Se generará automáticamente"}
+                disabled={!!editingId}
               />
             </div>
 

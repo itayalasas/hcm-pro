@@ -126,6 +126,7 @@ export default function MasterDataPanel() {
 function DepartmentsTab({ searchTerm }: { searchTerm: string }) {
   const { selectedCompanyId } = useCompany();
   const { user } = useAuth();
+  const toast = useToast();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -162,17 +163,33 @@ function DepartmentsTab({ searchTerm }: { searchTerm: string }) {
   };
 
   const handleSave = async () => {
-    if (!selectedCompanyId || !formData.code || !formData.name) {
-      toast.warning('Por favor complete los campos requeridos');
+    if (!selectedCompanyId || !formData.name) {
+      toast.error('Por favor complete los campos requeridos');
       return;
     }
 
     try {
+      let code = formData.code.trim();
+
+      // Generate code if not provided and not editing
+      if (!code && !editingId) {
+        const { data: generatedCode, error: codeError } = await supabase
+          .rpc('generate_entity_code', {
+            p_entity_type: 'department',
+            p_company_id: selectedCompanyId
+          });
+
+        if (codeError) throw codeError;
+        code = generatedCode;
+      }
+
       if (editingId) {
         const { error } = await supabase
           .from('departments')
           .update({
-            ...formData,
+            name: formData.name,
+            description: formData.description,
+            active: formData.active,
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingId);
@@ -184,7 +201,10 @@ function DepartmentsTab({ searchTerm }: { searchTerm: string }) {
           .insert({
             company_id: selectedCompanyId,
             created_by: user?.id,
-            ...formData,
+            code,
+            name: formData.name,
+            description: formData.description,
+            active: formData.active,
           });
 
         if (error) throw error;
@@ -317,12 +337,13 @@ function DepartmentsTab({ searchTerm }: { searchTerm: string }) {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Código *
+              Código {!editingId && <span className="text-xs text-slate-500">(se generará automáticamente si se deja vacío)</span>}
             </label>
             <Input
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-              placeholder="DEPT001"
+              placeholder={editingId ? "Código" : "Se generará automáticamente"}
+              disabled={!!editingId}
             />
           </div>
 
@@ -423,17 +444,39 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
   };
 
   const handleSave = async () => {
-    if (!selectedCompanyId || !formData.code || !formData.name) {
-      toast.warning('Por favor complete los campos requeridos');
+    if (!selectedCompanyId || !formData.name) {
+      toast.error('Por favor complete los campos requeridos');
       return;
     }
 
     try {
+      let code = formData.code.trim();
+
+      // Generate code if not provided and not editing
+      if (!code && !editingId) {
+        const { data: generatedCode, error: codeError } = await supabase
+          .rpc('generate_entity_code', {
+            p_entity_type: 'work_location',
+            p_company_id: selectedCompanyId
+          });
+
+        if (codeError) throw codeError;
+        code = generatedCode;
+      }
+
       if (editingId) {
         const { error } = await supabase
           .from('work_locations')
           .update({
-            ...formData,
+            name: formData.name,
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            country: formData.country,
+            postal_code: formData.postal_code,
+            timezone: formData.timezone,
+            is_remote: formData.is_remote,
+            active: formData.active,
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingId);
@@ -445,7 +488,16 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
           .insert({
             company_id: selectedCompanyId,
             created_by: user?.id,
-            ...formData,
+            code,
+            name: formData.name,
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            country: formData.country,
+            postal_code: formData.postal_code,
+            timezone: formData.timezone,
+            is_remote: formData.is_remote,
+            active: formData.active,
           });
 
         if (error) throw error;
@@ -607,12 +659,13 @@ function LocationsTab({ searchTerm }: { searchTerm: string }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Código *
+                Código {!editingId && <span className="text-xs text-slate-500">(se generará automáticamente si se deja vacío)</span>}
               </label>
               <Input
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                placeholder="LOC001"
+                placeholder={editingId ? "Código" : "Se generará automáticamente"}
+                disabled={!!editingId}
               />
             </div>
 

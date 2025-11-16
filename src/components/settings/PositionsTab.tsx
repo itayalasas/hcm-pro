@@ -6,6 +6,7 @@ import { Briefcase, Plus, Edit2, Trash2 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
+import Autocomplete from '../ui/Autocomplete';
 import { useToast } from '../../hooks/useToast';
 
 interface Position {
@@ -30,12 +31,19 @@ interface Department {
   code: string;
 }
 
+interface PositionLevel {
+  id: string;
+  name: string;
+  code: string;
+}
+
 export default function PositionsTab({ searchTerm }: { searchTerm: string }) {
   const { selectedCompanyId } = useCompany();
   const { user } = useAuth();
   const toast = useToast();
   const [positions, setPositions] = useState<Position[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [positionLevels, setPositionLevels] = useState<PositionLevel[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -56,6 +64,7 @@ export default function PositionsTab({ searchTerm }: { searchTerm: string }) {
   useEffect(() => {
     loadPositions();
     loadDepartments();
+    loadPositionLevels();
   }, [selectedCompanyId]);
 
   const loadPositions = async () => {
@@ -96,6 +105,24 @@ export default function PositionsTab({ searchTerm }: { searchTerm: string }) {
       setDepartments(data || []);
     } catch (error) {
       console.error('Error loading departments:', error);
+    }
+  };
+
+  const loadPositionLevels = async () => {
+    if (!selectedCompanyId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('position_levels')
+        .select('id, name, code')
+        .eq('company_id', selectedCompanyId)
+        .eq('active', true)
+        .order('order_index', { ascending: true });
+
+      if (error) throw error;
+      setPositionLevels(data || []);
+    } catch (error) {
+      console.error('Error loading position levels:', error);
     }
   };
 
@@ -378,23 +405,12 @@ export default function PositionsTab({ searchTerm }: { searchTerm: string }) {
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Nivel
             </label>
-            <select
+            <Autocomplete
+              options={positionLevels.map(level => ({ value: level.name, label: level.name }))}
               value={formData.job_level}
-              onChange={(e) => setFormData({ ...formData, job_level: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Seleccionar...</option>
-              <option value="Ejecutivo C-Level">Ejecutivo C-Level</option>
-              <option value="Director">Director</option>
-              <option value="Gerente">Gerente</option>
-              <option value="Supervisor">Supervisor</option>
-              <option value="Coordinador">Coordinador</option>
-              <option value="Especialista Senior">Especialista Senior</option>
-              <option value="Especialista">Especialista</option>
-              <option value="Analista">Analista</option>
-              <option value="Asistente">Asistente</option>
-              <option value="Operativo">Operativo</option>
-            </select>
+              onChange={(value) => setFormData({ ...formData, job_level: value })}
+              placeholder="Escribir o seleccionar nivel..."
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

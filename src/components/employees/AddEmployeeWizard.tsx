@@ -77,6 +77,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
   const [positions, setPositions] = useState<Array<{id: string, name: string}>>([]);
   const [employmentTypes, setEmploymentTypes] = useState<Array<{id: string, name: string}>>([]);
   const [workLocations, setWorkLocations] = useState<Array<{id: string, name: string}>>([]);
+  const [managers, setManagers] = useState<Array<{id: string, name: string}>>([]);
   const [employeeData, setEmployeeData] = useState<EmployeeData>({
     personalInfo: {
       firstName: '',
@@ -265,6 +266,14 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
     }
   }, [selectedCompanyId, isOpen]);
 
+  useEffect(() => {
+    if (employeeData.employment.department && selectedCompanyId) {
+      loadManagersByDepartment(employeeData.employment.department);
+    } else {
+      setManagers([]);
+    }
+  }, [employeeData.employment.department, selectedCompanyId]);
+
   const loadMasterData = async () => {
     if (!selectedCompanyId) return;
 
@@ -334,6 +343,55 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
       setWorkLocations(locData || []);
     } catch (error) {
       console.error('Error loading master data:', error);
+    }
+  };
+
+  const loadManagersByDepartment = async (departmentName: string) => {
+    if (!selectedCompanyId || !departmentName) return;
+
+    try {
+      const { data: dept } = await supabase
+        .from('departments')
+        .select('id')
+        .eq('company_id', selectedCompanyId)
+        .eq('name', departmentName)
+        .maybeSingle();
+
+      if (!dept) {
+        setManagers([]);
+        return;
+      }
+
+      const { data: positionsInDept } = await supabase
+        .from('positions')
+        .select('id')
+        .eq('company_id', selectedCompanyId)
+        .eq('department_id', dept.id)
+        .eq('active', true);
+
+      if (!positionsInDept || positionsInDept.length === 0) {
+        setManagers([]);
+        return;
+      }
+
+      const positionIds = positionsInDept.map(p => p.id);
+
+      const { data: employees } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name, position_id')
+        .eq('company_id', selectedCompanyId)
+        .eq('status', 'active')
+        .in('position_id', positionIds);
+
+      const managersData = (employees || []).map(emp => ({
+        id: emp.id,
+        name: `${emp.first_name} ${emp.last_name}`
+      }));
+
+      setManagers(managersData);
+    } catch (error) {
+      console.error('Error loading managers:', error);
+      setManagers([]);
     }
   };
 
@@ -643,11 +701,13 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
                 onChange={(e) => updateEmployment('salary', e.target.value)}
                 placeholder="50000"
               />
-              <Input
+              <Autocomplete
                 label="Manager/Supervisor"
                 value={employeeData.employment.manager}
-                onChange={(e) => updateEmployment('manager', e.target.value)}
+                options={managers.map(mgr => mgr.name)}
+                onChange={(value) => updateEmployment('manager', value)}
                 placeholder="Nombre del supervisor"
+                disabled={!employeeData.employment.department}
               />
             </div>
           </div>

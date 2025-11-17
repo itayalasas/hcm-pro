@@ -352,7 +352,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         address_country_iso3: employeeData.personalInfo.countryISO3 || null,
         hire_date: convertDateToISO(employeeData.employment.hireDate),
         position_id: validPositionId,
-        business_unit_id: validDepartmentId,
+        department_id: validDepartmentId,
         direct_manager_id: validManagerId,
         work_location: employeeData.employment.workLocation || null,
         work_location_id: validWorkLocationId,
@@ -502,20 +502,20 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         locations: workLocations.length
       });
 
-      const dept = departments.find(d => d.id === employeeToEdit.business_unit_id);
+      const dept = departments.find(d => d.id === employeeToEdit.department_id);
       const pos = positions.find(p => p.id === employeeToEdit.position_id);
       const loc = workLocations.find(l => l.id === employeeToEdit.work_location_id);
 
       console.log('Found data:', { dept, pos, loc });
       console.log('Looking for:', {
-        deptId: employeeToEdit.business_unit_id,
+        deptId: employeeToEdit.department_id,
         posId: employeeToEdit.position_id,
         locId: employeeToEdit.work_location_id
       });
 
       let mgr = null;
-      if (employeeToEdit.direct_manager_id && employeeToEdit.business_unit_id) {
-        await loadManagersByDepartment(employeeToEdit.business_unit_id);
+      if (employeeToEdit.direct_manager_id && employeeToEdit.department_id) {
+        await loadManagersByDepartment(employeeToEdit.department_id);
         mgr = managers.find(m => m.id === employeeToEdit.direct_manager_id);
       }
 
@@ -544,7 +544,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
           employeeNumber: employeeToEdit.employee_number || '',
           hireDate: employeeToEdit.hire_date || '',
           department: dept?.name || '',
-          departmentId: employeeToEdit.business_unit_id || '',
+          departmentId: employeeToEdit.department_id || '',
           position: pos?.name || '',
           positionId: employeeToEdit.position_id || '',
           employmentType: employeeToEdit.employment_type || 'full-time',
@@ -648,7 +648,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         .order('title');
 
       const { data: deptData, error: deptError } = await supabase
-        .from('business_units')
+        .from('departments')
         .select('id, name')
         .eq('company_id', selectedCompanyId)
         .eq('active', true)
@@ -728,10 +728,10 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
     try {
       const { data: employees } = await supabase
         .from('employees')
-        .select('id, first_name, last_name, business_unit_id')
+        .select('id, first_name, last_name, department_id')
         .eq('company_id', selectedCompanyId)
         .eq('status', 'active')
-        .eq('business_unit_id', businessUnitId);
+        .eq('department_id', businessUnitId);
 
       const managersData = (employees || []).map(emp => ({
         id: emp.id,

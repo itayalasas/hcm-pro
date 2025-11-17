@@ -24,18 +24,16 @@ interface Employee {
   hire_date: string;
   termination_date: string | null;
   work_location: string | null;
+  date_of_birth: string | null;
+  phone: string | null;
+  mobile: string | null;
+  address_street: string | null;
+  address_city: string | null;
+  address_country: string | null;
+  national_id: string | null;
   position: { id: string; title: string; code: string } | null;
   business_unit: { id: string; name: string; code: string } | null;
   direct_manager: { id: string; first_name: string; last_name: string } | null;
-  personal_data: {
-    date_of_birth: string | null;
-    phone: string | null;
-    mobile: string | null;
-    address: string | null;
-    city: string | null;
-    national_id: string | null;
-    country: string | null;
-  } | null;
 }
 
 interface EmployeeProfileProps {
@@ -80,8 +78,7 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
         .select(`
           *,
           position:positions(id, title, code),
-          business_unit:business_units(id, name, code),
-          personal_data:employee_personal_data(*)
+          business_unit:business_units(id, name, code)
         `)
         .eq('id', employeeId)
         .eq('company_id', selectedCompanyId)
@@ -177,10 +174,10 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
         companyRepresentative: 'Representante Legal',
         representativeTitle: 'Director General',
         employeeName: `${employee.first_name} ${employee.last_name}`,
-        employeeId: employee.personal_data?.national_id,
-        employeeAddress: employee.personal_data?.address,
-        employeeCity: employee.personal_data?.city,
-        employeeCountry: employee.personal_data?.country,
+        employeeId: employee.national_id,
+        employeeAddress: employee.address_street,
+        employeeCity: employee.address_city,
+        employeeCountry: employee.address_country,
         position: employee.position?.title,
         department: employee.business_unit?.name,
         employmentType: 'Tiempo Completo',
@@ -570,20 +567,23 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
 function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: () => void }) {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
-    phone: employee.personal_data?.phone || '',
-    mobile: employee.personal_data?.mobile || '',
-    address: employee.personal_data?.address || '',
-    city: employee.personal_data?.city || '',
+    phone: employee.phone || '',
+    mobile: employee.mobile || '',
+    address: employee.address_street || '',
+    city: employee.address_city || '',
   });
 
   const handleSave = async () => {
     try {
       const { error } = await supabase
-        .from('employee_personal_data')
-        .upsert({
-          employee_id: employee.id,
-          ...formData,
-        });
+        .from('employees')
+        .update({
+          phone: formData.phone,
+          mobile: formData.mobile,
+          address_street: formData.address,
+          address_city: formData.city,
+        })
+        .eq('id', employee.id);
 
       if (error) throw error;
 
@@ -631,7 +631,7 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
           ) : (
             <div className="flex items-center gap-2 text-slate-900">
               <Phone className="w-4 h-4 text-slate-400" />
-              {employee.personal_data?.phone || 'No especificado'}
+              {employee.phone || 'No especificado'}
             </div>
           )}
         </div>
@@ -648,7 +648,7 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
           ) : (
             <div className="flex items-center gap-2 text-slate-900">
               <Phone className="w-4 h-4 text-slate-400" />
-              {employee.personal_data?.mobile || 'No especificado'}
+              {employee.mobile || 'No especificado'}
             </div>
           )}
         </div>
@@ -665,7 +665,7 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
           ) : (
             <div className="flex items-center gap-2 text-slate-900">
               <MapPin className="w-4 h-4 text-slate-400" />
-              {employee.personal_data?.address || 'No especificada'}
+              {employee.address_street || 'No especificada'}
             </div>
           )}
         </div>
@@ -682,7 +682,7 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
           ) : (
             <div className="flex items-center gap-2 text-slate-900">
               <Building2 className="w-4 h-4 text-slate-400" />
-              {employee.personal_data?.city || 'No especificada'}
+              {employee.address_city || 'No especificada'}
             </div>
           )}
         </div>
@@ -693,8 +693,8 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
           </label>
           <div className="flex items-center gap-2 text-slate-900">
             <Calendar className="w-4 h-4 text-slate-400" />
-            {employee.personal_data?.date_of_birth
-              ? new Date(employee.personal_data.date_of_birth).toLocaleDateString('es-ES')
+            {employee.date_of_birth
+              ? new Date(employee.date_of_birth).toLocaleDateString('es-ES')
               : 'No especificada'}
           </div>
         </div>

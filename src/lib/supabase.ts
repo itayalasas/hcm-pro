@@ -25,6 +25,26 @@ export type Employee = {
   cost_center_id?: string;
   direct_manager_id?: string;
   work_location?: string;
+  phone?: string;
+  mobile?: string;
+  address_street?: string;
+  address_city?: string;
+  address_country?: string;
+  address_country_iso3?: string;
+  date_of_birth?: string;
+  national_id?: string;
+  salary?: number;
+  employment_type?: string;
+  health_card_number?: string;
+  health_card_expiry?: string;
+  bank_name?: string;
+  bank_account_number?: string;
+  bank_account_type?: string;
+  bank_routing_number?: string;
+  emergency_contact_name?: string;
+  emergency_contact_relationship?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_phone_alt?: string;
 };
 
 export type Company = {

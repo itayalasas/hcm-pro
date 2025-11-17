@@ -491,20 +491,6 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
     }
   }, [employeeData.employment.departmentId, selectedCompanyId]);
 
-  useEffect(() => {
-    console.log('Edit mode effect:', {
-      editMode,
-      hasEmployeeToEdit: !!employeeToEdit,
-      isOpen,
-      departmentsLength: departments.length
-    });
-
-    if (editMode && employeeToEdit && isOpen && departments.length > 0) {
-      console.log('Loading employee data for:', employeeToEdit);
-      loadEmployeeData();
-    }
-  }, [editMode, employeeToEdit, isOpen, departments, positions, workLocations]);
-
   const loadEmployeeData = async () => {
     if (!employeeToEdit) return;
 
@@ -589,6 +575,20 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
       console.error('Error loading employee data:', error);
     }
   };
+
+  useEffect(() => {
+    console.log('Edit mode effect:', {
+      editMode,
+      hasEmployeeToEdit: !!employeeToEdit,
+      isOpen,
+      departmentsLength: departments.length
+    });
+
+    if (editMode && employeeToEdit && isOpen && departments.length > 0) {
+      console.log('Loading employee data for:', employeeToEdit);
+      loadEmployeeData();
+    }
+  }, [editMode, employeeToEdit, isOpen, departments, positions, workLocations]);
 
   const loadCompanyData = async () => {
     if (!selectedCompanyId) return;

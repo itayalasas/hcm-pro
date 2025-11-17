@@ -9,6 +9,7 @@ import CountryCitySelector from '../ui/CountryCitySelector';
 import { supabase } from '../../lib/supabase';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useToast } from '../../hooks/useToast';
+import { replaceContractVariables, EmployeeContractData } from '../../lib/contractTemplates';
 
 interface AddEmployeeWizardProps {
   isOpen: boolean;
@@ -239,38 +240,29 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
   };
 
   const replaceTemplateVariables = (template: string): string => {
-    const replacements: { [key: string]: string } = {
-      '[NOMBRE_EMPRESA]': 'Empresa X',
-      '[DIRECCION_EMPRESA]': 'Calle Principal 123',
-      '[REPRESENTANTE_EMPRESA]': 'Juan Representante',
-      '[CARGO_REPRESENTANTE]': 'Director General',
-      '[NOMBRE_EMPLEADO]': `${employeeData.personalInfo.firstName} ${employeeData.personalInfo.lastName}`,
-      '[RFC_EMPLEADO]': employeeData.personalInfo.nationalId || 'N/A',
-      '[DIRECCION_EMPLEADO]': employeeData.personalInfo.address || 'N/A',
-      '[CIUDAD_EMPLEADO]': employeeData.personalInfo.city || 'N/A',
-      '[PAIS_EMPLEADO]': employeeData.personalInfo.country || 'N/A',
-      '[PUESTO_EMPLEADO]': employeeData.employment.position || 'N/A',
-      '[DEPARTAMENTO_EMPLEADO]': employeeData.employment.department || 'N/A',
-      '[TIPO_EMPLEO]': employeeData.employment.employmentType || 'N/A',
-      '[FECHA_INICIO]': employeeData.employment.hireDate || 'N/A',
-      '[SALARIO]': employeeData.employment.salary || 'N/A',
-      '[BANCO]': employeeData.banking.bankName || 'N/A',
-      '[NUMERO_CUENTA]': employeeData.banking.accountNumber || 'N/A',
-      '[TIPO_CUENTA]': employeeData.banking.accountType === 'checking' ? 'Cuenta Corriente' : employeeData.banking.accountType === 'savings' ? 'Cuenta de Ahorros' : 'N/A',
-      '[CARNET_SALUD]': employeeData.health.cardNumber || 'N/A',
-      '[VIGENCIA_CARNET]': employeeData.health.cardExpiry || 'N/A',
-      '[CONTACTO_EMERGENCIA]': employeeData.emergency.contactName || 'N/A',
-      '[RELACION_EMERGENCIA]': employeeData.emergency.relationship || 'N/A',
-      '[TELEFONO_EMERGENCIA]': employeeData.emergency.phone || 'N/A',
-      '[FECHA_CONTRATO]': new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
+    const contractData: EmployeeContractData = {
+      employeeName: `${employeeData.personalInfo.firstName} ${employeeData.personalInfo.lastName}`,
+      employeeId: employeeData.personalInfo.nationalId,
+      employeeAddress: employeeData.personalInfo.address,
+      employeeCity: employeeData.personalInfo.city,
+      employeeCountry: employeeData.personalInfo.country,
+      position: employeeData.employment.position,
+      department: employeeData.employment.department,
+      employmentType: employeeData.employment.employmentType,
+      hireDate: employeeData.employment.hireDate,
+      salary: employeeData.employment.salary,
+      bankName: employeeData.banking.bankName,
+      accountNumber: employeeData.banking.accountNumber,
+      accountType: employeeData.banking.accountType === 'checking' ? 'Cuenta Corriente' :
+                   employeeData.banking.accountType === 'savings' ? 'Cuenta de Ahorros' : 'N/A',
+      healthCardNumber: employeeData.health.cardNumber,
+      healthCardExpiry: employeeData.health.cardExpiry,
+      emergencyContact: employeeData.emergency.contactName,
+      emergencyRelationship: employeeData.emergency.relationship,
+      emergencyPhone: employeeData.emergency.phone,
     };
 
-    let result = template;
-    Object.entries(replacements).forEach(([key, value]) => {
-      result = result.replace(new RegExp(key, 'g'), value);
-    });
-
-    return result;
+    return replaceContractVariables(template, contractData);
   };
 
   const handleBack = () => {

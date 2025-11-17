@@ -11,6 +11,7 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
 import { useToast } from '../../hooks/useToast';
+import { replaceContractVariables, EmployeeContractData } from '../../lib/contractTemplates';
 
 interface Employee {
   id: string;
@@ -122,37 +123,19 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
       const template = contractTemplates.find(t => t.id === selectedTemplate);
       if (!template) return;
 
-      let contractContent = template.content;
-
-      const replacements: { [key: string]: string } = {
-        '[NOMBRE_EMPRESA]': 'Empresa X',
-        '[DIRECCION_EMPRESA]': 'Calle Principal 123',
-        '[REPRESENTANTE_EMPRESA]': 'Representante Legal',
-        '[CARGO_REPRESENTANTE]': 'Director General',
-        '[NOMBRE_EMPLEADO]': `${employee.first_name} ${employee.last_name}`,
-        '[RFC_EMPLEADO]': employee.personal_data?.national_id || 'N/A',
-        '[DIRECCION_EMPLEADO]': employee.personal_data?.address || 'N/A',
-        '[CIUDAD_EMPLEADO]': employee.personal_data?.city || 'N/A',
-        '[PAIS_EMPLEADO]': employee.personal_data?.country || 'N/A',
-        '[PUESTO_EMPLEADO]': employee.position?.title || 'N/A',
-        '[DEPARTAMENTO_EMPLEADO]': employee.business_unit?.name || 'N/A',
-        '[TIPO_EMPLEO]': 'Tiempo Completo',
-        '[FECHA_INICIO]': new Date(employee.hire_date).toLocaleDateString('es-ES'),
-        '[SALARIO]': 'Por definir',
-        '[BANCO]': 'N/A',
-        '[NUMERO_CUENTA]': 'N/A',
-        '[TIPO_CUENTA]': 'N/A',
-        '[CARNET_SALUD]': 'N/A',
-        '[VIGENCIA_CARNET]': 'N/A',
-        '[CONTACTO_EMERGENCIA]': 'N/A',
-        '[RELACION_EMERGENCIA]': 'N/A',
-        '[TELEFONO_EMERGENCIA]': 'N/A',
-        '[FECHA_CONTRATO]': new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
+      const contractData: EmployeeContractData = {
+        employeeName: `${employee.first_name} ${employee.last_name}`,
+        employeeId: employee.personal_data?.national_id,
+        employeeAddress: employee.personal_data?.address,
+        employeeCity: employee.personal_data?.city,
+        employeeCountry: employee.personal_data?.country,
+        position: employee.position?.title,
+        department: employee.business_unit?.name,
+        employmentType: 'Tiempo Completo',
+        hireDate: new Date(employee.hire_date).toLocaleDateString('es-ES'),
       };
 
-      Object.entries(replacements).forEach(([key, value]) => {
-        contractContent = contractContent.replace(new RegExp(key, 'g'), value);
-      });
+      const contractContent = replaceContractVariables(template.content, contractData);
 
       setGeneratedContract(contractContent);
       toast.success('Contrato generado exitosamente');

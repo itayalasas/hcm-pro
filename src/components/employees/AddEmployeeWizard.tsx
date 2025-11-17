@@ -270,13 +270,13 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
 
     try {
       const [
-        { data: academicData },
-        { data: institutionData },
-        { data: fieldData },
-        { data: deptData },
-        { data: posData },
-        { data: empTypeData },
-        { data: locData }
+        { data: academicData, error: academicError },
+        { data: institutionData, error: institutionError },
+        { data: fieldData, error: fieldError },
+        { data: deptData, error: deptError },
+        { data: posData, error: posError },
+        { data: empTypeData, error: empTypeError },
+        { data: locData, error: locError }
       ] = await Promise.all([
         supabase.from('academic_levels').select('id, name').eq('company_id', selectedCompanyId).eq('active', true),
         supabase.from('educational_institutions').select('id, name').eq('company_id', selectedCompanyId).eq('active', true),
@@ -286,6 +286,12 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
         supabase.from('employment_types').select('id, name').eq('company_id', selectedCompanyId).eq('active', true),
         supabase.from('work_locations').select('id, name').eq('company_id', selectedCompanyId).eq('active', true)
       ]);
+
+      if (posError) console.error('Error loading positions:', posError);
+      if (deptError) console.error('Error loading departments:', deptError);
+
+      console.log('Positions loaded:', posData);
+      console.log('Departments loaded:', deptData);
 
       setAcademicLevels(academicData || []);
       setInstitutions(institutionData || []);
@@ -574,7 +580,12 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
               <Autocomplete
                 label="Puesto"
                 value={employeeData.employment.position}
-                options={positions.map(pos => pos.name)}
+                options={(() => {
+                  console.log('Raw positions:', positions);
+                  const mapped = positions.map(pos => pos.name);
+                  console.log('Mapped positions:', mapped);
+                  return mapped;
+                })()}
                 onChange={(value) => updateEmployment('position', value)}
                 placeholder="Escribe para buscar puesto..."
               />

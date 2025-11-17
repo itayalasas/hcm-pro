@@ -17,21 +17,27 @@ interface StepWizardProps {
 export default function StepWizard({ steps, currentStep, children, onStepClick }: StepWizardProps) {
   return (
     <div className="space-y-8">
-      <div className="relative">
-        <div className="flex items-center justify-between">
+      <div className="relative px-4">
+        <div className="absolute top-5 left-0 right-0 h-0.5 bg-slate-200"
+             style={{ marginLeft: '2rem', marginRight: '2rem' }} />
+
+        <div className="relative flex items-start justify-between">
           {steps.map((step, index) => {
             const isCompleted = index < currentStep;
             const isCurrent = index === currentStep;
             const isClickable = onStepClick && index <= currentStep;
 
             return (
-              <div key={step.id} className="flex-1 relative">
+              <div key={step.id} className="flex flex-col items-center" style={{ flex: '0 0 auto', width: `${100 / steps.length}%` }}>
                 {index !== 0 && (
                   <div
-                    className={`absolute top-5 right-1/2 h-0.5 w-full transition-colors ${
+                    className={`absolute top-5 h-0.5 transition-colors ${
                       isCompleted ? 'bg-blue-600' : 'bg-slate-200'
                     }`}
-                    style={{ right: '50%', left: '-50%' }}
+                    style={{
+                      left: `${(index - 1) * (100 / steps.length) + (50 / steps.length)}%`,
+                      width: `${100 / steps.length}%`
+                    }}
                   />
                 )}
 
@@ -43,12 +49,12 @@ export default function StepWizard({ steps, currentStep, children, onStepClick }
                   }`}
                 >
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all z-10 ${
                       isCompleted
                         ? 'bg-blue-600 text-white'
                         : isCurrent
                         ? 'bg-blue-600 text-white ring-4 ring-blue-100'
-                        : 'bg-slate-100 text-slate-400'
+                        : 'bg-white border-2 border-slate-200 text-slate-400'
                     } ${isClickable ? 'group-hover:ring-4 group-hover:ring-blue-50' : ''}`}
                   >
                     {isCompleted ? (
@@ -58,16 +64,16 @@ export default function StepWizard({ steps, currentStep, children, onStepClick }
                     )}
                   </div>
 
-                  <div className="mt-3 text-center">
+                  <div className="mt-3 text-center max-w-[120px]">
                     <p
-                      className={`text-sm font-medium transition-colors ${
+                      className={`text-xs font-medium transition-colors leading-tight ${
                         isCurrent ? 'text-blue-600' : isCompleted ? 'text-slate-900' : 'text-slate-400'
                       }`}
                     >
                       {step.title}
                     </p>
                     {step.description && (
-                      <p className="text-xs text-slate-500 mt-1 hidden sm:block">{step.description}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">{step.description}</p>
                     )}
                   </div>
                 </button>

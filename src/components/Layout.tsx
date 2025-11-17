@@ -126,7 +126,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const toggleExpand = (name: string) => {
     setExpandedItems(prev =>
-      prev.includes(name) ? prev.filter(item => item !== name) : [...prev, name]
+      prev.includes(name) ? [] : [name]
     );
   };
 

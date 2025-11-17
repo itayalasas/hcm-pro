@@ -15,6 +15,8 @@ interface AddEmployeeWizardProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  editMode?: boolean;
+  employeeToEdit?: any;
 }
 
 interface EmployeeData {
@@ -84,7 +86,7 @@ const steps = [
   { id: 'review', title: 'Contrato', description: 'Generar y descargar contrato' }
 ];
 
-export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmployeeWizardProps) {
+export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode = false, employeeToEdit }: AddEmployeeWizardProps) {
   const { selectedCompanyId } = useCompany();
   const toast = useToast();
   const [currentStep, setCurrentStep] = useState(0);
@@ -292,19 +294,6 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
         throw new Error('No hay empresa seleccionada');
       }
 
-      let employeeNumber = employeeData.employment.employeeNumber;
-
-      if (!employeeNumber) {
-        const { data: generatedCode, error: codeError } = await supabase
-          .rpc('generate_entity_code', {
-            p_entity_type: 'employee',
-            p_company_id: selectedCompanyId
-          });
-
-        if (codeError) throw codeError;
-        employeeNumber = generatedCode;
-      }
-
       const convertDateToISO = (dateStr: string) => {
         if (!dateStr) return null;
         const parts = dateStr.split('/');
@@ -315,15 +304,12 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
         return dateStr;
       };
 
-      const { error: employeeError, data: employeeRecord } = await supabase.from('employees').insert({
-        company_id: selectedCompanyId,
-        employee_number: employeeNumber,
+      const employeePayload = {
         first_name: employeeData.personalInfo.firstName,
         last_name: employeeData.personalInfo.lastName,
         email: employeeData.personalInfo.email,
         phone: employeeData.personalInfo.phone || null,
         mobile: employeeData.personalInfo.phone || null,
-        date_of_birth: employeeData.personalInfo.birthDate ? convertDateToISO(employeeData.personalInfo.birthDate) : null,
         national_id: employeeData.personalInfo.nationalId || null,
         address_street: employeeData.personalInfo.address,
         address_city: employeeData.personalInfo.city,
@@ -347,17 +333,47 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
         emergency_contact_relationship: employeeData.emergency.relationship,
         emergency_contact_phone: employeeData.emergency.phone,
         emergency_contact_phone_alt: employeeData.emergency.alternatePhone,
-        status: 'active'
-      }).select().single();
+      };
 
-      if (employeeError) throw employeeError;
+      if (editMode && employeeToEdit) {
+        const { error: employeeError } = await supabase
+          .from('employees')
+          .update(employeePayload)
+          .eq('id', employeeToEdit.id);
+
+        if (employeeError) throw employeeError;
+        toast.success('Empleado actualizado exitosamente');
+      } else {
+        let employeeNumber = employeeData.employment.employeeNumber;
+
+        if (!employeeNumber) {
+          const { data: generatedCode, error: codeError } = await supabase
+            .rpc('generate_entity_code', {
+              p_entity_type: 'employee',
+              p_company_id: selectedCompanyId
+            });
+
+          if (codeError) throw codeError;
+          employeeNumber = generatedCode;
+        }
+
+        const { error: employeeError } = await supabase.from('employees').insert({
+          ...employeePayload,
+          company_id: selectedCompanyId,
+          employee_number: employeeNumber,
+          status: 'active'
+        });
+
+        if (employeeError) throw employeeError;
+        toast.success('Empleado creado exitosamente');
+      }
 
       onSuccess();
       onClose();
       resetForm();
     } catch (error) {
-      console.error('Error creating employee:', error);
-      alert('Error al crear empleado. Por favor intenta de nuevo.');
+      console.error(`Error ${editMode ? 'updating' : 'creating'} employee:`, error);
+      toast.error(`Error al ${editMode ? 'actualizar' : 'crear'} empleado`);
     } finally {
       setIsSubmitting(false);
     }
@@ -439,6 +455,85 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
       setManagers([]);
     }
   }, [employeeData.employment.department, selectedCompanyId]);
+
+  useEffect(() => {
+    if (editMode && employeeToEdit && isOpen) {
+      loadEmployeeData();
+    }
+  }, [editMode, employeeToEdit, isOpen]);
+
+  const loadEmployeeData = async () => {
+    if (!employeeToEdit) return;
+
+    try {
+      const dept = departments.find(d => d.id === employeeToEdit.business_unit_id);
+      const pos = positions.find(p => p.id === employeeToEdit.position_id);
+      const loc = workLocations.find(l => l.id === employeeToEdit.work_location_id);
+      const mgr = managers.find(m => m.id === employeeToEdit.direct_manager_id);
+
+      setEmployeeData({
+        personalInfo: {
+          firstName: employeeToEdit.first_name || '',
+          lastName: employeeToEdit.last_name || '',
+          email: employeeToEdit.email || '',
+          phone: employeeToEdit.phone || employeeToEdit.mobile || '',
+          birthDate: employeeToEdit.date_of_birth || '',
+          gender: employeeToEdit.gender || '',
+          nationalId: employeeToEdit.national_id || '',
+          address: employeeToEdit.address_street || '',
+          city: employeeToEdit.address_city || '',
+          country: employeeToEdit.address_country || '',
+          countryISO3: employeeToEdit.address_country_iso3 || ''
+        },
+        education: {
+          highestDegree: '',
+          institution: '',
+          fieldOfStudy: '',
+          graduationYear: '',
+          certifications: ''
+        },
+        employment: {
+          employeeNumber: employeeToEdit.employee_number || '',
+          hireDate: employeeToEdit.hire_date || '',
+          department: dept?.name || '',
+          departmentId: employeeToEdit.business_unit_id || '',
+          position: pos?.name || '',
+          positionId: employeeToEdit.position_id || '',
+          employmentType: employeeToEdit.employment_type || 'full-time',
+          workLocation: loc?.name || employeeToEdit.work_location || '',
+          workLocationId: employeeToEdit.work_location_id || '',
+          salary: employeeToEdit.salary?.toString() || '',
+          manager: mgr?.name || '',
+          managerId: employeeToEdit.direct_manager_id || ''
+        },
+        health: {
+          cardNumber: employeeToEdit.health_card_number || '',
+          cardExpiry: employeeToEdit.health_card_expiry || '',
+          cardFile: null
+        },
+        banking: {
+          bankName: employeeToEdit.bank_name || '',
+          accountNumber: employeeToEdit.bank_account_number || '',
+          accountType: employeeToEdit.bank_account_type || '',
+          routingNumber: employeeToEdit.bank_routing_number || ''
+        },
+        emergency: {
+          contactName: employeeToEdit.emergency_contact_name || '',
+          relationship: employeeToEdit.emergency_contact_relationship || '',
+          phone: employeeToEdit.emergency_contact_phone || '',
+          phoneAlt: employeeToEdit.emergency_contact_phone_alt || ''
+        },
+        documents: {
+          idDocument: null,
+          proofOfAddress: null,
+          resume: null,
+          notes: ''
+        }
+      });
+    } catch (error) {
+      console.error('Error loading employee data:', error);
+    }
+  };
 
   const loadCompanyData = async () => {
     if (!selectedCompanyId) return;
@@ -1321,7 +1416,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Agregar Nuevo Empleado" size="xl" showClose={false}>
+    <Modal isOpen={isOpen} onClose={onClose} title={editMode ? "Editar Empleado" : "Agregar Nuevo Empleado"} size="xl" showClose={false}>
       <StepWizard steps={steps} currentStep={currentStep}>
         {renderStepContent()}
 

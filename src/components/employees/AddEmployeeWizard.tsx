@@ -1139,18 +1139,60 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
               </div>
             </div>
 
-            <div className="bg-white border-2 border-slate-200 rounded-xl p-8 max-h-96 overflow-y-auto">
-              <pre className="text-sm whitespace-pre-wrap font-sans" id="contract-content">
+            <div className="bg-white border-2 border-slate-200 rounded-xl p-8 max-h-96 overflow-y-auto print-area">
+              <div className="text-sm whitespace-pre-line font-sans leading-relaxed" id="contract-content">
                 {contractTemplate || 'Cargando plantilla...'}
-              </pre>
+              </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 no-print">
               <Button
                 variant="secondary"
                 className="flex-1"
                 onClick={() => {
-                  window.print();
+                  const printContent = document.getElementById('contract-content');
+                  if (printContent) {
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>Contrato de Trabajo</title>
+                            <style>
+                              body {
+                                font-family: Arial, sans-serif;
+                                line-height: 1.6;
+                                padding: 40px;
+                                max-width: 800px;
+                                margin: 0 auto;
+                              }
+                              h1, h2, h3 {
+                                margin-top: 20px;
+                                margin-bottom: 10px;
+                              }
+                              p {
+                                margin-bottom: 10px;
+                              }
+                              @media print {
+                                body {
+                                  padding: 20px;
+                                }
+                              }
+                            </style>
+                          </head>
+                          <body>
+                            ${printContent.innerHTML}
+                          </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.focus();
+                      setTimeout(() => {
+                        printWindow.print();
+                        printWindow.close();
+                      }, 250);
+                    }
+                  }
                 }}
               >
                 <FileDown className="w-4 h-4 mr-2" />

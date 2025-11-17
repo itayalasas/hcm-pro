@@ -27,6 +27,7 @@ interface EmployeeData {
     phone: string;
     birthDate: string;
     genderId: string;
+    documentTypeId: string;
     nationalId: string;
     address: string;
     city: string;
@@ -100,6 +101,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
     country: string;
   }>({ name: '', address: '', country: '' });
 
+  const [documentTypes, setDocumentTypes] = useState<Array<{id: string, name: string, code: string}>>([]);
   const [genders, setGenders] = useState<Array<{id: string, name: string}>>([]);
   const [academicLevels, setAcademicLevels] = useState<Array<{id: string, name: string}>>([]);
   const [institutions, setInstitutions] = useState<Array<{id: string, name: string}>>([]);
@@ -351,6 +353,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         mobile: employeeData.personalInfo.phone || null,
         date_of_birth: employeeData.personalInfo.birthDate ? convertDateToISO(employeeData.personalInfo.birthDate) : null,
         gender_id: employeeData.personalInfo.genderId || null,
+        document_type_id: employeeData.personalInfo.documentTypeId || null,
         national_id: employeeData.personalInfo.nationalId || null,
         address_street: employeeData.personalInfo.address || null,
         address_city: employeeData.personalInfo.city || null,
@@ -436,6 +439,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         phone: '',
         birthDate: '',
         genderId: '',
+        documentTypeId: '',
         nationalId: '',
         address: '',
         city: '',
@@ -670,6 +674,13 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         deptError
       });
 
+      const { data: documentTypeData } = await supabase
+        .from('document_types')
+        .select('id, code, name')
+        .eq('company_id', selectedCompanyId)
+        .eq('active', true)
+        .order('name');
+
       const { data: genderData } = await supabase
         .from('genders')
         .select('id, name')
@@ -721,6 +732,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
 
       const mappedPositions = (posData || []).map(p => ({ id: p.id, name: p.title }));
 
+      setDocumentTypes(documentTypeData || []);
       setGenders(genderData || []);
       setAcademicLevels(academicData || []);
       setInstitutions(institutionData || []);
@@ -731,6 +743,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
       setWorkLocations(locData || []);
 
       console.log('loadMasterData: State updated with:', {
+        documentTypes: documentTypeData?.length || 0,
         genders: genderData?.length || 0,
         academicLevels: academicData?.length || 0,
         institutions: institutionData?.length || 0,
@@ -890,21 +903,36 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
                   Género
                 </label>
                 <select
-                  value={employeeData.personalInfo.gender}
-                  onChange={(e) => updatePersonalInfo('gender', e.target.value)}
+                  value={employeeData.personalInfo.genderId}
+                  onChange={(e) => updatePersonalInfo('genderId', e.target.value)}
                   className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Seleccionar</option>
-                  <option value="male">Masculino</option>
-                  <option value="female">Femenino</option>
-                  <option value="other">Otro</option>
+                  {genders.map(gender => (
+                    <option key={gender.id} value={gender.id}>{gender.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Tipo de Documento
+                </label>
+                <select
+                  value={employeeData.personalInfo.documentTypeId}
+                  onChange={(e) => updatePersonalInfo('documentTypeId', e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Seleccionar</option>
+                  {documentTypes.map(docType => (
+                    <option key={docType.id} value={docType.id}>{docType.name}</option>
+                  ))}
                 </select>
               </div>
               <Input
-                label="ID Nacional / RFC"
+                label="Número de Documento"
                 value={employeeData.personalInfo.nationalId}
                 onChange={(e) => updatePersonalInfo('nationalId', e.target.value)}
-                placeholder="ABCD123456XYZ"
+                placeholder="Ej: 123456789"
               />
             </div>
 

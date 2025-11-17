@@ -539,7 +539,8 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
           email: employeeToEdit.email || '',
           phone: employeeToEdit.phone || employeeToEdit.mobile || '',
           birthDate: employeeToEdit.date_of_birth || '',
-          gender: employeeToEdit.gender || '',
+          genderId: employeeToEdit.gender_id || '',
+          documentTypeId: employeeToEdit.document_type_id || '',
           nationalId: employeeToEdit.national_id || '',
           address: employeeToEdit.address_street || '',
           city: employeeToEdit.address_city || '',
@@ -547,24 +548,20 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
           countryISO3: employeeToEdit.address_country_iso3 || ''
         },
         education: {
-          highestDegree: '',
-          institution: '',
-          fieldOfStudy: '',
-          graduationYear: '',
-          certifications: ''
+          academicLevelId: employeeToEdit.academic_level_id || '',
+          institutionId: employeeToEdit.educational_institution_id || '',
+          fieldOfStudyId: employeeToEdit.field_of_study_id || '',
+          graduationYear: employeeToEdit.graduation_year || '',
+          certifications: employeeToEdit.certifications || ''
         },
         employment: {
           employeeNumber: employeeToEdit.employee_number || '',
           hireDate: employeeToEdit.hire_date || '',
-          department: dept?.name || '',
           departmentId: employeeToEdit.department_id || '',
-          position: pos?.name || '',
           positionId: employeeToEdit.position_id || '',
-          employmentType: employeeToEdit.employment_type || 'full-time',
-          workLocation: loc?.name || employeeToEdit.work_location || '',
+          employmentTypeId: employeeToEdit.employment_type_id || '',
           workLocationId: employeeToEdit.work_location_id || '',
           salary: employeeToEdit.salary?.toString() || '',
-          manager: mgr?.name || '',
           managerId: employeeToEdit.direct_manager_id || ''
         },
         health: {
@@ -582,7 +579,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
           contactName: employeeToEdit.emergency_contact_name || '',
           relationship: employeeToEdit.emergency_contact_relationship || '',
           phone: employeeToEdit.emergency_contact_phone || '',
-          phoneAlt: employeeToEdit.emergency_contact_phone_alt || ''
+          alternatePhone: employeeToEdit.emergency_contact_phone_alt || ''
         },
         documents: {
           idDocument: null,
@@ -983,36 +980,54 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Autocomplete
-                label="Nivel Académico Más Alto"
-                value={employeeData.education.highestDegree}
-                options={academicLevels.map(level => ({ value: level.name, label: level.name }))}
-                onChange={(value) => updateEducation('highestDegree', value)}
-                onSelect={(value) => updateEducation('highestDegree', value)}
-                placeholder="Escribe para buscar nivel académico..."
-                allowCustomValue={true}
-              />
-              <Autocomplete
-                label="Institución"
-                value={employeeData.education.institution}
-                options={institutions.map(inst => ({ value: inst.name, label: inst.name }))}
-                onChange={(value) => updateEducation('institution', value)}
-                onSelect={(value) => updateEducation('institution', value)}
-                placeholder="Escribe para buscar institución..."
-                allowCustomValue={true}
-              />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Nivel Académico Más Alto
+                </label>
+                <select
+                  value={employeeData.education.academicLevelId}
+                  onChange={(e) => updateEducation('academicLevelId', e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Seleccionar</option>
+                  {academicLevels.map(level => (
+                    <option key={level.id} value={level.id}>{level.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Institución
+                </label>
+                <select
+                  value={employeeData.education.institutionId}
+                  onChange={(e) => updateEducation('institutionId', e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Seleccionar</option>
+                  {institutions.map(inst => (
+                    <option key={inst.id} value={inst.id}>{inst.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Autocomplete
-                label="Campo de Estudio"
-                value={employeeData.education.fieldOfStudy}
-                options={fieldsOfStudy.map(field => ({ value: field.name, label: field.name }))}
-                onChange={(value) => updateEducation('fieldOfStudy', value)}
-                onSelect={(value) => updateEducation('fieldOfStudy', value)}
-                placeholder="Escribe para buscar campo de estudio..."
-                allowCustomValue={true}
-              />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Campo de Estudio
+                </label>
+                <select
+                  value={employeeData.education.fieldOfStudyId}
+                  onChange={(e) => updateEducation('fieldOfStudyId', e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Seleccionar</option>
+                  {fieldsOfStudy.map(field => (
+                    <option key={field.id} value={field.id}>{field.name}</option>
+                  ))}
+                </select>
+              </div>
               <Input
                 label="Año de Graduación"
                 type="number"
@@ -1119,30 +1134,36 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Autocomplete
-                label="Tipo de Empleo"
-                value={employeeData.employment.employmentType}
-                options={employmentTypes.map(type => type.name)}
-                onChange={(value) => updateEmployment('employmentType', value)}
-                placeholder="Escribe para buscar tipo de empleo..."
-              />
-              <Autocomplete
-                label="Ubicación de Trabajo"
-                value={employeeData.employment.workLocation}
-                options={workLocations.map(loc => loc.name)}
-                onChange={(value) => {
-                  const loc = workLocations.find(l => l.name === value);
-                  setEmployeeData(prev => ({
-                    ...prev,
-                    employment: {
-                      ...prev.employment,
-                      workLocation: value,
-                      workLocationId: loc?.id || ''
-                    }
-                  }));
-                }}
-                placeholder="Escribe para buscar ubicación..."
-              />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Tipo de Empleo
+                </label>
+                <select
+                  value={employeeData.employment.employmentTypeId}
+                  onChange={(e) => updateEmployment('employmentTypeId', e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Seleccionar</option>
+                  {employmentTypes.map(type => (
+                    <option key={type.id} value={type.id}>{type.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Ubicación de Trabajo
+                </label>
+                <select
+                  value={employeeData.employment.workLocationId}
+                  onChange={(e) => updateEmployment('workLocationId', e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Seleccionar</option>
+                  {workLocations.map(loc => (
+                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

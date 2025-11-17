@@ -35,9 +35,15 @@ interface Employee {
   address_state: string | null;
   address_postal_code: string | null;
   national_id: string | null;
-  gender: string | null;
+  gender_id: string | null;
+  document_type_id: string | null;
   salary: number | null;
-  employment_type: string | null;
+  employment_type_id: string | null;
+  academic_level_id: string | null;
+  educational_institution_id: string | null;
+  field_of_study_id: string | null;
+  graduation_year: string | null;
+  certifications: string | null;
   health_card_number: string | null;
   health_card_expiry: string | null;
   bank_name: string | null;
@@ -48,15 +54,17 @@ interface Employee {
   emergency_contact_relationship: string | null;
   emergency_contact_phone: string | null;
   emergency_contact_phone_alt: string | null;
-  education_level: string | null;
-  institution: string | null;
-  field_of_study: string | null;
-  graduation_year: string | null;
-  certifications: string | null;
   work_location_id: string | null;
   position: { id: string; title: string; code: string } | null;
   department: { id: string; name: string; code: string } | null;
   direct_manager: { id: string; first_name: string; last_name: string } | null;
+  gender: { id: string; name: string } | null;
+  document_type: { id: string; name: string; code: string } | null;
+  employment_type: { id: string; name: string } | null;
+  academic_level: { id: string; name: string } | null;
+  educational_institution: { id: string; name: string } | null;
+  field_of_study: { id: string; name: string } | null;
+  work_location_obj: { id: string; name: string } | null;
 }
 
 interface EmployeeProfileProps {
@@ -101,7 +109,14 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
         .select(`
           *,
           position:positions(id, title, code),
-          department:departments(id, name, code)
+          department:departments(id, name, code),
+          gender:genders(id, name),
+          document_type:document_types(id, name, code),
+          employment_type:employment_types(id, name),
+          academic_level:academic_levels(id, name),
+          educational_institution:educational_institutions(id, name),
+          field_of_study:fields_of_study(id, name),
+          work_location_obj:work_locations(id, name)
         `)
         .eq('id', employeeId)
         .eq('company_id', selectedCompanyId)
@@ -203,7 +218,7 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
         employeeCountry: employee.address_country,
         position: employee.position?.title,
         department: employee.department?.name,
-        employmentType: employee.employment_type || 'Tiempo Completo',
+        employmentType: employee.employment_type?.name || 'Tiempo Completo',
         hireDate: new Date(employee.hire_date).toLocaleDateString('es-ES'),
       };
 
@@ -486,7 +501,7 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
                 <div className="text-xs text-blue-200 mb-1">Ubicación</div>
                 <div className="flex items-center gap-1">
                   <MapPin className="w-4 h-4" />
-                  {employee.work_location || 'No especificada'}
+                  {employee.work_location_obj?.name || employee.work_location || 'No especificada'}
                 </div>
               </div>
             </div>
@@ -646,14 +661,14 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
     city: employee.address_city || '',
     country: employee.address_country || '',
     nationalId: employee.national_id || '',
-    gender: employee.gender || '',
+    gender: employee.gender?.name || '',
     birthDate: employee.date_of_birth || ''
   });
 
   const [educationData, setEducationData] = useState({
-    educationLevel: employee.education_level || '',
-    institution: employee.institution || '',
-    fieldOfStudy: employee.field_of_study || '',
+    educationLevel: employee.academic_level?.name || '',
+    institution: employee.educational_institution?.name || '',
+    fieldOfStudy: employee.field_of_study?.name || '',
     graduationYear: employee.graduation_year || '',
     certifications: employee.certifications || ''
   });
@@ -913,7 +928,7 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
             />
           ) : (
             <div className="text-slate-900">
-              {employee.gender || 'No especificado'}
+              {employee.gender?.name || 'No especificado'}
             </div>
           )}
         </div>
@@ -973,7 +988,7 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
             </label>
             <div className="flex items-center gap-2 text-slate-900">
               <Briefcase className="w-4 h-4 text-slate-400" />
-              {employee.employment_type || 'No especificado'}
+              {employee.employment_type?.name || 'No especificado'}
             </div>
           </div>
 
@@ -1006,7 +1021,7 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
               Género
             </label>
             <div className="text-slate-900">
-              {employee.gender || 'No especificado'}
+              {employee.gender?.name || 'No especificado'}
             </div>
           </div>
 
@@ -1049,7 +1064,7 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
             </label>
             <div className="flex items-center gap-2 text-slate-900">
               <GraduationCap className="w-4 h-4 text-slate-400" />
-              {employee.education_level || 'No especificado'}
+              {employee.academic_level?.name || 'No especificado'}
             </div>
           </div>
 
@@ -1058,7 +1073,7 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
               Institución
             </label>
             <div className="text-slate-900">
-              {employee.institution || 'No especificada'}
+              {employee.educational_institution?.name || 'No especificada'}
             </div>
           </div>
 
@@ -1067,7 +1082,7 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
               Campo de Estudio
             </label>
             <div className="text-slate-900">
-              {employee.field_of_study || 'No especificado'}
+              {employee.field_of_study?.name || 'No especificado'}
             </div>
           </div>
 

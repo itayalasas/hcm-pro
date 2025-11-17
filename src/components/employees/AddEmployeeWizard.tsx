@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, GraduationCap, Briefcase, FileText, CheckCircle } from 'lucide-react';
+import { User, GraduationCap, Briefcase, FileText, CheckCircle, Heart, CreditCard, Phone, FileDown } from 'lucide-react';
 import Modal from '../ui/Modal';
 import StepWizard from '../ui/StepWizard';
 import Button from '../ui/Button';
@@ -47,6 +47,23 @@ interface EmployeeData {
     salary: string;
     manager: string;
   };
+  health: {
+    cardNumber: string;
+    cardExpiry: string;
+    cardFile: File | null;
+  };
+  banking: {
+    bankName: string;
+    accountNumber: string;
+    accountType: string;
+    routingNumber: string;
+  };
+  emergency: {
+    contactName: string;
+    relationship: string;
+    phone: string;
+    phoneAlt: string;
+  };
   documents: {
     hasContract: boolean;
     hasIDCopy: boolean;
@@ -59,8 +76,11 @@ const steps = [
   { id: 'personal', title: 'Información Personal', description: 'Datos básicos del empleado' },
   { id: 'education', title: 'Educación', description: 'Formación académica' },
   { id: 'employment', title: 'Información Laboral', description: 'Detalles del puesto' },
+  { id: 'health', title: 'Información de Salud', description: 'Carnet de salud' },
+  { id: 'banking', title: 'Datos Bancarios', description: 'Información para pagos' },
+  { id: 'emergency', title: 'Contacto de Emergencia', description: 'Persona a contactar' },
   { id: 'documents', title: 'Documentos', description: 'Documentación requerida' },
-  { id: 'review', title: 'Revisión', description: 'Confirmar información' }
+  { id: 'review', title: 'Contrato', description: 'Generar y descargar contrato' }
 ];
 
 export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmployeeWizardProps) {
@@ -109,6 +129,23 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
       salary: '',
       manager: ''
     },
+    health: {
+      cardNumber: '',
+      cardExpiry: '',
+      cardFile: null
+    },
+    banking: {
+      bankName: '',
+      accountNumber: '',
+      accountType: '',
+      routingNumber: ''
+    },
+    emergency: {
+      contactName: '',
+      relationship: '',
+      phone: '',
+      phoneAlt: ''
+    },
     documents: {
       hasContract: false,
       hasIDCopy: false,
@@ -132,7 +169,13 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
       case 2: // Employment
         if (!employeeData.employment.hireDate.trim()) errors.push('Fecha de Contratación es requerida');
         break;
-      case 3: // Documents - No required fields
+      case 3: // Health - No required fields
+        break;
+      case 4: // Banking - No required fields
+        break;
+      case 5: // Emergency - No required fields
+        break;
+      case 6: // Documents - No required fields
         break;
     }
 
@@ -250,6 +293,23 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
         workLocation: '',
         salary: '',
         manager: ''
+      },
+      health: {
+        cardNumber: '',
+        cardExpiry: '',
+        cardFile: null
+      },
+      banking: {
+        bankName: '',
+        accountNumber: '',
+        accountType: '',
+        routingNumber: ''
+      },
+      emergency: {
+        contactName: '',
+        relationship: '',
+        phone: '',
+        phoneAlt: ''
       },
       documents: {
         hasContract: false,
@@ -413,6 +473,27 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
     setEmployeeData(prev => ({
       ...prev,
       employment: { ...prev.employment, [field]: value }
+    }));
+  };
+
+  const updateHealth = (field: string, value: any) => {
+    setEmployeeData(prev => ({
+      ...prev,
+      health: { ...prev.health, [field]: value }
+    }));
+  };
+
+  const updateBanking = (field: string, value: string) => {
+    setEmployeeData(prev => ({
+      ...prev,
+      banking: { ...prev.banking, [field]: value }
+    }));
+  };
+
+  const updateEmergency = (field: string, value: string) => {
+    setEmployeeData(prev => ({
+      ...prev,
+      emergency: { ...prev.emergency, [field]: value }
     }));
   };
 
@@ -717,6 +798,176 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
         return (
           <div className="space-y-6">
             <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center">
+                <Heart className="w-6 h-6 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Información de Salud</h3>
+                <p className="text-sm text-slate-500">Carnet de salud y documentación médica</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Número de Carnet de Salud"
+                value={employeeData.health.cardNumber}
+                onChange={(e) => updateHealth('cardNumber', e.target.value)}
+                placeholder="123456789"
+              />
+              <Input
+                label="Vigencia del Carnet"
+                type="text"
+                value={employeeData.health.cardExpiry}
+                onChange={(e) => {
+                  let value = e.target.value.replace(/[^\d]/g, '');
+                  if (value.length >= 2) {
+                    value = value.slice(0, 2) + '/' + value.slice(2);
+                  }
+                  if (value.length >= 5) {
+                    value = value.slice(0, 5) + '/' + value.slice(5, 9);
+                  }
+                  updateHealth('cardExpiry', value);
+                }}
+                placeholder="dd/mm/aaaa"
+                maxLength={10}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Archivo del Carnet de Salud
+              </label>
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      updateHealth('cardFile', file);
+                    }
+                  }}
+                  className="hidden"
+                  id="health-card-upload"
+                />
+                <label htmlFor="health-card-upload" className="cursor-pointer">
+                  <FileText className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                  {employeeData.health.cardFile ? (
+                    <p className="text-sm text-slate-900">{employeeData.health.cardFile.name}</p>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-slate-900 mb-1">Haz clic para subir archivo</p>
+                      <p className="text-xs text-slate-500">PDF, JPG o PNG hasta 10MB</p>
+                    </>
+                  )}
+                </label>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                <CreditCard className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Datos Bancarios</h3>
+                <p className="text-sm text-slate-500">Información para el pago de nómina</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Nombre del Banco"
+                value={employeeData.banking.bankName}
+                onChange={(e) => updateBanking('bankName', e.target.value)}
+                placeholder="Banco Nacional"
+              />
+              <Input
+                label="Número de Cuenta"
+                value={employeeData.banking.accountNumber}
+                onChange={(e) => updateBanking('accountNumber', e.target.value)}
+                placeholder="1234567890"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Tipo de Cuenta
+                </label>
+                <select
+                  value={employeeData.banking.accountType}
+                  onChange={(e) => updateBanking('accountType', e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Seleccionar...</option>
+                  <option value="checking">Cuenta Corriente</option>
+                  <option value="savings">Cuenta de Ahorros</option>
+                </select>
+              </div>
+              <Input
+                label="Código CLABE / Routing"
+                value={employeeData.banking.routingNumber}
+                onChange={(e) => updateBanking('routingNumber', e.target.value)}
+                placeholder="012345678901234567"
+              />
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                <Phone className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Contacto de Emergencia</h3>
+                <p className="text-sm text-slate-500">Persona a contactar en caso de emergencia</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Nombre Completo"
+                value={employeeData.emergency.contactName}
+                onChange={(e) => updateEmergency('contactName', e.target.value)}
+                placeholder="Juan Pérez"
+              />
+              <Input
+                label="Relación"
+                value={employeeData.emergency.relationship}
+                onChange={(e) => updateEmergency('relationship', e.target.value)}
+                placeholder="Esposo/a, Padre/Madre, Hermano/a..."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Teléfono Principal"
+                value={employeeData.emergency.phone}
+                onChange={(e) => updateEmergency('phone', e.target.value)}
+                placeholder="+52 55 1234 5678"
+              />
+              <Input
+                label="Teléfono Alternativo"
+                value={employeeData.emergency.phoneAlt}
+                onChange={(e) => updateEmergency('phoneAlt', e.target.value)}
+                placeholder="+52 55 8765 4321"
+              />
+            </div>
+          </div>
+        );
+
+      case 6:
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
                 <FileText className="w-6 h-6 text-amber-600" />
               </div>
@@ -788,77 +1039,132 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
           </div>
         );
 
-      case 4:
+      case 7:
         return (
           <div className="space-y-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <FileDown className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Revisión Final</h3>
-                <p className="text-sm text-slate-500">Verifica que toda la información sea correcta</p>
+                <h3 className="text-lg font-semibold text-slate-900">Contrato de Trabajo</h3>
+                <p className="text-sm text-slate-500">Genera el contrato con todos los datos del empleado</p>
               </div>
             </div>
 
-            <div className="space-y-6">
-              <div className="bg-slate-50 rounded-xl p-6">
-                <h4 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Información Personal
-                </h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-slate-500">Nombre:</span>
-                    <p className="font-medium text-slate-900">
-                      {employeeData.personalInfo.firstName} {employeeData.personalInfo.lastName}
-                    </p>
+            <div className="bg-white border-2 border-slate-200 rounded-xl p-8 max-h-96 overflow-y-auto">
+              <div className="text-sm space-y-4 font-mono">
+                <h2 className="text-center font-bold text-lg mb-6">CONTRATO INDIVIDUAL DE TRABAJO</h2>
+
+                <p><strong>DATOS DEL EMPLEADOR:</strong></p>
+                <p className="ml-4 text-slate-700">[Nombre de la Empresa]</p>
+
+                <p className="mt-4"><strong>DATOS DEL TRABAJADOR:</strong></p>
+                <p className="ml-4 text-slate-700">
+                  Nombre: <strong>{employeeData.personalInfo.firstName} {employeeData.personalInfo.lastName}</strong><br/>
+                  RFC: {employeeData.personalInfo.nationalId || 'N/A'}<br/>
+                  Domicilio: {employeeData.personalInfo.address}, {employeeData.personalInfo.city}, {employeeData.personalInfo.country}<br/>
+                  Teléfono: {employeeData.personalInfo.phone}<br/>
+                  Email: {employeeData.personalInfo.email}
+                </p>
+
+                <p className="mt-4"><strong>CONTACTO DE EMERGENCIA:</strong></p>
+                <p className="ml-4 text-slate-700">
+                  Nombre: {employeeData.emergency.contactName || 'N/A'}<br/>
+                  Relación: {employeeData.emergency.relationship || 'N/A'}<br/>
+                  Teléfono: {employeeData.emergency.phone || 'N/A'}
+                </p>
+
+                <p className="mt-4"><strong>DATOS DEL PUESTO:</strong></p>
+                <p className="ml-4 text-slate-700">
+                  Número de Empleado: {employeeData.employment.employeeNumber || 'Se generará automáticamente'}<br/>
+                  Puesto: {employeeData.employment.position || 'N/A'}<br/>
+                  Departamento: {employeeData.employment.department || 'N/A'}<br/>
+                  Tipo de Empleo: {employeeData.employment.employmentType || 'N/A'}<br/>
+                  Ubicación: {employeeData.employment.workLocation || 'N/A'}<br/>
+                  Supervisor: {employeeData.employment.manager || 'N/A'}<br/>
+                  Fecha de Inicio: {employeeData.employment.hireDate}
+                </p>
+
+                <p className="mt-4"><strong>COMPENSACIÓN:</strong></p>
+                <p className="ml-4 text-slate-700">
+                  Salario Mensual: ${employeeData.employment.salary || 'N/A'}
+                </p>
+
+                <p className="mt-4"><strong>DATOS BANCARIOS:</strong></p>
+                <p className="ml-4 text-slate-700">
+                  Banco: {employeeData.banking.bankName || 'N/A'}<br/>
+                  Cuenta: {employeeData.banking.accountNumber || 'N/A'}<br/>
+                  Tipo: {employeeData.banking.accountType === 'checking' ? 'Cuenta Corriente' : employeeData.banking.accountType === 'savings' ? 'Cuenta de Ahorros' : 'N/A'}<br/>
+                  CLABE: {employeeData.banking.routingNumber || 'N/A'}
+                </p>
+
+                <p className="mt-4"><strong>INFORMACIÓN DE SALUD:</strong></p>
+                <p className="ml-4 text-slate-700">
+                  Carnet de Salud: {employeeData.health.cardNumber || 'N/A'}<br/>
+                  Vigencia: {employeeData.health.cardExpiry || 'N/A'}
+                </p>
+
+                <p className="mt-6 text-slate-700">
+                  Las partes se obligan a cumplir con este contrato conforme a la legislación laboral vigente.
+                </p>
+
+                <div className="mt-8 grid grid-cols-2 gap-8">
+                  <div className="text-center">
+                    <div className="border-t-2 border-slate-400 pt-2">
+                      <p className="font-bold">Firma del Empleador</p>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-slate-500">Email:</span>
-                    <p className="font-medium text-slate-900">{employeeData.personalInfo.email}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Teléfono:</span>
-                    <p className="font-medium text-slate-900">{employeeData.personalInfo.phone || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">RFC:</span>
-                    <p className="font-medium text-slate-900">{employeeData.personalInfo.nationalId || 'N/A'}</p>
+                  <div className="text-center">
+                    <div className="border-t-2 border-slate-400 pt-2">
+                      <p className="font-bold">Firma del Trabajador</p>
+                      <p className="text-slate-600">{employeeData.personalInfo.firstName} {employeeData.personalInfo.lastName}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="bg-slate-50 rounded-xl p-6">
-                <h4 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                  <Briefcase className="w-5 h-5" />
-                  Información Laboral
-                </h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-slate-500">Número de Empleado:</span>
-                    <p className="font-medium text-slate-900">{employeeData.employment.employeeNumber}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Fecha de Contratación:</span>
-                    <p className="font-medium text-slate-900">{employeeData.employment.hireDate}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Puesto:</span>
-                    <p className="font-medium text-slate-900">{employeeData.employment.position || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Departamento:</span>
-                    <p className="font-medium text-slate-900">{employeeData.employment.department || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <p className="text-sm text-blue-900">
-                  Al confirmar, se creará el registro del empleado y se enviará un correo de bienvenida a <strong>{employeeData.personalInfo.email}</strong>
+                <p className="mt-6 text-center text-xs text-slate-500">
+                  Fecha: {new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
                 </p>
               </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => {
+                  window.print();
+                }}
+              >
+                <FileDown className="w-4 h-4 mr-2" />
+                Imprimir Contrato
+              </Button>
+              <Button
+                variant="primary"
+                className="flex-1"
+                onClick={() => {
+                  const contractContent = document.querySelector('.font-mono')?.textContent || '';
+                  const blob = new Blob([contractContent], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `contrato_${employeeData.personalInfo.firstName}_${employeeData.personalInfo.lastName}.txt`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                }}
+              >
+                <FileDown className="w-4 h-4 mr-2" />
+                Descargar Contrato
+              </Button>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <p className="text-sm text-amber-900">
+                Al confirmar, se creará el registro del empleado con toda la información proporcionada.
+              </p>
             </div>
           </div>
         );

@@ -92,6 +92,12 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [contractTemplate, setContractTemplate] = useState<string>('');
 
+  const [companyData, setCompanyData] = useState<{
+    name: string;
+    address: string;
+    country: string;
+  }>({ name: '', address: '', country: '' });
+
   const [academicLevels, setAcademicLevels] = useState<Array<{id: string, name: string}>>([]);
   const [institutions, setInstitutions] = useState<Array<{id: string, name: string}>>([]);
   const [fieldsOfStudy, setFieldsOfStudy] = useState<Array<{id: string, name: string}>>([]);
@@ -241,6 +247,10 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
 
   const replaceTemplateVariables = (template: string): string => {
     const contractData: EmployeeContractData = {
+      companyName: companyData.name,
+      companyAddress: companyData.address,
+      companyRepresentative: 'Representante Legal',
+      representativeTitle: 'Director General',
       employeeName: `${employeeData.personalInfo.firstName} ${employeeData.personalInfo.lastName}`,
       employeeId: employeeData.personalInfo.nationalId,
       employeeAddress: employeeData.personalInfo.address,
@@ -401,6 +411,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
 
   useEffect(() => {
     if (selectedCompanyId && isOpen) {
+      loadCompanyData();
       loadMasterData();
     }
   }, [selectedCompanyId, isOpen]);
@@ -412,6 +423,35 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
       setManagers([]);
     }
   }, [employeeData.employment.department, selectedCompanyId]);
+
+  const loadCompanyData = async () => {
+    if (!selectedCompanyId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select(`
+          legal_name,
+          trade_name,
+          address,
+          country:countries(name)
+        `)
+        .eq('id', selectedCompanyId)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setCompanyData({
+          name: data.trade_name || data.legal_name || '',
+          address: data.address || 'Dirección no especificada',
+          country: data.country?.name || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error loading company data:', error);
+    }
+  };
 
   const loadMasterData = async () => {
     if (!selectedCompanyId) return;

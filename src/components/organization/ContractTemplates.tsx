@@ -195,24 +195,16 @@ Fecha: [FECHA_CONTRATO]`,
 
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
-        .select('legal_name, location_id')
+        .select(`
+          legal_name,
+          country:countries(name)
+        `)
         .eq('id', selectedCompanyId)
         .maybeSingle();
 
       if (companyError) throw companyError;
 
-      let country = 'México';
-      if (companyData?.location_id) {
-        const { data: locationData } = await supabase
-          .from('locations')
-          .select('country')
-          .eq('id', companyData.location_id)
-          .maybeSingle();
-
-        if (locationData?.country) {
-          country = locationData.country;
-        }
-      }
+      const country = companyData?.country?.name || 'México';
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-contract-template`,

@@ -58,9 +58,15 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
   const [contractTemplates, setContractTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [generatedContract, setGeneratedContract] = useState('');
+  const [companyData, setCompanyData] = useState<{
+    name: string;
+    address: string;
+    country: string;
+  }>({ name: '', address: '', country: '' });
 
   useEffect(() => {
     loadEmployee();
+    loadCompanyData();
     loadContractTemplates();
   }, [employeeId, selectedCompanyId]);
 
@@ -107,6 +113,35 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
     }
   };
 
+  const loadCompanyData = async () => {
+    if (!selectedCompanyId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select(`
+          legal_name,
+          trade_name,
+          address,
+          country:countries(name)
+        `)
+        .eq('id', selectedCompanyId)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setCompanyData({
+          name: data.trade_name || data.legal_name || '',
+          address: data.address || 'Dirección no especificada',
+          country: data.country?.name || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error loading company data:', error);
+    }
+  };
+
   const loadContractTemplates = async () => {
     if (!selectedCompanyId) return;
 
@@ -137,6 +172,10 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
       if (!template) return;
 
       const contractData: EmployeeContractData = {
+        companyName: companyData.name,
+        companyAddress: companyData.address,
+        companyRepresentative: 'Representante Legal',
+        representativeTitle: 'Director General',
         employeeName: `${employee.first_name} ${employee.last_name}`,
         employeeId: employee.personal_data?.national_id,
         employeeAddress: employee.personal_data?.address,

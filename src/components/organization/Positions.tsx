@@ -32,11 +32,17 @@ interface Department {
   name: string;
 }
 
+interface PositionLevel {
+  id: string;
+  name: string;
+}
+
 export default function Positions() {
   const { selectedCompanyId } = useCompany();
   const toast = useToast();
   const [positions, setPositions] = useState<Position[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [positionLevels, setPositionLevels] = useState<PositionLevel[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -63,6 +69,7 @@ export default function Positions() {
     if (selectedCompanyId) {
       loadPositions();
       loadDepartments();
+      loadPositionLevels();
     }
   }, [selectedCompanyId]);
 
@@ -101,6 +108,24 @@ export default function Positions() {
       setDepartments(data || []);
     } catch (error) {
       console.error('Error loading departments:', error);
+    }
+  };
+
+  const loadPositionLevels = async () => {
+    if (!selectedCompanyId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('position_levels')
+        .select('id, name')
+        .eq('company_id', selectedCompanyId)
+        .eq('active', true)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setPositionLevels(data || []);
+    } catch (error) {
+      console.error('Error loading position levels:', error);
     }
   };
 

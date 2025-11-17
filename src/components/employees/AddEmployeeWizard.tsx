@@ -484,12 +484,12 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
   }, [selectedCompanyId, isOpen]);
 
   useEffect(() => {
-    if (employeeData.employment.department && selectedCompanyId) {
-      loadManagersByDepartment(employeeData.employment.department);
+    if (employeeData.employment.departmentId && selectedCompanyId) {
+      loadManagersByDepartment(employeeData.employment.departmentId);
     } else {
       setManagers([]);
     }
-  }, [employeeData.employment.department, selectedCompanyId]);
+  }, [employeeData.employment.departmentId, selectedCompanyId]);
 
   useEffect(() => {
     if (editMode && employeeToEdit && isOpen && departments.length > 0) {
@@ -616,7 +616,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         .order('title');
 
       const { data: deptData, error: deptError } = await supabase
-        .from('departments')
+        .from('business_units')
         .select('id, name')
         .eq('company_id', selectedCompanyId)
         .eq('active', true)
@@ -676,42 +676,16 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
     }
   };
 
-  const loadManagersByDepartment = async (departmentName: string) => {
-    if (!selectedCompanyId || !departmentName) return;
+  const loadManagersByDepartment = async (businessUnitId: string) => {
+    if (!selectedCompanyId || !businessUnitId) return;
 
     try {
-      const { data: dept } = await supabase
-        .from('departments')
-        .select('id')
-        .eq('company_id', selectedCompanyId)
-        .eq('name', departmentName)
-        .maybeSingle();
-
-      if (!dept) {
-        setManagers([]);
-        return;
-      }
-
-      const { data: positionsInDept } = await supabase
-        .from('positions')
-        .select('id')
-        .eq('company_id', selectedCompanyId)
-        .eq('department_id', dept.id)
-        .eq('active', true);
-
-      if (!positionsInDept || positionsInDept.length === 0) {
-        setManagers([]);
-        return;
-      }
-
-      const positionIds = positionsInDept.map(p => p.id);
-
       const { data: employees } = await supabase
         .from('employees')
-        .select('id, first_name, last_name, position_id')
+        .select('id, first_name, last_name, business_unit_id')
         .eq('company_id', selectedCompanyId)
         .eq('status', 'active')
-        .in('position_id', positionIds);
+        .eq('business_unit_id', businessUnitId);
 
       const managersData = (employees || []).map(emp => ({
         id: emp.id,

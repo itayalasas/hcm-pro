@@ -26,7 +26,7 @@ interface EmployeeData {
     email: string;
     phone: string;
     birthDate: string;
-    gender: string;
+    genderId: string;
     nationalId: string;
     address: string;
     city: string;
@@ -34,21 +34,21 @@ interface EmployeeData {
     countryISO3: string;
   };
   education: {
-    highestDegree: string;
-    institution: string;
-    fieldOfStudy: string;
+    academicLevelId: string;
+    institutionId: string;
+    fieldOfStudyId: string;
     graduationYear: string;
     certifications: string;
   };
   employment: {
     employeeNumber: string;
     hireDate: string;
-    department: string;
-    position: string;
-    employmentType: string;
-    workLocation: string;
+    departmentId: string;
+    positionId: string;
+    employmentTypeId: string;
+    workLocationId: string;
     salary: string;
-    manager: string;
+    managerId: string;
   };
   health: {
     cardNumber: string;
@@ -65,7 +65,7 @@ interface EmployeeData {
     contactName: string;
     relationship: string;
     phone: string;
-    phoneAlt: string;
+    alternatePhone: string;
   };
   documents: {
     hasContract: boolean;
@@ -100,6 +100,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
     country: string;
   }>({ name: '', address: '', country: '' });
 
+  const [genders, setGenders] = useState<Array<{id: string, name: string}>>([]);
   const [academicLevels, setAcademicLevels] = useState<Array<{id: string, name: string}>>([]);
   const [institutions, setInstitutions] = useState<Array<{id: string, name: string}>>([]);
   const [fieldsOfStudy, setFieldsOfStudy] = useState<Array<{id: string, name: string}>>([]);
@@ -339,6 +340,9 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         ? employeeData.employment.workLocationId
         : null;
 
+      const { data: authData } = await supabase.auth.getUser();
+      const userId = authData.user?.id || null;
+
       const employeePayload = {
         first_name: employeeData.personalInfo.firstName,
         last_name: employeeData.personalInfo.lastName,
@@ -346,25 +350,24 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         phone: employeeData.personalInfo.phone || null,
         mobile: employeeData.personalInfo.phone || null,
         date_of_birth: employeeData.personalInfo.birthDate ? convertDateToISO(employeeData.personalInfo.birthDate) : null,
-        gender: employeeData.personalInfo.gender || null,
+        gender_id: employeeData.personalInfo.genderId || null,
         national_id: employeeData.personalInfo.nationalId || null,
         address_street: employeeData.personalInfo.address || null,
         address_city: employeeData.personalInfo.city || null,
         address_country: employeeData.personalInfo.country || null,
         address_country_iso3: employeeData.personalInfo.countryISO3 || null,
-        education_level: employeeData.education.highestDegree || null,
-        institution: employeeData.education.institution || null,
-        field_of_study: employeeData.education.fieldOfStudy || null,
+        academic_level_id: employeeData.education.academicLevelId || null,
+        educational_institution_id: employeeData.education.institutionId || null,
+        field_of_study_id: employeeData.education.fieldOfStudyId || null,
         graduation_year: employeeData.education.graduationYear || null,
         certifications: employeeData.education.certifications || null,
         hire_date: convertDateToISO(employeeData.employment.hireDate),
         position_id: validPositionId,
         department_id: validDepartmentId,
         direct_manager_id: validManagerId,
-        work_location: employeeData.employment.workLocation || null,
         work_location_id: validWorkLocationId,
         salary: employeeData.employment.salary ? parseFloat(employeeData.employment.salary) : null,
-        employment_type: employeeData.employment.employmentType || null,
+        employment_type_id: employeeData.employment.employmentTypeId || null,
         health_card_number: employeeData.health.cardNumber || null,
         health_card_expiry: employeeData.health.cardExpiry ? convertDateToISO(employeeData.health.cardExpiry) : null,
         bank_name: employeeData.banking.bankName || null,
@@ -375,6 +378,8 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         emergency_contact_relationship: employeeData.emergency.relationship || null,
         emergency_contact_phone: employeeData.emergency.phone || null,
         emergency_contact_phone_alt: employeeData.emergency.alternatePhone || null,
+        created_by: editMode ? undefined : userId,
+        updated_by: editMode ? userId : undefined
       };
 
       if (editMode && employeeToEdit) {
@@ -430,31 +435,28 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         email: '',
         phone: '',
         birthDate: '',
-        gender: '',
+        genderId: '',
         nationalId: '',
         address: '',
         city: '',
-        country: 'México'
+        country: 'México',
+        countryISO3: 'MEX'
       },
       education: {
-        highestDegree: '',
-        institution: '',
-        fieldOfStudy: '',
+        academicLevelId: '',
+        institutionId: '',
+        fieldOfStudyId: '',
         graduationYear: '',
         certifications: ''
       },
       employment: {
         employeeNumber: '',
         hireDate: '',
-        department: '',
         departmentId: '',
-        position: '',
         positionId: '',
-        employmentType: 'full-time',
-        workLocation: '',
+        employmentTypeId: '',
         workLocationId: '',
         salary: '',
-        manager: '',
         managerId: ''
       },
       health: {
@@ -472,7 +474,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         contactName: '',
         relationship: '',
         phone: '',
-        phoneAlt: ''
+        alternatePhone: ''
       },
       documents: {
         hasContract: false,
@@ -668,35 +670,47 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         deptError
       });
 
+      const { data: genderData } = await supabase
+        .from('genders')
+        .select('id, name')
+        .eq('company_id', selectedCompanyId)
+        .eq('active', true)
+        .order('name');
+
       const { data: academicData } = await supabase
         .from('academic_levels')
         .select('id, name')
         .eq('company_id', selectedCompanyId)
-        .eq('active', true);
+        .eq('active', true)
+        .order('name');
 
       const { data: institutionData } = await supabase
         .from('educational_institutions')
         .select('id, name')
         .eq('company_id', selectedCompanyId)
-        .eq('active', true);
+        .eq('active', true)
+        .order('name');
 
       const { data: fieldData } = await supabase
         .from('fields_of_study')
         .select('id, name')
         .eq('company_id', selectedCompanyId)
-        .eq('active', true);
+        .eq('active', true)
+        .order('name');
 
       const { data: empTypeData } = await supabase
         .from('employment_types')
         .select('id, name')
         .eq('company_id', selectedCompanyId)
-        .eq('active', true);
+        .eq('active', true)
+        .order('name');
 
       const { data: locData } = await supabase
         .from('work_locations')
         .select('id, name')
         .eq('company_id', selectedCompanyId)
-        .eq('active', true);
+        .eq('active', true)
+        .order('name');
 
       if (posError) {
         console.error('Error loading positions:', posError);
@@ -707,6 +721,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
 
       const mappedPositions = (posData || []).map(p => ({ id: p.id, name: p.title }));
 
+      setGenders(genderData || []);
       setAcademicLevels(academicData || []);
       setInstitutions(institutionData || []);
       setFieldsOfStudy(fieldData || []);
@@ -716,6 +731,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
       setWorkLocations(locData || []);
 
       console.log('loadMasterData: State updated with:', {
+        genders: genderData?.length || 0,
         academicLevels: academicData?.length || 0,
         institutions: institutionData?.length || 0,
         fieldsOfStudy: fieldData?.length || 0,

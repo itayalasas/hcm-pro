@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Users, TrendingUp, Calendar, DollarSign, UserPlus, UserMinus, Clock, Award } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useCompany } from '../contexts/CompanyContext';
 
 interface StatCardProps {
   title: string;
@@ -34,6 +35,7 @@ function StatCard({ title, value, change, changeType, icon: Icon, iconBg, iconCo
 }
 
 export default function Dashboard() {
+  const { selectedCompanyId } = useCompany();
   const [stats, setStats] = useState({
     totalEmployees: 0,
     activeEmployees: 0,
@@ -48,14 +50,19 @@ export default function Dashboard() {
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (selectedCompanyId) {
+      loadDashboardData();
+    }
+  }, [selectedCompanyId]);
 
   const loadDashboardData = async () => {
+    if (!selectedCompanyId) return;
+
     try {
       const { data: employees } = await supabase
         .from('employees')
-        .select('*');
+        .select('*')
+        .eq('company_id', selectedCompanyId);
 
       const { data: leaveRequests } = await supabase
         .from('leave_requests')

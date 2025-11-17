@@ -104,8 +104,8 @@ const navigation = [
 export default function Layout({ children }: LayoutProps) {
   const { user, employee, signOut } = useAuth();
   const { navigateTo } = useNavigation();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [expandedItems, setExpandedItems] = useState<string[]>(['Organización']);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 

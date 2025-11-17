@@ -567,20 +567,16 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
               <Autocomplete
                 label="Departamento"
                 value={employeeData.employment.department}
-                options={departments.map(dept => ({ value: dept.name, label: dept.name }))}
+                options={departments.map(dept => dept.name)}
                 onChange={(value) => updateEmployment('department', value)}
-                onSelect={(value) => updateEmployment('department', value)}
                 placeholder="Escribe para buscar departamento..."
-                allowCustomValue={true}
               />
               <Autocomplete
                 label="Puesto"
                 value={employeeData.employment.position}
-                options={positions.map(pos => ({ value: pos.name, label: pos.name }))}
+                options={positions.map(pos => pos.name)}
                 onChange={(value) => updateEmployment('position', value)}
-                onSelect={(value) => updateEmployment('position', value)}
                 placeholder="Escribe para buscar puesto..."
-                allowCustomValue={true}
               />
             </div>
 
@@ -588,20 +584,16 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
               <Autocomplete
                 label="Tipo de Empleo"
                 value={employeeData.employment.employmentType}
-                options={employmentTypes.map(type => ({ value: type.name, label: type.name }))}
+                options={employmentTypes.map(type => type.name)}
                 onChange={(value) => updateEmployment('employmentType', value)}
-                onSelect={(value) => updateEmployment('employmentType', value)}
                 placeholder="Escribe para buscar tipo de empleo..."
-                allowCustomValue={true}
               />
               <Autocomplete
                 label="Ubicación de Trabajo"
                 value={employeeData.employment.workLocation}
-                options={workLocations.map(loc => ({ value: loc.name, label: loc.name }))}
+                options={workLocations.map(loc => loc.name)}
                 onChange={(value) => updateEmployment('workLocation', value)}
-                onSelect={(value) => updateEmployment('workLocation', value)}
                 placeholder="Escribe para buscar ubicación..."
-                allowCustomValue={true}
               />
             </div>
 

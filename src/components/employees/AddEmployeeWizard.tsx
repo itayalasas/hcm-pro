@@ -309,26 +309,34 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
         return dateStr;
       };
 
-      const { error } = await supabase.from('employees').insert({
+      const { error: employeeError, data: employeeRecord } = await supabase.from('employees').insert({
         company_id: selectedCompanyId,
         employee_number: employeeNumber,
         first_name: employeeData.personalInfo.firstName,
         last_name: employeeData.personalInfo.lastName,
         email: employeeData.personalInfo.email,
-        phone: employeeData.personalInfo.phone,
-        birth_date: convertDateToISO(employeeData.personalInfo.birthDate),
-        gender: employeeData.personalInfo.gender,
-        national_id: employeeData.personalInfo.nationalId,
         address_street: employeeData.personalInfo.address,
         address_city: employeeData.personalInfo.city,
         address_country: employeeData.personalInfo.country,
         address_country_iso3: employeeData.personalInfo.countryISO3,
         hire_date: convertDateToISO(employeeData.employment.hireDate),
         work_location: employeeData.employment.workLocation,
+        salary: employeeData.employment.salary ? parseFloat(employeeData.employment.salary) : null,
+        employment_type: employeeData.employment.employmentType,
+        health_card_number: employeeData.health.cardNumber,
+        health_card_expiry: employeeData.health.cardExpiry ? convertDateToISO(employeeData.health.cardExpiry) : null,
+        bank_name: employeeData.banking.bankName,
+        bank_account_number: employeeData.banking.accountNumber,
+        bank_account_type: employeeData.banking.accountType,
+        bank_routing_number: employeeData.banking.routingNumber,
+        emergency_contact_name: employeeData.emergency.contactName,
+        emergency_contact_relationship: employeeData.emergency.relationship,
+        emergency_contact_phone: employeeData.emergency.phone,
+        emergency_contact_phone_alt: employeeData.emergency.alternatePhone,
         status: 'active'
-      });
+      }).select().single();
 
-      if (error) throw error;
+      if (employeeError) throw employeeError;
 
       onSuccess();
       onClose();

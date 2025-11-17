@@ -632,33 +632,161 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
 }
 
 function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: () => void }) {
-  const [editing, setEditing] = useState(false);
-  const [formData, setFormData] = useState({
+  const toast = useToast();
+  const [editingPersonal, setEditingPersonal] = useState(false);
+  const [editingEducation, setEditingEducation] = useState(false);
+  const [editingHealth, setEditingHealth] = useState(false);
+  const [editingBanking, setEditingBanking] = useState(false);
+  const [editingEmergency, setEditingEmergency] = useState(false);
+
+  const [personalData, setPersonalData] = useState({
     phone: employee.phone || '',
     mobile: employee.mobile || '',
     address: employee.address_street || '',
     city: employee.address_city || '',
+    country: employee.address_country || '',
+    nationalId: employee.national_id || '',
+    gender: employee.gender || '',
+    birthDate: employee.date_of_birth || ''
   });
 
-  const handleSave = async () => {
+  const [educationData, setEducationData] = useState({
+    educationLevel: employee.education_level || '',
+    institution: employee.institution || '',
+    fieldOfStudy: employee.field_of_study || '',
+    graduationYear: employee.graduation_year || '',
+    certifications: employee.certifications || ''
+  });
+
+  const [healthData, setHealthData] = useState({
+    cardNumber: employee.health_card_number || '',
+    cardExpiry: employee.health_card_expiry || ''
+  });
+
+  const [bankingData, setBankingData] = useState({
+    bankName: employee.bank_name || '',
+    accountNumber: employee.bank_account_number || '',
+    accountType: employee.bank_account_type || '',
+    routingNumber: employee.bank_routing_number || ''
+  });
+
+  const [emergencyData, setEmergencyData] = useState({
+    contactName: employee.emergency_contact_name || '',
+    relationship: employee.emergency_contact_relationship || '',
+    phone: employee.emergency_contact_phone || '',
+    alternatePhone: employee.emergency_contact_phone_alt || ''
+  });
+
+  const handleSavePersonal = async () => {
     try {
       const { error } = await supabase
         .from('employees')
         .update({
-          phone: formData.phone,
-          mobile: formData.mobile,
-          address_street: formData.address,
-          address_city: formData.city,
+          phone: personalData.phone,
+          mobile: personalData.mobile,
+          address_street: personalData.address,
+          address_city: personalData.city,
+          address_country: personalData.country,
+          national_id: personalData.nationalId,
+          gender: personalData.gender,
+          date_of_birth: personalData.birthDate || null
         })
         .eq('id', employee.id);
 
       if (error) throw error;
-
-      setEditing(false);
+      toast.success('Información personal actualizada');
+      setEditingPersonal(false);
       onRefresh();
     } catch (error) {
-      console.error('Error updating employee:', error);
-      alert('Error al actualizar la información');
+      console.error('Error updating personal info:', error);
+      toast.error('Error al actualizar la información personal');
+    }
+  };
+
+  const handleSaveEducation = async () => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .update({
+          education_level: educationData.educationLevel,
+          institution: educationData.institution,
+          field_of_study: educationData.fieldOfStudy,
+          graduation_year: educationData.graduationYear,
+          certifications: educationData.certifications
+        })
+        .eq('id', employee.id);
+
+      if (error) throw error;
+      toast.success('Información académica actualizada');
+      setEditingEducation(false);
+      onRefresh();
+    } catch (error) {
+      console.error('Error updating education:', error);
+      toast.error('Error al actualizar la información académica');
+    }
+  };
+
+  const handleSaveHealth = async () => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .update({
+          health_card_number: healthData.cardNumber,
+          health_card_expiry: healthData.cardExpiry || null
+        })
+        .eq('id', employee.id);
+
+      if (error) throw error;
+      toast.success('Información de salud actualizada');
+      setEditingHealth(false);
+      onRefresh();
+    } catch (error) {
+      console.error('Error updating health:', error);
+      toast.error('Error al actualizar la información de salud');
+    }
+  };
+
+  const handleSaveBanking = async () => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .update({
+          bank_name: bankingData.bankName,
+          bank_account_number: bankingData.accountNumber,
+          bank_account_type: bankingData.accountType,
+          bank_routing_number: bankingData.routingNumber
+        })
+        .eq('id', employee.id);
+
+      if (error) throw error;
+      toast.success('Información bancaria actualizada');
+      setEditingBanking(false);
+      onRefresh();
+    } catch (error) {
+      console.error('Error updating banking:', error);
+      toast.error('Error al actualizar la información bancaria');
+    }
+  };
+
+  const handleSaveEmergency = async () => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .update({
+          emergency_contact_name: emergencyData.contactName,
+          emergency_contact_relationship: emergencyData.relationship,
+          emergency_contact_phone: emergencyData.phone,
+          emergency_contact_phone_alt: emergencyData.alternatePhone
+        })
+        .eq('id', employee.id);
+
+      if (error) throw error;
+      toast.success('Contacto de emergencia actualizado');
+      setEditingEmergency(false);
+      onRefresh();
+    } catch (error) {
+      console.error('Error updating emergency contact:', error);
+      toast.error('Error al actualizar el contacto de emergencia');
     }
   };
 
@@ -666,18 +794,18 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-slate-900">Información Personal</h3>
-        {!editing ? (
-          <Button variant="outline" onClick={() => setEditing(true)}>
+        {!editingPersonal ? (
+          <Button variant="outline" onClick={() => setEditingPersonal(true)}>
             <Edit2 className="w-4 h-4 mr-2" />
             Editar
           </Button>
         ) : (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setEditing(false)}>
+            <Button variant="outline" onClick={() => setEditingPersonal(false)}>
               <X className="w-4 h-4 mr-2" />
               Cancelar
             </Button>
-            <Button onClick={handleSave}>
+            <Button onClick={handleSavePersonal}>
               <Save className="w-4 h-4 mr-2" />
               Guardar
             </Button>
@@ -690,10 +818,10 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Teléfono
           </label>
-          {editing ? (
+          {editingPersonal ? (
             <Input
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              value={personalData.phone}
+              onChange={(e) => setPersonalData({ ...personalData, phone: e.target.value })}
             />
           ) : (
             <div className="flex items-center gap-2 text-slate-900">
@@ -707,10 +835,10 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Móvil
           </label>
-          {editing ? (
+          {editingPersonal ? (
             <Input
-              value={formData.mobile}
-              onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+              value={personalData.mobile}
+              onChange={(e) => setPersonalData({ ...personalData, mobile: e.target.value })}
             />
           ) : (
             <div className="flex items-center gap-2 text-slate-900">
@@ -724,10 +852,10 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Dirección
           </label>
-          {editing ? (
+          {editingPersonal ? (
             <Input
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              value={personalData.address}
+              onChange={(e) => setPersonalData({ ...personalData, address: e.target.value })}
             />
           ) : (
             <div className="flex items-center gap-2 text-slate-900">
@@ -741,10 +869,10 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Ciudad
           </label>
-          {editing ? (
+          {editingPersonal ? (
             <Input
-              value={formData.city}
-              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              value={personalData.city}
+              onChange={(e) => setPersonalData({ ...personalData, city: e.target.value })}
             />
           ) : (
             <div className="flex items-center gap-2 text-slate-900">
@@ -758,12 +886,36 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Fecha de Nacimiento
           </label>
-          <div className="flex items-center gap-2 text-slate-900">
-            <Calendar className="w-4 h-4 text-slate-400" />
-            {employee.date_of_birth
-              ? new Date(employee.date_of_birth).toLocaleDateString('es-ES')
-              : 'No especificada'}
-          </div>
+          {editingPersonal ? (
+            <Input
+              type="date"
+              value={personalData.birthDate}
+              onChange={(e) => setPersonalData({ ...personalData, birthDate: e.target.value })}
+            />
+          ) : (
+            <div className="flex items-center gap-2 text-slate-900">
+              <Calendar className="w-4 h-4 text-slate-400" />
+              {employee.date_of_birth
+                ? new Date(employee.date_of_birth).toLocaleDateString('es-ES')
+                : 'No especificada'}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Género
+          </label>
+          {editingPersonal ? (
+            <Input
+              value={personalData.gender}
+              onChange={(e) => setPersonalData({ ...personalData, gender: e.target.value })}
+            />
+          ) : (
+            <div className="text-slate-900">
+              {employee.gender || 'No especificado'}
+            </div>
+          )}
         </div>
       </div>
 
@@ -870,7 +1022,26 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
       </div>
 
       <div className="border-t border-slate-200 pt-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Información Académica</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-slate-900">Información Académica</h3>
+          {!editingEducation ? (
+            <Button variant="outline" size="sm" onClick={() => setEditingEducation(true)}>
+              <Edit2 className="w-4 h-4 mr-2" />
+              Editar
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditingEducation(false)}>
+                <X className="w-4 h-4 mr-2" />
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleSaveEducation}>
+                <Save className="w-4 h-4 mr-2" />
+                Guardar
+              </Button>
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -923,7 +1094,26 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
       </div>
 
       <div className="border-t border-slate-200 pt-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Información de Salud</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-slate-900">Información de Salud</h3>
+          {!editingHealth ? (
+            <Button variant="outline" size="sm" onClick={() => setEditingHealth(true)}>
+              <Edit2 className="w-4 h-4 mr-2" />
+              Editar
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditingHealth(false)}>
+                <X className="w-4 h-4 mr-2" />
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleSaveHealth}>
+                <Save className="w-4 h-4 mr-2" />
+                Guardar
+              </Button>
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -950,7 +1140,26 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
       </div>
 
       <div className="border-t border-slate-200 pt-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Información Bancaria</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-slate-900">Información Bancaria</h3>
+          {!editingBanking ? (
+            <Button variant="outline" size="sm" onClick={() => setEditingBanking(true)}>
+              <Edit2 className="w-4 h-4 mr-2" />
+              Editar
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditingBanking(false)}>
+                <X className="w-4 h-4 mr-2" />
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleSaveBanking}>
+                <Save className="w-4 h-4 mr-2" />
+                Guardar
+              </Button>
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -992,7 +1201,26 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
       </div>
 
       <div className="border-t border-slate-200 pt-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Contacto de Emergencia</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-slate-900">Contacto de Emergencia</h3>
+          {!editingEmergency ? (
+            <Button variant="outline" size="sm" onClick={() => setEditingEmergency(true)}>
+              <Edit2 className="w-4 h-4 mr-2" />
+              Editar
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditingEmergency(false)}>
+                <X className="w-4 h-4 mr-2" />
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleSaveEmergency}>
+                <Save className="w-4 h-4 mr-2" />
+                Guardar
+              </Button>
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">

@@ -193,6 +193,27 @@ Fecha: [FECHA_CONTRATO]`,
       const position = positions.find(p => p.id === formData.position_id);
       if (!position) return;
 
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('legal_name, location_id')
+        .eq('id', selectedCompanyId)
+        .maybeSingle();
+
+      if (companyError) throw companyError;
+
+      let country = 'México';
+      if (companyData?.location_id) {
+        const { data: locationData } = await supabase
+          .from('locations')
+          .select('country')
+          .eq('id', companyData.location_id)
+          .maybeSingle();
+
+        if (locationData?.country) {
+          country = locationData.country;
+        }
+      }
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-contract-template`,
         {
@@ -204,8 +225,8 @@ Fecha: [FECHA_CONTRATO]`,
           body: JSON.stringify({
             positionTitle: position.title,
             positionDescription: '',
-            companyName: '[NOMBRE_EMPRESA]',
-            country: 'México'
+            companyName: companyData?.legal_name || '[NOMBRE_EMPRESA]',
+            country: country
           })
         }
       );

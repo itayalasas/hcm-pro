@@ -74,12 +74,21 @@ Genera un contrato de trabajo individual que:
 6. Sea claro, formal y profesional
 7. Tenga una estructura bien organizada con cláusulas numeradas
 
+FORMATO CRÍTICO:
+- Genera SOLO texto plano sin formato markdown
+- NO uses asteriscos (*), guiones bajos (_), ni símbolos de markdown
+- NO uses encabezados markdown (# ## ###)
+- Usa MAYÚSCULAS para títulos importantes
+- Usa saltos de línea simples para separar secciones
+- El formato debe ser apto para impresión directa
+
 IMPORTANTE:
 - Usa SOLO las variables entre corchetes mostradas arriba
 - NO inventes nuevas variables
 - El contrato debe ser específico para el puesto de ${positionTitle}
 - Incluye cláusulas relevantes para este tipo de posición
-- Genera SOLO el texto del contrato, sin comentarios adicionales`;
+- Genera SOLO el texto del contrato, sin comentarios adicionales
+- El texto debe verse profesional cuando se copie a un documento de texto`;
 
     const openaiResponse = await fetch('https://api.flowbridge.site/functions/v1/api-gateway/2eed9c6c-5dc0-4deb-ae77-71f7275c65c1', {
       method: 'POST',
@@ -92,7 +101,7 @@ IMPORTANTE:
         messages: [
           {
             role: 'system',
-            content: 'Eres un experto abogado laboralista y especialista en recursos humanos. Generas contratos de trabajo profesionales, completos y adaptados a cada puesto específico. Siempre respondes en español con formato claro y profesional.'
+            content: 'Eres un experto abogado laboralista y especialista en recursos humanos. Generas contratos de trabajo profesionales, completos y adaptados a cada puesto específico. SIEMPRE generas texto plano SIN formato markdown, sin asteriscos, sin guiones bajos, sin encabezados markdown. Solo texto limpio y profesional apto para impresión. Siempre respondes en español.'
           },
           {
             role: 'user',
@@ -121,7 +130,15 @@ IMPORTANTE:
     }
 
     const openaiData = await openaiResponse.json();
-    const contractTemplate = openaiData.choices[0].message.content.trim();
+    let contractTemplate = openaiData.choices[0].message.content.trim();
+
+    contractTemplate = contractTemplate
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/_([^_]+)_/g, '$1')
+      .replace(/^#{1,6}\s+/gm, '')
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`([^`]+)`/g, '$1');
 
     return new Response(JSON.stringify({
       template: contractTemplate,

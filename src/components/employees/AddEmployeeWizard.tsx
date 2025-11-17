@@ -496,12 +496,22 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
 
     try {
       console.log('loadEmployeeData called with:', employeeToEdit);
+      console.log('Available data:', {
+        departments: departments.length,
+        positions: positions.length,
+        locations: workLocations.length
+      });
 
       const dept = departments.find(d => d.id === employeeToEdit.business_unit_id);
       const pos = positions.find(p => p.id === employeeToEdit.position_id);
       const loc = workLocations.find(l => l.id === employeeToEdit.work_location_id);
 
       console.log('Found data:', { dept, pos, loc });
+      console.log('Looking for:', {
+        deptId: employeeToEdit.business_unit_id,
+        posId: employeeToEdit.position_id,
+        locId: employeeToEdit.work_location_id
+      });
 
       let mgr = null;
       if (employeeToEdit.direct_manager_id && employeeToEdit.business_unit_id) {
@@ -581,10 +591,12 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
       editMode,
       hasEmployeeToEdit: !!employeeToEdit,
       isOpen,
-      departmentsLength: departments.length
+      departmentsLength: departments.length,
+      positionsLength: positions.length,
+      locationsLength: workLocations.length
     });
 
-    if (editMode && employeeToEdit && isOpen && departments.length > 0) {
+    if (editMode && employeeToEdit && isOpen) {
       console.log('Loading employee data for:', employeeToEdit);
       loadEmployeeData();
     }
@@ -620,7 +632,12 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
   };
 
   const loadMasterData = async () => {
-    if (!selectedCompanyId) return;
+    if (!selectedCompanyId) {
+      console.log('loadMasterData: no selectedCompanyId');
+      return;
+    }
+
+    console.log('loadMasterData: loading for company', selectedCompanyId);
 
     try {
       const { data: posData, error: posError } = await supabase
@@ -636,6 +653,13 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         .eq('company_id', selectedCompanyId)
         .eq('active', true)
         .order('name');
+
+      console.log('loadMasterData: Raw data loaded:', {
+        positions: posData?.length || 0,
+        departments: deptData?.length || 0,
+        posError,
+        deptError
+      });
 
       const { data: academicData } = await supabase
         .from('academic_levels')
@@ -674,10 +698,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         console.error('Error loading departments:', deptError);
       }
 
-      console.log('Positions loaded:', posData);
-
       const mappedPositions = (posData || []).map(p => ({ id: p.id, name: p.title }));
-      console.log('Mapped positions:', mappedPositions);
 
       setAcademicLevels(academicData || []);
       setInstitutions(institutionData || []);
@@ -686,6 +707,16 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
       setPositions(mappedPositions);
       setEmploymentTypes(empTypeData || []);
       setWorkLocations(locData || []);
+
+      console.log('loadMasterData: State updated with:', {
+        academicLevels: academicData?.length || 0,
+        institutions: institutionData?.length || 0,
+        fieldsOfStudy: fieldData?.length || 0,
+        departments: deptData?.length || 0,
+        positions: mappedPositions.length,
+        employmentTypes: empTypeData?.length || 0,
+        workLocations: locData?.length || 0
+      });
     } catch (error) {
       console.error('Error loading master data:', error);
     }

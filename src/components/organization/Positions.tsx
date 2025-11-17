@@ -405,27 +405,16 @@ export default function Positions() {
         title={editingId ? 'Editar Puesto' : 'Nuevo Puesto'}
       >
         <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Código {!editingId && <span className="text-xs text-slate-500">(se generará automáticamente si se deja vacío)</span>}
-              </label>
-              <Input
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                placeholder={editingId ? formData.code : "Se generará automáticamente"}
-                disabled={!!editingId}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Nivel</label>
-              <Autocomplete
-                options={positionLevels.map(level => level.name)}
-                value={formData.level}
-                onChange={(value) => setFormData({ ...formData, level: value })}
-                placeholder="Escribir o seleccionar nivel..."
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Código {!editingId && <span className="text-xs text-slate-500">(se generará automáticamente si se deja vacío)</span>}
+            </label>
+            <Input
+              value={formData.code}
+              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+              placeholder={editingId ? formData.code : "Se generará automáticamente"}
+              disabled={!!editingId}
+            />
           </div>
 
           <div>

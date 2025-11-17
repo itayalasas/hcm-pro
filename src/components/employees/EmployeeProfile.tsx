@@ -31,9 +31,31 @@ interface Employee {
   address_street: string | null;
   address_city: string | null;
   address_country: string | null;
+  address_country_iso3: string | null;
+  address_state: string | null;
+  address_postal_code: string | null;
   national_id: string | null;
+  gender: string | null;
+  salary: number | null;
+  employment_type: string | null;
+  health_card_number: string | null;
+  health_card_expiry: string | null;
+  bank_name: string | null;
+  bank_account_number: string | null;
+  bank_account_type: string | null;
+  bank_routing_number: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_relationship: string | null;
+  emergency_contact_phone: string | null;
+  emergency_contact_phone_alt: string | null;
+  education_level: string | null;
+  institution: string | null;
+  field_of_study: string | null;
+  graduation_year: string | null;
+  certifications: string | null;
+  work_location_id: string | null;
   position: { id: string; title: string; code: string } | null;
-  business_unit: { id: string; name: string; code: string } | null;
+  department: { id: string; name: string; code: string } | null;
   direct_manager: { id: string; first_name: string; last_name: string } | null;
 }
 
@@ -79,7 +101,7 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
         .select(`
           *,
           position:positions(id, title, code),
-          business_unit:business_units(id, name, code)
+          department:departments(id, name, code)
         `)
         .eq('id', employeeId)
         .eq('company_id', selectedCompanyId)
@@ -180,12 +202,45 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
         employeeCity: employee.address_city,
         employeeCountry: employee.address_country,
         position: employee.position?.title,
-        department: employee.business_unit?.name,
-        employmentType: 'Tiempo Completo',
+        department: employee.department?.name,
+        employmentType: employee.employment_type || 'Tiempo Completo',
         hireDate: new Date(employee.hire_date).toLocaleDateString('es-ES'),
       };
 
       const contractContent = replaceContractVariables(template.content, contractData);
+
+      const { data: existingContracts } = await supabase
+        .from('contract_versions')
+        .select('version')
+        .eq('employee_id', employee.id)
+        .order('version', { ascending: false })
+        .limit(1);
+
+      const nextVersion = existingContracts && existingContracts.length > 0
+        ? existingContracts[0].version + 1
+        : 1;
+
+      const { data: authData } = await supabase.auth.getUser();
+
+      const { error: saveError } = await supabase
+        .from('contract_versions')
+        .insert({
+          company_id: selectedCompanyId,
+          employee_id: employee.id,
+          contract_template_id: selectedTemplate,
+          version: nextVersion,
+          content: contractContent,
+          generated_by: authData.user?.id,
+          status: 'draft',
+          effective_date: employee.hire_date
+        });
+
+      if (saveError) {
+        console.error('Error saving contract:', saveError);
+        toast.error('Error al guardar el contrato');
+      } else {
+        toast.success(`Contrato versión ${nextVersion} generado y guardado`);
+      }
 
       setGeneratedContract(contractContent);
       toast.success('Contrato generado exitosamente');
@@ -727,11 +782,11 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Unidad de Negocio
+              Departamento
             </label>
             <div className="flex items-center gap-2 text-slate-900">
               <Building2 className="w-4 h-4 text-slate-400" />
-              {employee.business_unit?.name || 'No asignada'}
+              {employee.department?.name || 'No asignado'}
             </div>
           </div>
 
@@ -759,6 +814,224 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
               {employee.status === 'active' ? 'Activo' : 'Inactivo'}
             </span>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Tipo de Empleo
+            </label>
+            <div className="flex items-center gap-2 text-slate-900">
+              <Briefcase className="w-4 h-4 text-slate-400" />
+              {employee.employment_type || 'No especificado'}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Salario Mensual
+            </label>
+            <div className="flex items-center gap-2 text-slate-900">
+              <DollarSign className="w-4 h-4 text-slate-400" />
+              {employee.salary ? `$${employee.salary.toLocaleString()}` : 'No especificado'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-slate-200 pt-6">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">Información Adicional</h3>
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Cédula/ID Nacional
+            </label>
+            <div className="text-slate-900">
+              {employee.national_id || 'No especificado'}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Género
+            </label>
+            <div className="text-slate-900">
+              {employee.gender || 'No especificado'}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              País
+            </label>
+            <div className="text-slate-900">
+              {employee.address_country || 'No especificado'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-slate-200 pt-6">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">Información Académica</h3>
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Nivel Académico
+            </label>
+            <div className="flex items-center gap-2 text-slate-900">
+              <GraduationCap className="w-4 h-4 text-slate-400" />
+              {employee.education_level || 'No especificado'}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Institución
+            </label>
+            <div className="text-slate-900">
+              {employee.institution || 'No especificada'}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Campo de Estudio
+            </label>
+            <div className="text-slate-900">
+              {employee.field_of_study || 'No especificado'}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Año de Graduación
+            </label>
+            <div className="text-slate-900">
+              {employee.graduation_year || 'No especificado'}
+            </div>
+          </div>
+
+          {employee.certifications && (
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Certificaciones
+              </label>
+              <div className="text-slate-900">
+                {employee.certifications}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="border-t border-slate-200 pt-6">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">Información de Salud</h3>
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Número de Tarjeta de Salud
+            </label>
+            <div className="flex items-center gap-2 text-slate-900">
+              <Heart className="w-4 h-4 text-slate-400" />
+              {employee.health_card_number || 'No especificado'}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Fecha de Vencimiento
+            </label>
+            <div className="flex items-center gap-2 text-slate-900">
+              <Calendar className="w-4 h-4 text-slate-400" />
+              {employee.health_card_expiry
+                ? new Date(employee.health_card_expiry).toLocaleDateString('es-ES')
+                : 'No especificada'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-slate-200 pt-6">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">Información Bancaria</h3>
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Banco
+            </label>
+            <div className="flex items-center gap-2 text-slate-900">
+              <CreditCard className="w-4 h-4 text-slate-400" />
+              {employee.bank_name || 'No especificado'}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Número de Cuenta
+            </label>
+            <div className="text-slate-900">
+              {employee.bank_account_number || 'No especificado'}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Tipo de Cuenta
+            </label>
+            <div className="text-slate-900">
+              {employee.bank_account_type || 'No especificado'}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Código de Ruta
+            </label>
+            <div className="text-slate-900">
+              {employee.bank_routing_number || 'No especificado'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-slate-200 pt-6">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">Contacto de Emergencia</h3>
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Nombre
+            </label>
+            <div className="flex items-center gap-2 text-slate-900">
+              <User className="w-4 h-4 text-slate-400" />
+              {employee.emergency_contact_name || 'No especificado'}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Relación
+            </label>
+            <div className="text-slate-900">
+              {employee.emergency_contact_relationship || 'No especificada'}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Teléfono Principal
+            </label>
+            <div className="flex items-center gap-2 text-slate-900">
+              <Phone className="w-4 h-4 text-slate-400" />
+              {employee.emergency_contact_phone || 'No especificado'}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Teléfono Alternativo
+            </label>
+            <div className="flex items-center gap-2 text-slate-900">
+              <Phone className="w-4 h-4 text-slate-400" />
+              {employee.emergency_contact_phone_alt || 'No especificado'}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -766,7 +1039,189 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
 }
 
 function ContractsTab({ employeeId }: { employeeId: string }) {
-  return <div className="p-6 text-slate-600">Los contratos del empleado se mostrarán aquí.</div>;
+  const { selectedCompanyId } = useCompany();
+  const [contracts, setContracts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedContract, setSelectedContract] = useState<any>(null);
+
+  useEffect(() => {
+    loadContracts();
+  }, [employeeId]);
+
+  const loadContracts = async () => {
+    if (!selectedCompanyId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('contract_versions')
+        .select(`
+          *,
+          contract_template:contract_templates(name)
+        `)
+        .eq('employee_id', employeeId)
+        .eq('company_id', selectedCompanyId)
+        .order('version', { ascending: false });
+
+      if (error) throw error;
+      setContracts(data || []);
+    } catch (error) {
+      console.error('Error loading contracts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig: Record<string, { label: string; className: string }> = {
+      draft: { label: 'Borrador', className: 'bg-slate-100 text-slate-700' },
+      active: { label: 'Activo', className: 'bg-green-100 text-green-700' },
+      superseded: { label: 'Superado', className: 'bg-amber-100 text-amber-700' },
+      terminated: { label: 'Terminado', className: 'bg-red-100 text-red-700' }
+    };
+
+    const config = statusConfig[status] || statusConfig.draft;
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.className}`}>
+        {config.label}
+      </span>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+        <p className="text-slate-600">Cargando contratos...</p>
+      </div>
+    );
+  }
+
+  if (contracts.length === 0) {
+    return (
+      <div className="p-6 text-center">
+        <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+        <p className="text-slate-600">No hay contratos generados para este empleado.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {contracts.map((contract) => (
+        <div
+          key={contract.id}
+          className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h4 className="font-semibold text-slate-900">
+                  {contract.contract_template?.name || 'Contrato'} - Versión {contract.version}
+                </h4>
+                {getStatusBadge(contract.status)}
+              </div>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-slate-600">
+                <div>
+                  <span className="font-medium">Generado:</span>{' '}
+                  {new Date(contract.generated_at).toLocaleString('es-ES')}
+                </div>
+                {contract.effective_date && (
+                  <div>
+                    <span className="font-medium">Fecha efectiva:</span>{' '}
+                    {new Date(contract.effective_date).toLocaleDateString('es-ES')}
+                  </div>
+                )}
+                {contract.signed_at && (
+                  <div>
+                    <span className="font-medium">Firmado:</span>{' '}
+                    {new Date(contract.signed_at).toLocaleString('es-ES')}
+                  </div>
+                )}
+                {contract.expiry_date && (
+                  <div>
+                    <span className="font-medium">Vencimiento:</span>{' '}
+                    {new Date(contract.expiry_date).toLocaleDateString('es-ES')}
+                  </div>
+                )}
+              </div>
+              {contract.notes && (
+                <div className="mt-2 text-sm text-slate-600">
+                  <span className="font-medium">Notas:</span> {contract.notes}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedContract(contract)}
+              >
+                <FileText className="w-4 h-4 mr-1" />
+                Ver
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const blob = new Blob([contract.content], { type: 'text/plain;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `contrato_v${contract.version}.txt`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
+                <Download className="w-4 h-4 mr-1" />
+                Descargar
+              </Button>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {selectedContract && (
+        <Modal
+          isOpen={!!selectedContract}
+          onClose={() => setSelectedContract(null)}
+          title={`${selectedContract.contract_template?.name || 'Contrato'} - Versión ${selectedContract.version}`}
+        >
+          <div className="space-y-4">
+            <div className="bg-white border-2 border-slate-200 rounded-xl p-6 max-h-96 overflow-y-auto">
+              <div className="text-sm whitespace-pre-line font-sans leading-relaxed">
+                {selectedContract.content}
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setSelectedContract(null)}
+                className="flex-1"
+              >
+                Cerrar
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  const blob = new Blob([selectedContract.content], { type: 'text/plain;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `contrato_v${selectedContract.version}.txt`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="flex-1"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Descargar
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
 }
 
 function DocumentsTab({ employeeId }: { employeeId: string }) {

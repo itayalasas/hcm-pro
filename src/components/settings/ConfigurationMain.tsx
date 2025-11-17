@@ -65,8 +65,9 @@ export default function ConfigurationMain() {
               {section.label}
             </h3>
             <p className="text-sm text-slate-600">
-              {section.id === 'master-data' && 'Departamentos, ubicaciones, puestos'}
+              {section.id === 'master-data' && 'Ubicaciones, niveles, instituciones'}
               {section.id === 'users' && 'Gestión y asignación de empresas'}
+              {section.id === 'codes' && 'Configuración de códigos automáticos'}
               {section.id === 'workflows' && 'Aprobaciones y procesos'}
               {section.id === 'custom-fields' && 'Campos adicionales por módulo'}
               {section.id === 'parameters' && 'Configuración general del sistema'}

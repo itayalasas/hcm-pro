@@ -12,7 +12,7 @@ import CountryCitySelector from '../ui/CountryCitySelector';
 import PositionsTab from './PositionsTab';
 import { useToast } from '../../hooks/useToast';
 
-type MasterDataType = 'departments' | 'locations' | 'positions' | 'position_levels' | 'academic_levels' | 'institutions' | 'fields_of_study' | 'employment_types';
+type MasterDataType = 'locations' | 'position_levels' | 'academic_levels' | 'institutions' | 'fields_of_study' | 'employment_types';
 
 interface Department {
   id: string;
@@ -57,13 +57,11 @@ export default function MasterDataPanel() {
   const { selectedCompanyId } = useCompany();
   const { user } = useAuth();
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<MasterDataType>('departments');
+  const [activeTab, setActiveTab] = useState<MasterDataType>('locations');
   const [searchTerm, setSearchTerm] = useState('');
 
   const tabs = [
-    { id: 'departments' as MasterDataType, label: 'Departamentos', icon: Building2 },
     { id: 'locations' as MasterDataType, label: 'Ubicaciones', icon: MapPin },
-    { id: 'positions' as MasterDataType, label: 'Puestos', icon: Briefcase },
     { id: 'position_levels' as MasterDataType, label: 'Niveles de Puesto', icon: BarChart3 },
     { id: 'academic_levels' as MasterDataType, label: 'Niveles Académicos', icon: GraduationCap },
     { id: 'institutions' as MasterDataType, label: 'Instituciones', icon: BookOpen },
@@ -112,9 +110,7 @@ export default function MasterDataPanel() {
             </div>
           </div>
 
-          {activeTab === 'departments' && <DepartmentsTab searchTerm={searchTerm} />}
           {activeTab === 'locations' && <LocationsTab searchTerm={searchTerm} />}
-          {activeTab === 'positions' && <PositionsTab searchTerm={searchTerm} />}
           {activeTab === 'position_levels' && <PositionLevelsTab searchTerm={searchTerm} />}
           {activeTab === 'academic_levels' && <AcademicLevelsTab searchTerm={searchTerm} />}
           {activeTab === 'institutions' && <InstitutionsTab searchTerm={searchTerm} />}

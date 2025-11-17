@@ -419,10 +419,11 @@ export default function Positions() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Nivel</label>
-              <Input
+              <Autocomplete
+                options={positionLevels.map(level => level.name)}
                 value={formData.level}
-                onChange={(e) => setFormData({ ...formData, level: e.target.value })}
-                placeholder="Senior, Junior, etc."
+                onChange={(value) => setFormData({ ...formData, level: value })}
+                placeholder="Escribir o seleccionar nivel..."
               />
             </div>
           </div>

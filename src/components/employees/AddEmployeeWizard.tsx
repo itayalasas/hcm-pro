@@ -304,6 +304,30 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         return dateStr;
       };
 
+      const isValidId = (id: string, validIds: string[]) => {
+        return id && validIds.includes(id);
+      };
+
+      const validPositionId = employeeData.employment.positionId &&
+        isValidId(employeeData.employment.positionId, positions.map(p => p.id))
+        ? employeeData.employment.positionId
+        : null;
+
+      const validDepartmentId = employeeData.employment.departmentId &&
+        isValidId(employeeData.employment.departmentId, departments.map(d => d.id))
+        ? employeeData.employment.departmentId
+        : null;
+
+      const validManagerId = employeeData.employment.managerId &&
+        isValidId(employeeData.employment.managerId, managers.map(m => m.id))
+        ? employeeData.employment.managerId
+        : null;
+
+      const validWorkLocationId = employeeData.employment.workLocationId &&
+        isValidId(employeeData.employment.workLocationId, workLocations.map(l => l.id))
+        ? employeeData.employment.workLocationId
+        : null;
+
       const employeePayload = {
         first_name: employeeData.personalInfo.firstName,
         last_name: employeeData.personalInfo.lastName,
@@ -311,28 +335,28 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         phone: employeeData.personalInfo.phone || null,
         mobile: employeeData.personalInfo.phone || null,
         national_id: employeeData.personalInfo.nationalId || null,
-        address_street: employeeData.personalInfo.address,
-        address_city: employeeData.personalInfo.city,
-        address_country: employeeData.personalInfo.country,
-        address_country_iso3: employeeData.personalInfo.countryISO3,
+        address_street: employeeData.personalInfo.address || null,
+        address_city: employeeData.personalInfo.city || null,
+        address_country: employeeData.personalInfo.country || null,
+        address_country_iso3: employeeData.personalInfo.countryISO3 || null,
         hire_date: convertDateToISO(employeeData.employment.hireDate),
-        position_id: employeeData.employment.positionId || null,
-        business_unit_id: employeeData.employment.departmentId || null,
-        direct_manager_id: employeeData.employment.managerId || null,
-        work_location: employeeData.employment.workLocation,
-        work_location_id: employeeData.employment.workLocationId || null,
+        position_id: validPositionId,
+        business_unit_id: validDepartmentId,
+        direct_manager_id: validManagerId,
+        work_location: employeeData.employment.workLocation || null,
+        work_location_id: validWorkLocationId,
         salary: employeeData.employment.salary ? parseFloat(employeeData.employment.salary) : null,
-        employment_type: employeeData.employment.employmentType,
-        health_card_number: employeeData.health.cardNumber,
+        employment_type: employeeData.employment.employmentType || null,
+        health_card_number: employeeData.health.cardNumber || null,
         health_card_expiry: employeeData.health.cardExpiry ? convertDateToISO(employeeData.health.cardExpiry) : null,
-        bank_name: employeeData.banking.bankName,
-        bank_account_number: employeeData.banking.accountNumber,
-        bank_account_type: employeeData.banking.accountType,
-        bank_routing_number: employeeData.banking.routingNumber,
-        emergency_contact_name: employeeData.emergency.contactName,
-        emergency_contact_relationship: employeeData.emergency.relationship,
-        emergency_contact_phone: employeeData.emergency.phone,
-        emergency_contact_phone_alt: employeeData.emergency.alternatePhone,
+        bank_name: employeeData.banking.bankName || null,
+        bank_account_number: employeeData.banking.accountNumber || null,
+        bank_account_type: employeeData.banking.accountType || null,
+        bank_routing_number: employeeData.banking.routingNumber || null,
+        emergency_contact_name: employeeData.emergency.contactName || null,
+        emergency_contact_relationship: employeeData.emergency.relationship || null,
+        emergency_contact_phone: employeeData.emergency.phone || null,
+        emergency_contact_phone_alt: employeeData.emergency.alternatePhone || null,
       };
 
       if (editMode && employeeToEdit) {
@@ -457,10 +481,10 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
   }, [employeeData.employment.department, selectedCompanyId]);
 
   useEffect(() => {
-    if (editMode && employeeToEdit && isOpen) {
+    if (editMode && employeeToEdit && isOpen && departments.length > 0) {
       loadEmployeeData();
     }
-  }, [editMode, employeeToEdit, isOpen]);
+  }, [editMode, employeeToEdit, isOpen, departments, positions, workLocations]);
 
   const loadEmployeeData = async () => {
     if (!employeeToEdit) return;
@@ -469,7 +493,12 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
       const dept = departments.find(d => d.id === employeeToEdit.business_unit_id);
       const pos = positions.find(p => p.id === employeeToEdit.position_id);
       const loc = workLocations.find(l => l.id === employeeToEdit.work_location_id);
-      const mgr = managers.find(m => m.id === employeeToEdit.direct_manager_id);
+
+      let mgr = null;
+      if (employeeToEdit.direct_manager_id && employeeToEdit.business_unit_id) {
+        await loadManagersByDepartment(employeeToEdit.business_unit_id);
+        mgr = managers.find(m => m.id === employeeToEdit.direct_manager_id);
+      }
 
       setEmployeeData({
         personalInfo: {

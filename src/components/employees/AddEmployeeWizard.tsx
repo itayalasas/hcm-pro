@@ -1440,7 +1440,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
               </Button>
             ) : (
               <Button variant="primary" onClick={handleSubmit} isLoading={isSubmitting}>
-                Crear Empleado
+                {editMode ? 'Actualizar Empleado' : 'Crear Empleado'}
               </Button>
             )}
           </div>

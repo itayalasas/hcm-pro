@@ -23,6 +23,7 @@ const navigation = [
       { name: 'Unidades de Negocio', path: '/organization/units' },
       { name: 'Puestos', path: '/organization/positions' },
       { name: 'Organigrama', path: '/organization/chart' },
+      { name: 'Plantillas de Contratos', path: '/organization/contract-templates' },
     ]
   },
   {

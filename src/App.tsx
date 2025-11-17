@@ -13,6 +13,7 @@ import Companies from './components/organization/Companies';
 import BusinessUnits from './components/organization/BusinessUnits';
 import Positions from './components/organization/Positions';
 import Organigram from './components/organization/Organigram';
+import ContractTemplates from './components/organization/ContractTemplates';
 import ConfigurationMain from './components/settings/ConfigurationMain';
 import AuthCallback from './components/AuthCallback';
 import CompanySelector from './components/CompanySelector';
@@ -132,6 +133,8 @@ function AppContent() {
         return <Positions />;
       case '/organization/chart':
         return <Organigram />;
+      case '/organization/contract-templates':
+        return <ContractTemplates />;
       case '/config/master-data':
       case '/config/workflows':
       case '/config/custom-fields':

@@ -89,6 +89,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [contractTemplate, setContractTemplate] = useState<string>('');
 
   const [academicLevels, setAcademicLevels] = useState<Array<{id: string, name: string}>>([]);
   const [institutions, setInstitutions] = useState<Array<{id: string, name: string}>>([]);
@@ -187,11 +188,89 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
     return true;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (validateCurrentStep() && currentStep < steps.length - 1) {
       setValidationErrors([]);
-      setCurrentStep(currentStep + 1);
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+
+      if (nextStep === 7) {
+        await loadContractTemplate();
+      }
     }
+  };
+
+  const loadContractTemplate = async () => {
+    if (!selectedCompanyId) return;
+
+    try {
+      let positionId: string | null = null;
+
+      if (employeeData.employment.position) {
+        const { data: posData } = await supabase
+          .from('positions')
+          .select('id')
+          .eq('company_id', selectedCompanyId)
+          .eq('title', employeeData.employment.position)
+          .maybeSingle();
+
+        positionId = posData?.id || null;
+      }
+
+      const { data, error } = await supabase
+        .from('contract_templates')
+        .select('content')
+        .eq('company_id', selectedCompanyId)
+        .eq('is_active', true)
+        .or(positionId ? `position_id.is.null,position_id.eq.${positionId}` : 'position_id.is.null')
+        .order('position_id', { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      const template = data?.content || 'No se encontró plantilla de contrato';
+      const processedContract = replaceTemplateVariables(template);
+      setContractTemplate(processedContract);
+    } catch (error) {
+      console.error('Error loading template:', error);
+      setContractTemplate('Error al cargar la plantilla de contrato');
+    }
+  };
+
+  const replaceTemplateVariables = (template: string): string => {
+    const replacements: { [key: string]: string } = {
+      '[NOMBRE_EMPRESA]': 'Empresa X',
+      '[DIRECCION_EMPRESA]': 'Calle Principal 123',
+      '[REPRESENTANTE_EMPRESA]': 'Juan Representante',
+      '[CARGO_REPRESENTANTE]': 'Director General',
+      '[NOMBRE_EMPLEADO]': `${employeeData.personalInfo.firstName} ${employeeData.personalInfo.lastName}`,
+      '[RFC_EMPLEADO]': employeeData.personalInfo.nationalId || 'N/A',
+      '[DIRECCION_EMPLEADO]': employeeData.personalInfo.address || 'N/A',
+      '[CIUDAD_EMPLEADO]': employeeData.personalInfo.city || 'N/A',
+      '[PAIS_EMPLEADO]': employeeData.personalInfo.country || 'N/A',
+      '[PUESTO_EMPLEADO]': employeeData.employment.position || 'N/A',
+      '[DEPARTAMENTO_EMPLEADO]': employeeData.employment.department || 'N/A',
+      '[TIPO_EMPLEO]': employeeData.employment.employmentType || 'N/A',
+      '[FECHA_INICIO]': employeeData.employment.hireDate || 'N/A',
+      '[SALARIO]': employeeData.employment.salary || 'N/A',
+      '[BANCO]': employeeData.banking.bankName || 'N/A',
+      '[NUMERO_CUENTA]': employeeData.banking.accountNumber || 'N/A',
+      '[TIPO_CUENTA]': employeeData.banking.accountType === 'checking' ? 'Cuenta Corriente' : employeeData.banking.accountType === 'savings' ? 'Cuenta de Ahorros' : 'N/A',
+      '[CARNET_SALUD]': employeeData.health.cardNumber || 'N/A',
+      '[VIGENCIA_CARNET]': employeeData.health.cardExpiry || 'N/A',
+      '[CONTACTO_EMERGENCIA]': employeeData.emergency.contactName || 'N/A',
+      '[RELACION_EMERGENCIA]': employeeData.emergency.relationship || 'N/A',
+      '[TELEFONO_EMERGENCIA]': employeeData.emergency.phone || 'N/A',
+      '[FECHA_CONTRATO]': new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
+    };
+
+    let result = template;
+    Object.entries(replacements).forEach(([key, value]) => {
+      result = result.replace(new RegExp(key, 'g'), value);
+    });
+
+    return result;
   };
 
   const handleBack = () => {
@@ -1048,85 +1127,14 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Contrato de Trabajo</h3>
-                <p className="text-sm text-slate-500">Genera el contrato con todos los datos del empleado</p>
+                <p className="text-sm text-slate-500">Contrato generado con la plantilla del puesto</p>
               </div>
             </div>
 
             <div className="bg-white border-2 border-slate-200 rounded-xl p-8 max-h-96 overflow-y-auto">
-              <div className="text-sm space-y-4 font-mono">
-                <h2 className="text-center font-bold text-lg mb-6">CONTRATO INDIVIDUAL DE TRABAJO</h2>
-
-                <p><strong>DATOS DEL EMPLEADOR:</strong></p>
-                <p className="ml-4 text-slate-700">[Nombre de la Empresa]</p>
-
-                <p className="mt-4"><strong>DATOS DEL TRABAJADOR:</strong></p>
-                <p className="ml-4 text-slate-700">
-                  Nombre: <strong>{employeeData.personalInfo.firstName} {employeeData.personalInfo.lastName}</strong><br/>
-                  RFC: {employeeData.personalInfo.nationalId || 'N/A'}<br/>
-                  Domicilio: {employeeData.personalInfo.address}, {employeeData.personalInfo.city}, {employeeData.personalInfo.country}<br/>
-                  Teléfono: {employeeData.personalInfo.phone}<br/>
-                  Email: {employeeData.personalInfo.email}
-                </p>
-
-                <p className="mt-4"><strong>CONTACTO DE EMERGENCIA:</strong></p>
-                <p className="ml-4 text-slate-700">
-                  Nombre: {employeeData.emergency.contactName || 'N/A'}<br/>
-                  Relación: {employeeData.emergency.relationship || 'N/A'}<br/>
-                  Teléfono: {employeeData.emergency.phone || 'N/A'}
-                </p>
-
-                <p className="mt-4"><strong>DATOS DEL PUESTO:</strong></p>
-                <p className="ml-4 text-slate-700">
-                  Número de Empleado: {employeeData.employment.employeeNumber || 'Se generará automáticamente'}<br/>
-                  Puesto: {employeeData.employment.position || 'N/A'}<br/>
-                  Departamento: {employeeData.employment.department || 'N/A'}<br/>
-                  Tipo de Empleo: {employeeData.employment.employmentType || 'N/A'}<br/>
-                  Ubicación: {employeeData.employment.workLocation || 'N/A'}<br/>
-                  Supervisor: {employeeData.employment.manager || 'N/A'}<br/>
-                  Fecha de Inicio: {employeeData.employment.hireDate}
-                </p>
-
-                <p className="mt-4"><strong>COMPENSACIÓN:</strong></p>
-                <p className="ml-4 text-slate-700">
-                  Salario Mensual: ${employeeData.employment.salary || 'N/A'}
-                </p>
-
-                <p className="mt-4"><strong>DATOS BANCARIOS:</strong></p>
-                <p className="ml-4 text-slate-700">
-                  Banco: {employeeData.banking.bankName || 'N/A'}<br/>
-                  Cuenta: {employeeData.banking.accountNumber || 'N/A'}<br/>
-                  Tipo: {employeeData.banking.accountType === 'checking' ? 'Cuenta Corriente' : employeeData.banking.accountType === 'savings' ? 'Cuenta de Ahorros' : 'N/A'}<br/>
-                  CLABE: {employeeData.banking.routingNumber || 'N/A'}
-                </p>
-
-                <p className="mt-4"><strong>INFORMACIÓN DE SALUD:</strong></p>
-                <p className="ml-4 text-slate-700">
-                  Carnet de Salud: {employeeData.health.cardNumber || 'N/A'}<br/>
-                  Vigencia: {employeeData.health.cardExpiry || 'N/A'}
-                </p>
-
-                <p className="mt-6 text-slate-700">
-                  Las partes se obligan a cumplir con este contrato conforme a la legislación laboral vigente.
-                </p>
-
-                <div className="mt-8 grid grid-cols-2 gap-8">
-                  <div className="text-center">
-                    <div className="border-t-2 border-slate-400 pt-2">
-                      <p className="font-bold">Firma del Empleador</p>
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="border-t-2 border-slate-400 pt-2">
-                      <p className="font-bold">Firma del Trabajador</p>
-                      <p className="text-slate-600">{employeeData.personalInfo.firstName} {employeeData.personalInfo.lastName}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="mt-6 text-center text-xs text-slate-500">
-                  Fecha: {new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
-                </p>
-              </div>
+              <pre className="text-sm whitespace-pre-wrap font-sans" id="contract-content">
+                {contractTemplate || 'Cargando plantilla...'}
+              </pre>
             </div>
 
             <div className="flex gap-3">
@@ -1144,8 +1152,8 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
                 variant="primary"
                 className="flex-1"
                 onClick={() => {
-                  const contractContent = document.querySelector('.font-mono')?.textContent || '';
-                  const blob = new Blob([contractContent], { type: 'text/plain' });
+                  const contractContent = contractTemplate;
+                  const blob = new Blob([contractContent], { type: 'text/plain;charset=utf-8' });
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;

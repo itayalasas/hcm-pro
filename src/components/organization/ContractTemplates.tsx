@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Plus, Edit2, Copy, History, Trash2, Save, X } from 'lucide-react';
+import { FileText, Plus, Edit2, Copy, History, Trash2, Save, X, Sparkles } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
@@ -29,6 +29,7 @@ export default function ContractTemplates() {
   const [showVersionsModal, setShowVersionsModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ContractTemplate | null>(null);
   const [versions, setVersions] = useState<ContractTemplate[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     position_id: '',
@@ -179,6 +180,53 @@ Fecha: [FECHA_CONTRATO]`,
       notes: 'Copia de plantilla existente'
     });
     setShowModal(true);
+  };
+
+  const handleGenerateWithAI = async () => {
+    if (!formData.position_id) {
+      toast.error('Selecciona un puesto para generar el contrato con IA');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const position = positions.find(p => p.id === formData.position_id);
+      if (!position) return;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-contract-template`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            positionTitle: position.title,
+            positionDescription: '',
+            companyName: '[NOMBRE_EMPRESA]',
+            country: 'México'
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Error al generar contrato con IA');
+      }
+
+      const data = await response.json();
+      setFormData({
+        ...formData,
+        content: data.template,
+        notes: 'Generado con IA y pendiente de revisión'
+      });
+      toast.success('Contrato generado con IA. Revisa y ajusta según sea necesario.');
+    } catch (error) {
+      console.error('Error generating with AI:', error);
+      toast.error('Error al generar contrato con IA');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleSave = async () => {
@@ -432,16 +480,35 @@ Fecha: [FECHA_CONTRATO]`,
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Contenido de la Plantilla
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-slate-700">
+                Contenido de la Plantilla
+              </label>
+              {!selectedTemplate && formData.position_id && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleGenerateWithAI}
+                  disabled={isGenerating}
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {isGenerating ? 'Generando...' : 'Generar con IA'}
+                </Button>
+              )}
+            </div>
             <textarea
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
               rows={15}
               className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-              placeholder="Escribe el contenido del contrato usando las variables..."
+              placeholder="Escribe el contenido del contrato usando las variables o genera uno con IA..."
             />
+            {isGenerating && (
+              <div className="flex items-center gap-2 mt-2 text-sm text-blue-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span>Generando contrato con IA...</span>
+              </div>
+            )}
           </div>
 
           {selectedTemplate && (

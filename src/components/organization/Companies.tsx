@@ -7,6 +7,7 @@ import { useToast } from '../../hooks/useToast';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
+import Autocomplete from '../ui/Autocomplete';
 
 interface Company {
   id: string;
@@ -17,6 +18,7 @@ interface Company {
   email: string | null;
   phone: string | null;
   address: string | null;
+  location_id: string | null;
   logo_url: string | null;
   primary_color: string | null;
   country_id: string | null;
@@ -24,11 +26,20 @@ interface Company {
   created_at: string;
 }
 
+interface Location {
+  id: string;
+  name: string;
+  code: string;
+  city: string;
+  country: string;
+}
+
 export default function Companies() {
   const { user } = useAuth();
   const { selectedCompanyId } = useCompany();
   const toast = useToast();
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -43,11 +54,13 @@ export default function Companies() {
     email: '',
     phone: '',
     address: '',
+    location_id: '',
     active: true,
   });
 
   useEffect(() => {
     loadCompanies();
+    loadLocations();
   }, []);
 
   const loadCompanies = async () => {
@@ -83,6 +96,24 @@ export default function Companies() {
       toast.error('Error al cargar las empresas');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLocations = async () => {
+    try {
+      if (!selectedCompanyId) return;
+
+      const { data, error } = await supabase
+        .from('work_locations')
+        .select('id, name, code, city, country')
+        .eq('company_id', selectedCompanyId)
+        .eq('active', true)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setLocations(data || []);
+    } catch (error) {
+      console.error('Error loading locations:', error);
     }
   };
 
@@ -163,6 +194,7 @@ export default function Companies() {
       email: company.email || '',
       phone: company.phone || '',
       address: company.address || '',
+      location_id: company.location_id || '',
       active: company.active,
     });
     setShowModal(true);
@@ -200,6 +232,7 @@ export default function Companies() {
       email: '',
       phone: '',
       address: '',
+      location_id: '',
       active: true,
     });
   };
@@ -399,6 +432,36 @@ export default function Companies() {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              <MapPin className="w-4 h-4 inline mr-1" />
+              Ubicación Principal
+            </label>
+            <Autocomplete
+              options={locations.map(loc => `${loc.name} - ${loc.city}, ${loc.country}`)}
+              value={
+                formData.location_id
+                  ? (() => {
+                      const loc = locations.find(l => l.id === formData.location_id);
+                      return loc ? `${loc.name} - ${loc.city}, ${loc.country}` : '';
+                    })()
+                  : ''
+              }
+              onChange={(value) => {
+                const location = locations.find(l =>
+                  `${l.name} - ${l.city}, ${l.country}` === value
+                );
+                setFormData(prev => ({ ...prev, location_id: location?.id || '' }));
+              }}
+              placeholder="Seleccionar ubicación..."
+            />
+            {locations.length === 0 && (
+              <p className="text-xs text-slate-500 mt-1">
+                No hay ubicaciones disponibles. Cree una ubicación primero en la sección de Configuración.
+              </p>
+            )}
+          </div>
+
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -490,6 +553,18 @@ export default function Companies() {
                   <MapPin className="w-4 h-4 text-slate-400 mt-0.5" />
                   <div className="text-slate-700">
                     <p>{viewingCompany.address}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {viewingCompany.location_id && (
+              <div className="space-y-3">
+                <h4 className="font-semibold text-slate-900">Ubicación Principal</h4>
+                <div className="flex items-start gap-3 text-sm">
+                  <MapPin className="w-4 h-4 text-slate-400 mt-0.5" />
+                  <div className="text-slate-700">
+                    <p>{locations.find(l => l.id === viewingCompany.location_id)?.name || 'Ubicación no disponible'}</p>
                   </div>
                 </div>
               </div>

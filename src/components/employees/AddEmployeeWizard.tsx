@@ -131,11 +131,15 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
       employeeNumber: '',
       hireDate: '',
       department: '',
+      departmentId: '',
       position: '',
+      positionId: '',
       employmentType: 'full-time',
       workLocation: '',
+      workLocationId: '',
       salary: '',
-      manager: ''
+      manager: '',
+      managerId: ''
     },
     health: {
       cardNumber: '',
@@ -317,12 +321,20 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
         first_name: employeeData.personalInfo.firstName,
         last_name: employeeData.personalInfo.lastName,
         email: employeeData.personalInfo.email,
+        phone: employeeData.personalInfo.phone || null,
+        mobile: employeeData.personalInfo.phone || null,
+        date_of_birth: employeeData.personalInfo.birthDate ? convertDateToISO(employeeData.personalInfo.birthDate) : null,
+        national_id: employeeData.personalInfo.nationalId || null,
         address_street: employeeData.personalInfo.address,
         address_city: employeeData.personalInfo.city,
         address_country: employeeData.personalInfo.country,
         address_country_iso3: employeeData.personalInfo.countryISO3,
         hire_date: convertDateToISO(employeeData.employment.hireDate),
+        position_id: employeeData.employment.positionId || null,
+        business_unit_id: employeeData.employment.departmentId || null,
+        direct_manager_id: employeeData.employment.managerId || null,
         work_location: employeeData.employment.workLocation,
+        work_location_id: employeeData.employment.workLocationId || null,
         salary: employeeData.employment.salary ? parseFloat(employeeData.employment.salary) : null,
         employment_type: employeeData.employment.employmentType,
         health_card_number: employeeData.health.cardNumber,
@@ -377,11 +389,15 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
         employeeNumber: '',
         hireDate: '',
         department: '',
+        departmentId: '',
         position: '',
+        positionId: '',
         employmentType: 'full-time',
         workLocation: '',
+        workLocationId: '',
         salary: '',
-        manager: ''
+        manager: '',
+        managerId: ''
       },
       health: {
         cardNumber: '',
@@ -864,14 +880,34 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
                 label="Departamento"
                 value={employeeData.employment.department}
                 options={departments.map(dept => dept.name)}
-                onChange={(value) => updateEmployment('department', value)}
+                onChange={(value) => {
+                  const dept = departments.find(d => d.name === value);
+                  setEmployeeData(prev => ({
+                    ...prev,
+                    employment: {
+                      ...prev.employment,
+                      department: value,
+                      departmentId: dept?.id || ''
+                    }
+                  }));
+                }}
                 placeholder="Escribe para buscar departamento..."
               />
               <Autocomplete
                 label="Puesto"
                 value={employeeData.employment.position}
                 options={positions.map(pos => pos.name)}
-                onChange={(value) => updateEmployment('position', value)}
+                onChange={(value) => {
+                  const pos = positions.find(p => p.name === value);
+                  setEmployeeData(prev => ({
+                    ...prev,
+                    employment: {
+                      ...prev.employment,
+                      position: value,
+                      positionId: pos?.id || ''
+                    }
+                  }));
+                }}
                 placeholder="Escribe para buscar puesto..."
               />
             </div>
@@ -888,7 +924,17 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
                 label="Ubicación de Trabajo"
                 value={employeeData.employment.workLocation}
                 options={workLocations.map(loc => loc.name)}
-                onChange={(value) => updateEmployment('workLocation', value)}
+                onChange={(value) => {
+                  const loc = workLocations.find(l => l.name === value);
+                  setEmployeeData(prev => ({
+                    ...prev,
+                    employment: {
+                      ...prev.employment,
+                      workLocation: value,
+                      workLocationId: loc?.id || ''
+                    }
+                  }));
+                }}
                 placeholder="Escribe para buscar ubicación..."
               />
             </div>
@@ -905,7 +951,17 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
                 label="Manager/Supervisor"
                 value={employeeData.employment.manager}
                 options={managers.map(mgr => mgr.name)}
-                onChange={(value) => updateEmployment('manager', value)}
+                onChange={(value) => {
+                  const mgr = managers.find(m => m.name === value);
+                  setEmployeeData(prev => ({
+                    ...prev,
+                    employment: {
+                      ...prev.employment,
+                      manager: value,
+                      managerId: mgr?.id || ''
+                    }
+                  }));
+                }}
                 placeholder="Nombre del supervisor"
                 disabled={!employeeData.employment.department}
               />

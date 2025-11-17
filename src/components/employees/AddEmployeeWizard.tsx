@@ -269,35 +269,67 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
     if (!selectedCompanyId) return;
 
     try {
-      const [
-        { data: academicData, error: academicError },
-        { data: institutionData, error: institutionError },
-        { data: fieldData, error: fieldError },
-        { data: deptData, error: deptError },
-        { data: posData, error: posError },
-        { data: empTypeData, error: empTypeError },
-        { data: locData, error: locError }
-      ] = await Promise.all([
-        supabase.from('academic_levels').select('id, name').eq('company_id', selectedCompanyId).eq('active', true),
-        supabase.from('educational_institutions').select('id, name').eq('company_id', selectedCompanyId).eq('active', true),
-        supabase.from('fields_of_study').select('id, name').eq('company_id', selectedCompanyId).eq('active', true),
-        supabase.from('departments').select('id, name').eq('company_id', selectedCompanyId).eq('active', true),
-        supabase.from('positions').select('id, title as name').eq('company_id', selectedCompanyId).eq('active', true),
-        supabase.from('employment_types').select('id, name').eq('company_id', selectedCompanyId).eq('active', true),
-        supabase.from('work_locations').select('id, name').eq('company_id', selectedCompanyId).eq('active', true)
-      ]);
+      const { data: posData, error: posError } = await supabase
+        .from('positions')
+        .select('id, title')
+        .eq('company_id', selectedCompanyId)
+        .eq('active', true)
+        .order('title');
 
-      if (posError) console.error('Error loading positions:', posError);
-      if (deptError) console.error('Error loading departments:', deptError);
+      const { data: deptData, error: deptError } = await supabase
+        .from('departments')
+        .select('id, name')
+        .eq('company_id', selectedCompanyId)
+        .eq('active', true)
+        .order('name');
+
+      const { data: academicData } = await supabase
+        .from('academic_levels')
+        .select('id, name')
+        .eq('company_id', selectedCompanyId)
+        .eq('active', true);
+
+      const { data: institutionData } = await supabase
+        .from('educational_institutions')
+        .select('id, name')
+        .eq('company_id', selectedCompanyId)
+        .eq('active', true);
+
+      const { data: fieldData } = await supabase
+        .from('fields_of_study')
+        .select('id, name')
+        .eq('company_id', selectedCompanyId)
+        .eq('active', true);
+
+      const { data: empTypeData } = await supabase
+        .from('employment_types')
+        .select('id, name')
+        .eq('company_id', selectedCompanyId)
+        .eq('active', true);
+
+      const { data: locData } = await supabase
+        .from('work_locations')
+        .select('id, name')
+        .eq('company_id', selectedCompanyId)
+        .eq('active', true);
+
+      if (posError) {
+        console.error('Error loading positions:', posError);
+      }
+      if (deptError) {
+        console.error('Error loading departments:', deptError);
+      }
 
       console.log('Positions loaded:', posData);
-      console.log('Departments loaded:', deptData);
+
+      const mappedPositions = (posData || []).map(p => ({ id: p.id, name: p.title }));
+      console.log('Mapped positions:', mappedPositions);
 
       setAcademicLevels(academicData || []);
       setInstitutions(institutionData || []);
       setFieldsOfStudy(fieldData || []);
       setDepartments(deptData || []);
-      setPositions(posData || []);
+      setPositions(mappedPositions);
       setEmploymentTypes(empTypeData || []);
       setWorkLocations(locData || []);
     } catch (error) {
@@ -580,12 +612,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess }: AddEmp
               <Autocomplete
                 label="Puesto"
                 value={employeeData.employment.position}
-                options={(() => {
-                  console.log('Raw positions:', positions);
-                  const mapped = positions.map(pos => pos.name);
-                  console.log('Mapped positions:', mapped);
-                  return mapped;
-                })()}
+                options={positions.map(pos => pos.name)}
                 onChange={(value) => updateEmployment('position', value)}
                 placeholder="Escribe para buscar puesto..."
               />

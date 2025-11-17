@@ -439,16 +439,19 @@ export default function Positions() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Reporta a</label>
-              <select
-                value={formData.reports_to_position_id}
-                onChange={(e) => setFormData({ ...formData, reports_to_position_id: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Ninguno</option>
-                {positions.filter(p => p.id !== editingId).map(pos => (
-                  <option key={pos.id} value={pos.id}>{pos.title}</option>
-                ))}
-              </select>
+              <Autocomplete
+                options={positions.filter(p => p.id !== editingId && p.active).map(p => p.title)}
+                value={
+                  formData.reports_to_position_id
+                    ? positions.find(p => p.id === formData.reports_to_position_id)?.title || ''
+                    : ''
+                }
+                onChange={(value) => {
+                  const position = positions.find(p => p.title === value);
+                  setFormData({ ...formData, reports_to_position_id: position?.id || '' });
+                }}
+                placeholder="Escribir para buscar puesto supervisor..."
+              />
             </div>
           </div>
 
@@ -484,10 +487,11 @@ export default function Positions() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Nivel del Puesto</label>
-              <Input
+              <Autocomplete
+                options={positionLevels.map(level => level.name)}
                 value={formData.job_level}
-                onChange={(e) => setFormData({ ...formData, job_level: e.target.value })}
-                placeholder="Nivel 1, Nivel 2, etc."
+                onChange={(value) => setFormData({ ...formData, job_level: value })}
+                placeholder="Escribir o seleccionar nivel..."
               />
             </div>
           </div>

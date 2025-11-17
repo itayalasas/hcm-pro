@@ -6,6 +6,7 @@ import { useToast } from '../../hooks/useToast';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
+import Autocomplete from '../ui/Autocomplete';
 
 interface Position {
   id: string;

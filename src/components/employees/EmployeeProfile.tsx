@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
   User, Briefcase, FileText, History, Mail, Phone, MapPin, Calendar,
   Building2, DollarSign, ArrowLeft, Edit2, Save, X, Plus, Upload, Download,
-  Trash2, AlertCircle, MoreVertical, UserX, FileCheck
+  Trash2, AlertCircle, MoreVertical, UserX, FileCheck, GraduationCap, Heart, CreditCard
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';

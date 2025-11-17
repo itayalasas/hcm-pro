@@ -75,7 +75,6 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
           *,
           position:positions(id, title, code),
           business_unit:business_units(id, name, code),
-          direct_manager:employees!employees_direct_manager_id_fkey(id, first_name, last_name),
           personal_data:employee_personal_data(*)
         `)
         .eq('id', employeeId)
@@ -85,7 +84,21 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
       if (error) throw error;
 
       if (data) {
-        setEmployee(data as unknown as Employee);
+        let managerData = null;
+        if (data.direct_manager_id) {
+          const { data: manager } = await supabase
+            .from('employees')
+            .select('id, first_name, last_name')
+            .eq('id', data.direct_manager_id)
+            .maybeSingle();
+
+          managerData = manager;
+        }
+
+        setEmployee({
+          ...data,
+          direct_manager: managerData
+        } as unknown as Employee);
       }
     } catch (error) {
       console.error('Error loading employee:', error);

@@ -492,7 +492,15 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
   }, [employeeData.employment.departmentId, selectedCompanyId]);
 
   useEffect(() => {
+    console.log('Edit mode effect:', {
+      editMode,
+      hasEmployeeToEdit: !!employeeToEdit,
+      isOpen,
+      departmentsLength: departments.length
+    });
+
     if (editMode && employeeToEdit && isOpen && departments.length > 0) {
+      console.log('Loading employee data for:', employeeToEdit);
       loadEmployeeData();
     }
   }, [editMode, employeeToEdit, isOpen, departments, positions, workLocations]);
@@ -501,9 +509,13 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
     if (!employeeToEdit) return;
 
     try {
+      console.log('loadEmployeeData called with:', employeeToEdit);
+
       const dept = departments.find(d => d.id === employeeToEdit.business_unit_id);
       const pos = positions.find(p => p.id === employeeToEdit.position_id);
       const loc = workLocations.find(l => l.id === employeeToEdit.work_location_id);
+
+      console.log('Found data:', { dept, pos, loc });
 
       let mgr = null;
       if (employeeToEdit.direct_manager_id && employeeToEdit.business_unit_id) {
@@ -511,7 +523,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         mgr = managers.find(m => m.id === employeeToEdit.direct_manager_id);
       }
 
-      setEmployeeData({
+      const dataToSet = {
         personalInfo: {
           firstName: employeeToEdit.first_name || '',
           lastName: employeeToEdit.last_name || '',
@@ -569,7 +581,10 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
           resume: null,
           notes: ''
         }
-      });
+      };
+
+      console.log('Setting employee data:', dataToSet);
+      setEmployeeData(dataToSet);
     } catch (error) {
       console.error('Error loading employee data:', error);
     }

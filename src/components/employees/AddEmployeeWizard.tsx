@@ -308,23 +308,34 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         return id && validIds.includes(id);
       };
 
+      const departmentIds = departments.map(d => d.id);
+      const positionIds = positions.map(p => p.id);
+      const managerIds = managers.map(m => m.id);
+      const locationIds = workLocations.map(l => l.id);
+
+      console.log('Validation debug:', {
+        departmentId: employeeData.employment.departmentId,
+        availableDepartments: departmentIds,
+        isValid: employeeData.employment.departmentId ? departmentIds.includes(employeeData.employment.departmentId) : 'empty'
+      });
+
       const validPositionId = employeeData.employment.positionId &&
-        isValidId(employeeData.employment.positionId, positions.map(p => p.id))
+        isValidId(employeeData.employment.positionId, positionIds)
         ? employeeData.employment.positionId
         : null;
 
       const validDepartmentId = employeeData.employment.departmentId &&
-        isValidId(employeeData.employment.departmentId, departments.map(d => d.id))
+        isValidId(employeeData.employment.departmentId, departmentIds)
         ? employeeData.employment.departmentId
         : null;
 
       const validManagerId = employeeData.employment.managerId &&
-        isValidId(employeeData.employment.managerId, managers.map(m => m.id))
+        isValidId(employeeData.employment.managerId, managerIds)
         ? employeeData.employment.managerId
         : null;
 
       const validWorkLocationId = employeeData.employment.workLocationId &&
-        isValidId(employeeData.employment.workLocationId, workLocations.map(l => l.id))
+        isValidId(employeeData.employment.workLocationId, locationIds)
         ? employeeData.employment.workLocationId
         : null;
 

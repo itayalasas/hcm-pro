@@ -11,6 +11,7 @@ import ValidationAlert from '../ui/ValidationAlert';
 import { supabase, setCurrentUser } from '../../lib/supabase';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useToast } from '../../hooks/useToast';
+import { useValidation } from '../../hooks/useValidation';
 import { replaceContractVariables, EmployeeContractData } from '../../lib/contractTemplates';
 
 interface AddEmployeeWizardProps {
@@ -958,7 +959,13 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
                 onChange={(e) => updatePersonalInfo('email', e.target.value)}
                 required
                 placeholder="juan.perez@empresa.com"
+                tooltip="Formato: usuario@dominio.com - Será usado para notificaciones"
                 error={fieldErrors.has('email') ? 'Este campo es requerido' : ''}
+                onValidate={(value) => {
+                  if (!value.trim()) return '';
+                  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                  return emailRegex.test(value) ? '' : 'Email inválido';
+                }}
               />
               <Input
                 label="Teléfono"
@@ -966,6 +973,12 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
                 value={employeeData.personalInfo.phone}
                 onChange={(e) => updatePersonalInfo('phone', e.target.value)}
                 placeholder="+52 55 1234 5678"
+                tooltip="Formato: +código país seguido del número. Ej: +52 55 1234 5678"
+                onValidate={(value) => {
+                  if (!value.trim()) return '';
+                  const phoneRegex = /^[\d\s\-\+\(\)]{8,}$/;
+                  return phoneRegex.test(value) ? '' : 'Teléfono inválido';
+                }}
               />
             </div>
 
@@ -986,6 +999,21 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
                 }}
                 placeholder="dd/mm/aaaa"
                 maxLength={10}
+                tooltip="Formato: DD/MM/AAAA. Ej: 15/03/1990. Debe ser mayor de 16 años"
+                onValidate={(value) => {
+                  if (!value.trim()) return '';
+                  const parts = value.split('/');
+                  if (parts.length !== 3 || value.length !== 10) return 'Formato inválido';
+                  const [day, month, year] = parts.map(p => parseInt(p, 10));
+                  if (isNaN(day) || isNaN(month) || isNaN(year)) return 'Fecha inválida';
+                  if (month < 1 || month > 12 || day < 1 || day > 31) return 'Fecha inválida';
+                  const birthDate = new Date(year, month - 1, day);
+                  if (birthDate > new Date()) return 'No puede ser futura';
+                  const age = new Date().getFullYear() - year;
+                  if (age < 16) return 'Debe ser mayor de 16 años';
+                  if (age > 100) return 'Fecha inválida';
+                  return '';
+                }}
               />
               <Autocomplete
                 label="Género"
@@ -1146,7 +1174,20 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
                 placeholder="dd/mm/aaaa"
                 maxLength={10}
                 required
+                tooltip="Formato: DD/MM/AAAA. Ej: 01/01/2020. No puede ser futura"
                 error={fieldErrors.has('hireDate') ? 'Este campo es requerido' : ''}
+                onValidate={(value) => {
+                  if (!value.trim()) return '';
+                  const parts = value.split('/');
+                  if (parts.length !== 3 || value.length !== 10) return 'Formato inválido';
+                  const [day, month, year] = parts.map(p => parseInt(p, 10));
+                  if (isNaN(day) || isNaN(month) || isNaN(year)) return 'Fecha inválida';
+                  if (month < 1 || month > 12 || day < 1 || day > 31) return 'Fecha inválida';
+                  const hireDate = new Date(year, month - 1, day);
+                  if (hireDate > new Date()) return 'No puede ser futura';
+                  if (year < 1950) return 'Fecha muy antigua';
+                  return '';
+                }}
               />
             </div>
 
@@ -1211,6 +1252,15 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
                 value={employeeData.employment.salary}
                 onChange={(e) => updateEmployment('salary', e.target.value)}
                 placeholder="50000"
+                tooltip="Ingrese el salario mensual bruto. Debe ser mayor a 0"
+                onValidate={(value) => {
+                  if (!value.trim()) return '';
+                  const salary = parseFloat(value);
+                  if (isNaN(salary)) return 'Debe ser un número';
+                  if (salary <= 0) return 'Debe ser mayor a 0';
+                  if (salary > 999999999) return 'Monto muy alto';
+                  return '';
+                }}
               />
               <Autocomplete
                 label="Manager/Supervisor"

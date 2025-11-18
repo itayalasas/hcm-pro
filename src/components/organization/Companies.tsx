@@ -8,6 +8,8 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
 import Autocomplete from '../ui/Autocomplete';
+import ValidationAlert from '../ui/ValidationAlert';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface Company {
   id: string;
@@ -46,6 +48,9 @@ export default function Companies() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingCompany, setViewingCompany] = useState<Company | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [showValidationAlert, setShowValidationAlert] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     code: '',
     legal_name: '',
@@ -118,10 +123,20 @@ export default function Companies() {
   };
 
   const handleSave = async () => {
-    if (!formData.legal_name || !formData.trade_name || !formData.tax_id) {
-      toast.warning('Por favor complete todos los campos requeridos');
+    const errors: string[] = [];
+
+    if (!formData.legal_name.trim()) errors.push('Razón Social');
+    if (!formData.trade_name.trim()) errors.push('Nombre Comercial');
+    if (!formData.tax_id.trim()) errors.push('RFC/NIT/Tax ID');
+
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      setShowValidationAlert(true);
       return;
     }
+
+    setValidationErrors([]);
+    setShowValidationAlert(false);
 
     try {
       let code = formData.code;
@@ -205,14 +220,14 @@ export default function Companies() {
     setShowViewModal(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Está seguro de desactivar esta empresa?')) return;
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
 
     try {
       const { error } = await supabase
         .from('companies')
         .update({ active: false })
-        .eq('id', id);
+        .eq('id', confirmDelete);
 
       if (error) throw error;
       toast.success('Empresa desactivada correctamente');
@@ -220,6 +235,8 @@ export default function Companies() {
     } catch (error) {
       console.error('Error deactivating company:', error);
       toast.error('Error al desactivar la empresa');
+    } finally {
+      setConfirmDelete(null);
     }
   };
 
@@ -323,7 +340,7 @@ export default function Companies() {
                   </button>
                   {company.active && (
                     <button
-                      onClick={() => handleDelete(company.id)}
+                      onClick={() => setConfirmDelete(company.id)}
                       className="px-3 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -351,9 +368,20 @@ export default function Companies() {
           setShowModal(false);
           setEditingId(null);
           resetForm();
+          setValidationErrors([]);
+          setShowValidationAlert(false);
         }}
         title={editingId ? 'Editar Empresa' : 'Nueva Empresa'}
       >
+        {showValidationAlert && validationErrors.length > 0 && (
+          <ValidationAlert
+            errors={validationErrors}
+            onClose={() => {
+              setShowValidationAlert(false);
+              setValidationErrors([]);
+            }}
+          />
+        )}
         <div className="space-y-4 max-h-[70vh] overflow-y-auto">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -572,6 +600,17 @@ export default function Companies() {
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        isOpen={confirmDelete !== null}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={handleDelete}
+        title="Desactivar Empresa"
+        message="¿Está seguro que desea desactivar esta empresa? Esta acción se puede revertir."
+        type="warning"
+        confirmText="Desactivar"
+        cancelText="Cancelar"
+      />
 
       <toast.ToastContainer />
     </div>

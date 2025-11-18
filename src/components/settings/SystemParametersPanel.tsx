@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useCompany } from '../../contexts/CompanyContext';
 import { supabase } from '../../lib/supabase';
-import { Settings, Save } from 'lucide-react';
+import { Settings, Save, Database, Sliders } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
+import PayrollNomenclatorsPanel from './PayrollNomenclatorsPanel';
 
 interface SystemParameter {
   id: string;
@@ -17,6 +18,7 @@ interface SystemParameter {
 
 export default function SystemParametersPanel() {
   const { selectedCompanyId } = useCompany();
+  const [activeTab, setActiveTab] = useState<'parameters' | 'nomenclators'>('nomenclators');
   const [parameters, setParameters] = useState<SystemParameter[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -107,90 +109,124 @@ export default function SystemParametersPanel() {
     performance: 'Desempeño',
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">Parámetros del Sistema</h2>
-          <p className="text-slate-600 mt-1">Configura los parámetros generales de tu sistema</p>
-        </div>
-        {Object.keys(editedValues).length > 0 && (
-          <Button onClick={handleSave} disabled={saving}>
-            <Save className="w-4 h-4 mr-2" />
-            {saving ? 'Guardando...' : `Guardar Cambios (${Object.keys(editedValues).length})`}
-          </Button>
-        )}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900">Parámetros del Sistema</h2>
+        <p className="text-slate-600 mt-1">Configura los parámetros generales de tu sistema</p>
       </div>
 
-      {parameters.length === 0 ? (
-        <div className="text-center py-12">
-          <Settings className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-          <p className="text-slate-600 mb-4">No hay parámetros configurados</p>
-        </div>
+      <div className="border-b border-slate-200">
+        <nav className="flex gap-6">
+          <button
+            onClick={() => setActiveTab('nomenclators')}
+            className={`flex items-center gap-2 px-1 py-3 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'nomenclators'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Database className="w-4 h-4" />
+            Nomencladores de Nómina
+          </button>
+          <button
+            onClick={() => setActiveTab('parameters')}
+            className={`flex items-center gap-2 px-1 py-3 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'parameters'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Sliders className="w-4 h-4" />
+            Otros Parámetros
+          </button>
+        </nav>
+      </div>
+
+      {activeTab === 'nomenclators' ? (
+        <PayrollNomenclatorsPanel />
       ) : (
-        <div className="space-y-6">
-          {Object.entries(groupedParameters).map(([category, params]) => (
-            <div key={category} className="border border-slate-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">
-                {categoryLabels[category] || category}
-              </h3>
-              <div className="space-y-4">
-                {params.map((param) => (
-                  <div key={param.id} className="grid grid-cols-2 gap-4 items-start">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-900 mb-1">
-                        {param.description || param.parameter_key}
-                      </label>
-                      <p className="text-xs text-slate-500 font-mono">{param.parameter_key}</p>
-                    </div>
-                    <div>
-                      {param.parameter_type === 'number' && (
-                        <Input
-                          type="number"
-                          value={getValue(param)}
-                          onChange={(e) => setValue(param.parameter_key, e.target.value)}
-                          disabled={!param.is_editable}
-                          className={!param.is_editable ? 'bg-slate-50' : ''}
-                        />
-                      )}
-                      {param.parameter_type === 'boolean' && (
-                        <div className="flex items-center gap-2 h-10">
-                          <input
-                            type="checkbox"
-                            checked={getValue(param) === 'true' || getValue(param) === true}
-                            onChange={(e) => setValue(param.parameter_key, e.target.checked)}
-                            disabled={!param.is_editable}
-                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="text-sm text-slate-600">
-                            {getValue(param) === 'true' || getValue(param) === true ? 'Activado' : 'Desactivado'}
-                          </span>
-                        </div>
-                      )}
-                      {param.parameter_type === 'text' && (
-                        <Input
-                          type="text"
-                          value={getValue(param)}
-                          onChange={(e) => setValue(param.parameter_key, e.target.value)}
-                          disabled={!param.is_editable}
-                          className={!param.is_editable ? 'bg-slate-50' : ''}
-                        />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+        <>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
-          ))}
-        </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                {Object.keys(editedValues).length > 0 && (
+                  <Button onClick={handleSave} disabled={saving}>
+                    <Save className="w-4 h-4 mr-2" />
+                    {saving ? 'Guardando...' : `Guardar Cambios (${Object.keys(editedValues).length})`}
+                  </Button>
+                )}
+              </div>
+
+              {parameters.length === 0 ? (
+                <div className="text-center py-12">
+                  <Settings className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-600 mb-4">No hay parámetros configurados</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {Object.entries(groupedParameters).map(([category, params]) => (
+                    <div key={category} className="border border-slate-200 rounded-lg p-6">
+                      <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                        {categoryLabels[category] || category}
+                      </h3>
+                      <div className="space-y-4">
+                        {params.map((param) => (
+                          <div key={param.id} className="grid grid-cols-2 gap-4 items-start">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-900 mb-1">
+                                {param.description || param.parameter_key}
+                              </label>
+                              <p className="text-xs text-slate-500 font-mono">{param.parameter_key}</p>
+                            </div>
+                            <div>
+                              {param.parameter_type === 'number' && (
+                                <Input
+                                  type="number"
+                                  value={getValue(param)}
+                                  onChange={(e) => setValue(param.parameter_key, e.target.value)}
+                                  disabled={!param.is_editable}
+                                  className={!param.is_editable ? 'bg-slate-50' : ''}
+                                />
+                              )}
+                              {param.parameter_type === 'boolean' && (
+                                <div className="flex items-center gap-2 h-10">
+                                  <input
+                                    type="checkbox"
+                                    checked={getValue(param) === 'true' || getValue(param) === true}
+                                    onChange={(e) => setValue(param.parameter_key, e.target.checked)}
+                                    disabled={!param.is_editable}
+                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="text-sm text-slate-600">
+                                    {getValue(param) === 'true' || getValue(param) === true ? 'Activado' : 'Desactivado'}
+                                  </span>
+                                </div>
+                              )}
+                              {param.parameter_type === 'text' && (
+                                <Input
+                                  type="text"
+                                  value={getValue(param)}
+                                  onChange={(e) => setValue(param.parameter_key, e.target.value)}
+                                  disabled={!param.is_editable}
+                                  className={!param.is_editable ? 'bg-slate-50' : ''}
+                                />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </>
       )}
     </div>
   );

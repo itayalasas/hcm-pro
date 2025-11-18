@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, GraduationCap, Briefcase, FileText, CheckCircle, Heart, CreditCard, Phone, FileDown } from 'lucide-react';
+import { User, GraduationCap, Briefcase, FileText, CheckCircle, Heart, CreditCard, Phone, FileDown, Upload, X } from 'lucide-react';
 import Modal from '../ui/Modal';
 import StepWizard from '../ui/StepWizard';
 import Button from '../ui/Button';
@@ -69,10 +69,7 @@ interface EmployeeData {
     alternatePhone: string;
   };
   documents: {
-    hasContract: boolean;
-    hasIDCopy: boolean;
-    hasBackground: boolean;
-    notes: string;
+    files: { name: string; file: File; type: string }[];
   };
 }
 
@@ -166,10 +163,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
       phoneAlt: ''
     },
     documents: {
-      hasContract: false,
-      hasIDCopy: false,
-      hasBackground: false,
-      notes: ''
+      files: []
     }
   });
 
@@ -386,6 +380,8 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         updated_by: editMode ? userId : undefined
       };
 
+      let employeeId: string;
+
       if (editMode && employeeToEdit) {
         const { error: employeeError } = await supabase
           .from('employees')
@@ -393,6 +389,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
           .eq('id', employeeToEdit.id);
 
         if (employeeError) throw employeeError;
+        employeeId = employeeToEdit.id;
         toast.success('Empleado actualizado exitosamente');
       } else {
         let employeeNumber = employeeData.employment.employeeNumber;
@@ -408,15 +405,34 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
           employeeNumber = generatedCode;
         }
 
-        const { error: employeeError } = await supabase.from('employees').insert({
+        const { data: newEmployee, error: employeeError } = await supabase.from('employees').insert({
           ...employeePayload,
           company_id: selectedCompanyId,
           employee_number: employeeNumber,
           status: 'active'
-        });
+        }).select().single();
 
         if (employeeError) throw employeeError;
+        if (!newEmployee) throw new Error('No se pudo crear el empleado');
+
+        employeeId = newEmployee.id;
         toast.success('Empleado creado exitosamente');
+      }
+
+      if (employeeData.documents.files.length > 0) {
+        for (const doc of employeeData.documents.files) {
+          const filePath = `${selectedCompanyId}/${employeeId}/${Date.now()}_${doc.name}`;
+          const { error: uploadError } = await supabase.storage
+            .from('employee-documents')
+            .upload(filePath, doc.file, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (uploadError) {
+            console.error('Error uploading document:', uploadError);
+          }
+        }
       }
 
       onSuccess();
@@ -482,10 +498,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         alternatePhone: ''
       },
       documents: {
-        hasContract: false,
-        hasIDCopy: false,
-        hasBackground: false,
-        notes: ''
+        files: []
       }
     });
   };
@@ -583,10 +596,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
           alternatePhone: employeeToEdit.emergency_contact_phone_alt || ''
         },
         documents: {
-          idDocument: null,
-          proofOfAddress: null,
-          resume: null,
-          notes: ''
+          files: []
         }
       };
 
@@ -1353,63 +1363,75 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="contract"
-                    checked={employeeData.documents.hasContract}
-                    onChange={(e) => updateDocuments('hasContract', e.target.checked)}
-                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <label htmlFor="contract" className="text-sm font-medium text-slate-900 cursor-pointer">
-                    Contrato Firmado
-                  </label>
-                </div>
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+                <Upload className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                <input
+                  type="file"
+                  id="document-upload"
+                  multiple
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    const newFiles = files.map(file => ({
+                      name: file.name,
+                      file: file,
+                      type: file.type
+                    }));
+                    setEmployeeData(prev => ({
+                      ...prev,
+                      documents: {
+                        files: [...prev.documents.files, ...newFiles]
+                      }
+                    }));
+                    e.target.value = '';
+                  }}
+                />
+                <label
+                  htmlFor="document-upload"
+                  className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors"
+                >
+                  Seleccionar Archivos
+                </label>
+                <p className="text-sm text-slate-500 mt-2">
+                  PDF, DOC, DOCX, JPG, PNG, TXT (máx. 10MB cada uno)
+                </p>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="id"
-                    checked={employeeData.documents.hasIDCopy}
-                    onChange={(e) => updateDocuments('hasIDCopy', e.target.checked)}
-                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <label htmlFor="id" className="text-sm font-medium text-slate-900 cursor-pointer">
-                    Copia de Identificación
-                  </label>
+              {employeeData.documents.files.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-medium text-slate-900">Archivos seleccionados:</h4>
+                  {employeeData.documents.files.map((doc, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-slate-400" />
+                        <div>
+                          <p className="text-sm font-medium text-slate-900">{doc.name}</p>
+                          <p className="text-xs text-slate-500">
+                            {(doc.file.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setEmployeeData(prev => ({
+                            ...prev,
+                            documents: {
+                              files: prev.documents.files.filter((_, i) => i !== index)
+                            }
+                          }));
+                        }}
+                        className="p-1 hover:bg-slate-200 rounded transition-colors"
+                      >
+                        <X className="w-4 h-4 text-slate-600" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="background"
-                    checked={employeeData.documents.hasBackground}
-                    onChange={(e) => updateDocuments('hasBackground', e.target.checked)}
-                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <label htmlFor="background" className="text-sm font-medium text-slate-900 cursor-pointer">
-                    Verificación de Antecedentes
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Notas Adicionales
-              </label>
-              <textarea
-                value={employeeData.documents.notes}
-                onChange={(e) => updateDocuments('notes', e.target.value)}
-                rows={4}
-                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Cualquier información adicional relevante..."
-              />
+              )}
             </div>
           </div>
         );

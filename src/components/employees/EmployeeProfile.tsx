@@ -1410,17 +1410,45 @@ function ContractsTab({ employeeId }: { employeeId: string }) {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  const blob = new Blob([contract.content], { type: 'text/plain;charset=utf-8' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `contrato_v${contract.version}.txt`;
-                  a.click();
-                  URL.revokeObjectURL(url);
+                  const printWindow = window.open('', '_blank');
+                  if (printWindow) {
+                    printWindow.document.write(`
+                      <!DOCTYPE html>
+                      <html>
+                        <head>
+                          <title>Contrato v${contract.version}</title>
+                          <meta charset="utf-8">
+                          <style>
+                            body {
+                              font-family: Arial, sans-serif;
+                              line-height: 1.6;
+                              padding: 40px;
+                              max-width: 800px;
+                              margin: 0 auto;
+                            }
+                            h1 { font-size: 20px; margin-bottom: 20px; }
+                            p { margin-bottom: 10px; white-space: pre-line; }
+                            @media print {
+                              body { padding: 20px; }
+                            }
+                          </style>
+                        </head>
+                        <body>
+                          <h1>${contract.contract_template?.name || 'Contrato'} - Versión ${contract.version}</h1>
+                          <div>${contract.content.split('\n').map((line: string) => `<p>${line}</p>`).join('')}</div>
+                        </body>
+                      </html>
+                    `);
+                    printWindow.document.close();
+                    printWindow.focus();
+                    setTimeout(() => {
+                      printWindow.print();
+                    }, 250);
+                  }
                 }}
               >
                 <Download className="w-4 h-4 mr-1" />
-                Descargar
+                Descargar PDF
               </Button>
             </div>
           </div>
@@ -1450,18 +1478,46 @@ function ContractsTab({ employeeId }: { employeeId: string }) {
               <Button
                 variant="primary"
                 onClick={() => {
-                  const blob = new Blob([selectedContract.content], { type: 'text/plain;charset=utf-8' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `contrato_v${selectedContract.version}.txt`;
-                  a.click();
-                  URL.revokeObjectURL(url);
+                  const printWindow = window.open('', '_blank');
+                  if (printWindow) {
+                    printWindow.document.write(`
+                      <!DOCTYPE html>
+                      <html>
+                        <head>
+                          <title>Contrato v${selectedContract.version}</title>
+                          <meta charset="utf-8">
+                          <style>
+                            body {
+                              font-family: Arial, sans-serif;
+                              line-height: 1.6;
+                              padding: 40px;
+                              max-width: 800px;
+                              margin: 0 auto;
+                            }
+                            h1 { font-size: 20px; margin-bottom: 20px; }
+                            p { margin-bottom: 10px; white-space: pre-line; }
+                            @media print {
+                              body { padding: 20px; }
+                            }
+                          </style>
+                        </head>
+                        <body>
+                          <h1>${selectedContract.contract_template?.name || 'Contrato'} - Versión ${selectedContract.version}</h1>
+                          <div>${selectedContract.content.split('\n').map((line: string) => `<p>${line}</p>`).join('')}</div>
+                        </body>
+                      </html>
+                    `);
+                    printWindow.document.close();
+                    printWindow.focus();
+                    setTimeout(() => {
+                      printWindow.print();
+                    }, 250);
+                  }
                 }}
                 className="flex-1"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Descargar
+                Descargar PDF
               </Button>
             </div>
           </div>
@@ -1472,9 +1528,337 @@ function ContractsTab({ employeeId }: { employeeId: string }) {
 }
 
 function DocumentsTab({ employeeId }: { employeeId: string }) {
-  return <div className="p-6 text-slate-600">Los documentos del empleado se mostrarán aquí.</div>;
+  const { selectedCompanyId } = useCompany();
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const toast = useToast();
+
+  useEffect(() => {
+    loadDocuments();
+  }, [employeeId]);
+
+  const loadDocuments = async () => {
+    if (!selectedCompanyId) return;
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('employee-documents')
+        .list(`${selectedCompanyId}/${employeeId}`, {
+          limit: 100,
+          offset: 0,
+          sortBy: { column: 'created_at', order: 'desc' }
+        });
+
+      if (error) throw error;
+      setDocuments(data || []);
+    } catch (error) {
+      console.error('Error loading documents:', error);
+      toast.error('Error al cargar documentos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const filePath = `${selectedCompanyId}/${employeeId}/${Date.now()}_${file.name}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('employee-documents')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) throw uploadError;
+      }
+
+      toast.success('Documentos subidos exitosamente');
+      loadDocuments();
+    } catch (error) {
+      console.error('Error uploading documents:', error);
+      toast.error('Error al subir documentos');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDownload = async (fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('employee-documents')
+        .download(`${selectedCompanyId}/${employeeId}/${fileName}`);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName.split('_').slice(1).join('_');
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast.error('Error al descargar documento');
+    }
+  };
+
+  const handleDelete = async (fileName: string) => {
+    if (!confirm('¿Está seguro que desea eliminar este documento?')) return;
+
+    try {
+      const { error } = await supabase.storage
+        .from('employee-documents')
+        .remove([`${selectedCompanyId}/${employeeId}/${fileName}`]);
+
+      if (error) throw error;
+
+      toast.success('Documento eliminado exitosamente');
+      loadDocuments();
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast.error('Error al eliminar documento');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+        <p className="text-slate-600">Cargando documentos...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-slate-900">Documentos del Empleado</h3>
+        <div>
+          <input
+            type="file"
+            id="doc-upload"
+            multiple
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
+            className="hidden"
+            onChange={handleUpload}
+            disabled={uploading}
+          />
+          <label
+            htmlFor="doc-upload"
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors cursor-pointer ${
+              uploading
+                ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            <Upload className="w-4 h-4" />
+            {uploading ? 'Subiendo...' : 'Subir Documentos'}
+          </label>
+        </div>
+      </div>
+
+      {documents.length === 0 ? (
+        <div className="p-6 text-center border-2 border-dashed border-slate-300 rounded-lg">
+          <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-600">No hay documentos cargados para este empleado.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {documents.map((doc) => (
+            <div
+              key={doc.name}
+              className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <FileText className="w-8 h-8 text-blue-600 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-900 truncate">
+                    {doc.name.split('_').slice(1).join('_')}
+                  </p>
+                  <div className="flex items-center gap-3 text-xs text-slate-500">
+                    <span>{(doc.metadata.size / 1024).toFixed(2)} KB</span>
+                    <span>•</span>
+                    <span>{new Date(doc.created_at).toLocaleDateString('es-ES')}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDownload(doc.name)}
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Descargar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDelete(doc.name)}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Eliminar
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function HistoryTab({ employeeId }: { employeeId: string }) {
-  return <div className="p-6 text-slate-600">El historial laboral del empleado se mostrará aquí.</div>;
+  const { selectedCompanyId } = useCompany();
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadHistory();
+  }, [employeeId]);
+
+  const loadHistory = async () => {
+    if (!selectedCompanyId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('employee_history')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .eq('company_id', selectedCompanyId)
+        .order('change_date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setHistory(data || []);
+    } catch (error) {
+      console.error('Error loading history:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getChangeTypeIcon = (changeType: string) => {
+    switch (changeType) {
+      case 'position_change':
+      case 'promotion':
+      case 'demotion':
+        return <Briefcase className="w-5 h-5 text-blue-600" />;
+      case 'department_change':
+      case 'transfer':
+        return <Building2 className="w-5 h-5 text-purple-600" />;
+      case 'salary_change':
+        return <DollarSign className="w-5 h-5 text-green-600" />;
+      case 'status_change':
+        return <AlertCircle className="w-5 h-5 text-amber-600" />;
+      case 'manager_change':
+        return <User className="w-5 h-5 text-indigo-600" />;
+      case 'location_change':
+        return <MapPin className="w-5 h-5 text-red-600" />;
+      default:
+        return <History className="w-5 h-5 text-slate-600" />;
+    }
+  };
+
+  const getChangeTypeLabel = (changeType: string) => {
+    const labels: Record<string, string> = {
+      position_change: 'Cambio de Puesto',
+      department_change: 'Cambio de Departamento',
+      salary_change: 'Cambio de Salario',
+      status_change: 'Cambio de Estado',
+      manager_change: 'Cambio de Supervisor',
+      location_change: 'Cambio de Ubicación',
+      promotion: 'Promoción',
+      demotion: 'Descenso',
+      transfer: 'Transferencia',
+      other: 'Otro'
+    };
+    return labels[changeType] || changeType;
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+        <p className="text-slate-600">Cargando historial...</p>
+      </div>
+    );
+  }
+
+  if (history.length === 0) {
+    return (
+      <div className="p-6 text-center">
+        <History className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+        <p className="text-slate-600">No hay registros de historial para este empleado.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold text-slate-900 mb-4">Historial Laboral</h3>
+
+      <div className="relative">
+        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-slate-200"></div>
+
+        <div className="space-y-6">
+          {history.map((record) => (
+            <div key={record.id} className="relative pl-12">
+              <div className="absolute left-0 top-0 w-8 h-8 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center">
+                {getChangeTypeIcon(record.change_type)}
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h4 className="font-semibold text-slate-900">
+                      {getChangeTypeLabel(record.change_type)}
+                    </h4>
+                    <p className="text-sm text-slate-500">
+                      {new Date(record.change_date).toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                {record.old_value_display && record.new_value_display && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="px-3 py-1 bg-red-50 text-red-700 rounded-lg">
+                      {record.old_value_display}
+                    </span>
+                    <span className="text-slate-400">→</span>
+                    <span className="px-3 py-1 bg-green-50 text-green-700 rounded-lg">
+                      {record.new_value_display}
+                    </span>
+                  </div>
+                )}
+
+                {record.notes && (
+                  <p className="mt-2 text-sm text-slate-600 bg-slate-50 p-2 rounded">
+                    {record.notes}
+                  </p>
+                )}
+
+                <p className="mt-2 text-xs text-slate-400">
+                  Registrado el {new Date(record.created_at).toLocaleDateString('es-ES')}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }

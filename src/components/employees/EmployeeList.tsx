@@ -143,28 +143,28 @@ export default function EmployeeList() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full table-fixed">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th className="w-1/5 px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Empleado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th className="w-32 px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   ID
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th className="w-1/5 px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Contacto
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th className="w-1/5 px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Puesto
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Fecha de Contratación
+                <th className="w-32 px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Contratación
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th className="w-24 px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th className="w-28 px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
@@ -172,57 +172,57 @@ export default function EmployeeList() {
             <tbody className="bg-white divide-y divide-slate-200">
               {filteredEmployees.map((employee) => (
                 <tr key={employee.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                  <td className="px-4 py-4">
+                    <div className="flex items-center min-w-0">
+                      <div className="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-600 rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
                         {employee.first_name[0]}{employee.last_name[0]}
                       </div>
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-slate-900">
+                      <div className="ml-3 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">
                           {employee.first_name} {employee.last_name}
                         </p>
-                        <p className="text-sm text-slate-500 flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {employee.work_location || 'No especificado'}
+                        <p className="text-xs text-slate-500 flex items-center gap-1 truncate">
+                          <MapPin className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{employee.work_location || 'No especificado'}</span>
                         </p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-slate-900 font-mono">{employee.employee_number}</span>
+                  <td className="px-4 py-4">
+                    <span className="text-xs text-slate-900 font-mono block truncate">{employee.employee_number}</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm">
-                      <p className="text-slate-900 flex items-center gap-1">
-                        <Mail className="w-3 h-3" />
-                        {employee.email}
+                  <td className="px-4 py-4">
+                    <div className="text-sm min-w-0">
+                      <p className="text-slate-900 flex items-center gap-1 truncate">
+                        <Mail className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{employee.email}</span>
                       </p>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm">
-                      <p className="text-slate-900 flex items-center gap-1">
-                        <Briefcase className="w-3 h-3" />
-                        {employee.position?.title || 'Sin puesto'}
+                  <td className="px-4 py-4">
+                    <div className="text-sm min-w-0">
+                      <p className="text-slate-900 flex items-center gap-1 truncate">
+                        <Briefcase className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{employee.position?.title || 'Sin puesto'}</span>
                       </p>
-                      <p className="text-slate-500 text-xs">{employee.department?.name || 'Sin departamento'}</p>
+                      <p className="text-slate-500 text-xs truncate">{employee.department?.name || 'Sin departamento'}</p>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                    {new Date(employee.hire_date).toLocaleDateString()}
+                  <td className="px-4 py-4 text-sm text-slate-900">
+                    {new Date(employee.hire_date).toLocaleDateString('es', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-4">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(employee.status)}`}>
                       {employee.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <td className="px-4 py-4 text-sm font-medium">
                     <button
                       onClick={() => setSelectedEmployeeId(employee.id)}
                       className="flex items-center gap-1 text-blue-600 hover:text-blue-900 transition-colors"
                     >
                       <Eye className="w-4 h-4" />
-                      Ver Perfil
+                      Ver
                     </button>
                   </td>
                 </tr>

@@ -57,9 +57,9 @@ interface EmployeeData {
     cardFile: File | null;
   };
   banking: {
-    bankName: string;
+    bankId: string;
     accountNumber: string;
-    accountType: string;
+    bankAccountTypeId: string;
     routingNumber: string;
   };
   emergency: {
@@ -111,6 +111,8 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
   const [employmentTypes, setEmploymentTypes] = useState<Array<{id: string, name: string}>>([]);
   const [workLocations, setWorkLocations] = useState<Array<{id: string, name: string}>>([]);
   const [managers, setManagers] = useState<Array<{id: string, name: string}>>([]);
+  const [banks, setBanks] = useState<Array<{id: string, name: string, country: string}>>([]);
+  const [bankAccountTypes, setBankAccountTypes] = useState<Array<{id: string, name: string}>>([]);
   const [employeeData, setEmployeeData] = useState<EmployeeData>({
     personalInfo: {
       firstName: '',
@@ -152,9 +154,9 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
       cardFile: null
     },
     banking: {
-      bankName: '',
+      bankId: '',
       accountNumber: '',
-      accountType: '',
+      bankAccountTypeId: '',
       routingNumber: ''
     },
     emergency: {
@@ -267,13 +269,12 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
       employeeCountry: employeeData.personalInfo.country,
       position: employeeData.employment.position,
       department: employeeData.employment.department,
-      employmentType: employeeData.employment.employmentType,
+      employmentType: employmentTypes.find(t => t.id === employeeData.employment.employmentTypeId)?.name || 'N/A',
       hireDate: employeeData.employment.hireDate,
       salary: employeeData.employment.salary,
-      bankName: employeeData.banking.bankName,
+      bankName: banks.find(b => b.id === employeeData.banking.bankId)?.name || 'N/A',
       accountNumber: employeeData.banking.accountNumber,
-      accountType: employeeData.banking.accountType === 'checking' ? 'Cuenta Corriente' :
-                   employeeData.banking.accountType === 'savings' ? 'Cuenta de Ahorros' : 'N/A',
+      accountType: bankAccountTypes.find(t => t.id === employeeData.banking.bankAccountTypeId)?.name || 'N/A',
       healthCardNumber: employeeData.health.cardNumber,
       healthCardExpiry: employeeData.health.cardExpiry,
       emergencyContact: employeeData.emergency.contactName,
@@ -373,9 +374,9 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         employment_type_id: employeeData.employment.employmentTypeId || null,
         health_card_number: employeeData.health.cardNumber || null,
         health_card_expiry: employeeData.health.cardExpiry ? convertDateToISO(employeeData.health.cardExpiry) : null,
-        bank_name: employeeData.banking.bankName || null,
+        bank_id: employeeData.banking.bankId || null,
         bank_account_number: employeeData.banking.accountNumber || null,
-        bank_account_type: employeeData.banking.accountType || null,
+        bank_account_type_id: employeeData.banking.bankAccountTypeId || null,
         bank_routing_number: employeeData.banking.routingNumber || null,
         emergency_contact_name: employeeData.emergency.contactName || null,
         emergency_contact_relationship: employeeData.emergency.relationship || null,
@@ -469,9 +470,9 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         cardFile: null
       },
       banking: {
-        bankName: '',
+        bankId: '',
         accountNumber: '',
-        accountType: '',
+        bankAccountTypeId: '',
         routingNumber: ''
       },
       emergency: {
@@ -570,9 +571,9 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
           cardFile: null
         },
         banking: {
-          bankName: employeeToEdit.bank_name || '',
+          bankId: employeeToEdit.bank_id || '',
           accountNumber: employeeToEdit.bank_account_number || '',
-          accountType: employeeToEdit.bank_account_type || '',
+          bankAccountTypeId: employeeToEdit.bank_account_type_id || '',
           routingNumber: employeeToEdit.bank_routing_number || ''
         },
         emergency: {
@@ -621,11 +622,13 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         departments.length > 0 &&
         positions.length > 0 &&
         employmentTypes.length > 0 &&
-        workLocations.length > 0) {
+        workLocations.length > 0 &&
+        banks.length > 0 &&
+        bankAccountTypes.length > 0) {
       console.log('All master data loaded, loading employee data for:', employeeToEdit);
       loadEmployeeData();
     }
-  }, [editMode, employeeToEdit, isOpen, documentTypes, genders, academicLevels, institutions, fieldsOfStudy, departments, positions, employmentTypes, workLocations]);
+  }, [editMode, employeeToEdit, isOpen, documentTypes, genders, academicLevels, institutions, fieldsOfStudy, departments, positions, employmentTypes, workLocations, banks, bankAccountTypes]);
 
   const loadCompanyData = async () => {
     if (!selectedCompanyId) return;
@@ -735,6 +738,20 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         .eq('active', true)
         .order('name');
 
+      const { data: bankData } = await supabase
+        .from('banks')
+        .select('id, name, country')
+        .or(`company_id.eq.${selectedCompanyId},company_id.is.null`)
+        .eq('is_active', true)
+        .order('country, name');
+
+      const { data: accountTypeData } = await supabase
+        .from('bank_account_types')
+        .select('id, name')
+        .or(`company_id.eq.${selectedCompanyId},company_id.is.null`)
+        .eq('is_active', true)
+        .order('name');
+
       if (posError) {
         console.error('Error loading positions:', posError);
       }
@@ -753,6 +770,8 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
       setPositions(mappedPositions);
       setEmploymentTypes(empTypeData || []);
       setWorkLocations(locData || []);
+      setBanks(bankData || []);
+      setBankAccountTypes(accountTypeData || []);
 
       console.log('loadMasterData: State updated with:', {
         documentTypes: documentTypeData?.length || 0,
@@ -763,7 +782,9 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
         departments: deptData?.length || 0,
         positions: mappedPositions.length,
         employmentTypes: empTypeData?.length || 0,
-        workLocations: locData?.length || 0
+        workLocations: locData?.length || 0,
+        banks: bankData?.length || 0,
+        bankAccountTypes: accountTypeData?.length || 0
       });
     } catch (error) {
       console.error('Error loading master data:', error);
@@ -1231,11 +1252,16 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Input
+              <Autocomplete
                 label="Nombre del Banco"
-                value={employeeData.banking.bankName}
-                onChange={(e) => updateBanking('bankName', e.target.value)}
-                placeholder="Banco Nacional"
+                value={employeeData.banking.bankId}
+                options={banks.map(bank => ({
+                  value: bank.id,
+                  label: `${bank.name} (${bank.country})`,
+                  description: bank.country
+                }))}
+                onChange={(value) => updateBanking('bankId', value)}
+                placeholder="Escribe para buscar banco..."
               />
               <Input
                 label="Número de Cuenta"
@@ -1246,20 +1272,16 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Tipo de Cuenta
-                </label>
-                <select
-                  value={employeeData.banking.accountType}
-                  onChange={(e) => updateBanking('accountType', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccionar...</option>
-                  <option value="checking">Cuenta Corriente</option>
-                  <option value="savings">Cuenta de Ahorros</option>
-                </select>
-              </div>
+              <Autocomplete
+                label="Tipo de Cuenta"
+                value={employeeData.banking.bankAccountTypeId}
+                options={bankAccountTypes.map(type => ({
+                  value: type.id,
+                  label: type.name
+                }))}
+                onChange={(value) => updateBanking('bankAccountTypeId', value)}
+                placeholder="Escribe para buscar tipo de cuenta..."
+              />
               <Input
                 label="Código CLABE / Routing"
                 value={employeeData.banking.routingNumber}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Building2, Plus, Edit, Eye, Trash2, X, Save, Search, MapPin, Mail, Phone } from 'lucide-react';
+import { Building2, Plus, Edit, Eye, Trash2, Search, MapPin, Mail, Phone } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCompany } from '../../contexts/CompanyContext';
@@ -7,9 +7,8 @@ import { useToast } from '../../hooks/useToast';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
-import Autocomplete from '../ui/Autocomplete';
-import ValidationAlert from '../ui/ValidationAlert';
 import ConfirmDialog from '../ui/ConfirmDialog';
+import AddCompanyWizard from './AddCompanyWizard';
 
 interface Company {
   id: string;
@@ -43,25 +42,12 @@ export default function Companies() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [viewingCompany, setViewingCompany] = useState<Company | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [showValidationAlert, setShowValidationAlert] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    code: '',
-    legal_name: '',
-    trade_name: '',
-    tax_id: '',
-    email: '',
-    phone: '',
-    address: '',
-    location_id: '',
-    active: true,
-  });
 
   useEffect(() => {
     loadCompanies();
@@ -122,97 +108,9 @@ export default function Companies() {
     }
   };
 
-  const handleSave = async () => {
-    const errors: string[] = [];
-
-    if (!formData.legal_name.trim()) errors.push('Razón Social');
-    if (!formData.trade_name.trim()) errors.push('Nombre Comercial');
-    if (!formData.tax_id.trim()) errors.push('RFC/NIT/Tax ID');
-
-    if (errors.length > 0) {
-      setValidationErrors(errors);
-      setShowValidationAlert(true);
-      return;
-    }
-
-    setValidationErrors([]);
-    setShowValidationAlert(false);
-
-    try {
-      let code = formData.code;
-
-      if (editingId) {
-        const { error } = await supabase
-          .from('companies')
-          .update({
-            ...formData,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', editingId);
-
-        if (error) throw error;
-        toast.success('Empresa actualizada correctamente');
-      } else {
-        if (!code) {
-          const { data: generatedCode, error: codeError } = await supabase
-            .rpc('generate_entity_code', {
-              p_entity_type: 'company',
-              p_company_id: null
-            });
-
-          if (codeError) throw codeError;
-          code = generatedCode;
-        }
-
-        const { data: newCompany, error } = await supabase
-          .from('companies')
-          .insert({ ...formData, code })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        if (newCompany && user) {
-          const { error: ucError } = await supabase
-            .from('user_companies')
-            .insert({
-              user_id: user.id,
-              company_id: newCompany.id,
-              role: 'admin',
-              is_default: companies.length === 0,
-              active: true
-            });
-
-          if (ucError) throw ucError;
-        }
-
-        toast.success('Empresa creada correctamente');
-      }
-
-      setShowModal(false);
-      setEditingId(null);
-      resetForm();
-      loadCompanies();
-    } catch (error: any) {
-      console.error('Error saving company:', error);
-      toast.error(error.message || 'Error al guardar la empresa');
-    }
-  };
-
   const handleEdit = (company: Company) => {
-    setEditingId(company.id);
-    setFormData({
-      code: company.code,
-      legal_name: company.legal_name,
-      trade_name: company.trade_name,
-      tax_id: company.tax_id,
-      email: company.email || '',
-      phone: company.phone || '',
-      address: company.address || '',
-      location_id: company.location_id || '',
-      active: company.active,
-    });
-    setShowModal(true);
+    setEditingCompany(company);
+    setShowWizard(true);
   };
 
   const handleView = (company: Company) => {
@@ -240,20 +138,6 @@ export default function Companies() {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      code: '',
-      legal_name: '',
-      trade_name: '',
-      tax_id: '',
-      email: '',
-      phone: '',
-      address: '',
-      location_id: '',
-      active: true,
-    });
-  };
-
   const filteredCompanies = companies.filter(company =>
     company.legal_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     company.trade_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -270,9 +154,8 @@ export default function Companies() {
         </div>
         <Button
           onClick={() => {
-            resetForm();
-            setEditingId(null);
-            setShowModal(true);
+            setEditingCompany(null);
+            setShowWizard(true);
           }}
           className="flex items-center gap-2"
         >
@@ -362,165 +245,16 @@ export default function Companies() {
         </>
       )}
 
-      <Modal
-        isOpen={showModal}
+      <AddCompanyWizard
+        isOpen={showWizard}
         onClose={() => {
-          setShowModal(false);
-          setEditingId(null);
-          resetForm();
-          setValidationErrors([]);
-          setShowValidationAlert(false);
+          setShowWizard(false);
+          setEditingCompany(null);
         }}
-        title={editingId ? 'Editar Empresa' : 'Nueva Empresa'}
-      >
-        {showValidationAlert && validationErrors.length > 0 && (
-          <ValidationAlert
-            errors={validationErrors}
-            onClose={() => {
-              setShowValidationAlert(false);
-              setValidationErrors([]);
-            }}
-          />
-        )}
-        <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Código {!editingId && <span className="text-xs text-slate-500">(se generará automáticamente si se deja vacío)</span>}
-              </label>
-              <Input
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                placeholder={editingId ? formData.code : "Se generará automáticamente"}
-                disabled={!!editingId}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                RFC <span className="text-red-500">*</span>
-              </label>
-              <Input
-                value={formData.tax_id}
-                onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
-                placeholder="ABC123456XYZ"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Razón Social <span className="text-red-500">*</span>
-            </label>
-            <Input
-              value={formData.legal_name}
-              onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
-              placeholder="Nombre legal de la empresa"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Nombre Comercial <span className="text-red-500">*</span>
-            </label>
-            <Input
-              value={formData.trade_name}
-              onChange={(e) => setFormData({ ...formData, trade_name: e.target.value })}
-              placeholder="Nombre comercial"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="contacto@empresa.com"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Teléfono</label>
-              <Input
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+52 55 1234 5678"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Dirección</label>
-            <textarea
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder="Dirección completa de la empresa"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              <MapPin className="w-4 h-4 inline mr-1" />
-              Ubicación Principal
-            </label>
-            <Autocomplete
-              options={locations.map(loc => `${loc.name} - ${loc.city}, ${loc.country}`)}
-              value={
-                formData.location_id
-                  ? (() => {
-                      const loc = locations.find(l => l.id === formData.location_id);
-                      return loc ? `${loc.name} - ${loc.city}, ${loc.country}` : '';
-                    })()
-                  : ''
-              }
-              onChange={(value) => {
-                const location = locations.find(l =>
-                  `${l.name} - ${l.city}, ${l.country}` === value
-                );
-                setFormData(prev => ({ ...prev, location_id: location?.id || '' }));
-              }}
-              placeholder="Seleccionar ubicación..."
-            />
-            {locations.length === 0 && (
-              <p className="text-xs text-slate-500 mt-1">
-                No hay ubicaciones disponibles. Cree una ubicación primero en la sección de Configuración.
-              </p>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="active"
-              checked={formData.active}
-              onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="active" className="text-sm text-slate-700">
-              Activa
-            </label>
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowModal(false);
-                setEditingId(null);
-                resetForm();
-              }}
-              className="flex-1"
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleSave} className="flex-1">
-              {editingId ? 'Guardar' : 'Crear'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        onSuccess={loadCompanies}
+        editMode={!!editingCompany}
+        companyToEdit={editingCompany}
+      />
 
       <Modal
         isOpen={showViewModal}

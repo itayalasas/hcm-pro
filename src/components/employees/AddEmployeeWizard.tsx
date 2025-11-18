@@ -601,16 +601,31 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
       editMode,
       hasEmployeeToEdit: !!employeeToEdit,
       isOpen,
+      documentTypesLength: documentTypes.length,
+      gendersLength: genders.length,
+      academicLevelsLength: academicLevels.length,
+      institutionsLength: institutions.length,
+      fieldsOfStudyLength: fieldsOfStudy.length,
       departmentsLength: departments.length,
       positionsLength: positions.length,
+      employmentTypesLength: employmentTypes.length,
       locationsLength: workLocations.length
     });
 
-    if (editMode && employeeToEdit && isOpen) {
-      console.log('Loading employee data for:', employeeToEdit);
+    if (editMode && employeeToEdit && isOpen &&
+        documentTypes.length > 0 &&
+        genders.length > 0 &&
+        academicLevels.length > 0 &&
+        institutions.length > 0 &&
+        fieldsOfStudy.length > 0 &&
+        departments.length > 0 &&
+        positions.length > 0 &&
+        employmentTypes.length > 0 &&
+        workLocations.length > 0) {
+      console.log('All master data loaded, loading employee data for:', employeeToEdit);
       loadEmployeeData();
     }
-  }, [editMode, employeeToEdit, isOpen, departments, positions, workLocations]);
+  }, [editMode, employeeToEdit, isOpen, documentTypes, genders, academicLevels, institutions, fieldsOfStudy, departments, positions, employmentTypes, workLocations]);
 
   const loadCompanyData = async () => {
     if (!selectedCompanyId) return;

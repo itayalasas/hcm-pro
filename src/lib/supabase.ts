@@ -9,6 +9,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+export async function setCurrentUser() {
+  const userStr = localStorage.getItem('external_auth_user');
+  const user = userStr ? JSON.parse(userStr) : null;
+
+  if (user?.id) {
+    await supabase.rpc('set_current_user', { user_id: user.id });
+  }
+}
+
 export type Employee = {
   id: string;
   employee_number: string;

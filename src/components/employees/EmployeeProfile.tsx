@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useCompany } from '../../contexts/CompanyContext';
-import { supabase } from '../../lib/supabase';
+import { supabase, setCurrentUser } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   User, Briefcase, FileText, History, Mail, Phone, MapPin, Calendar,
@@ -1542,6 +1542,7 @@ function DocumentsTab({ employeeId }: { employeeId: string }) {
     if (!selectedCompanyId) return;
 
     try {
+      await setCurrentUser();
       const { data, error } = await supabase.storage
         .from('employee-documents')
         .list(`${selectedCompanyId}/${employeeId}`, {
@@ -1566,6 +1567,7 @@ function DocumentsTab({ employeeId }: { employeeId: string }) {
 
     setUploading(true);
     try {
+      await setCurrentUser();
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const filePath = `${selectedCompanyId}/${employeeId}/${Date.now()}_${file.name}`;
@@ -1593,6 +1595,7 @@ function DocumentsTab({ employeeId }: { employeeId: string }) {
 
   const handleDownload = async (fileName: string) => {
     try {
+      await setCurrentUser();
       const { data, error } = await supabase.storage
         .from('employee-documents')
         .download(`${selectedCompanyId}/${employeeId}/${fileName}`);
@@ -1615,6 +1618,7 @@ function DocumentsTab({ employeeId }: { employeeId: string }) {
     if (!confirm('¿Está seguro que desea eliminar este documento?')) return;
 
     try {
+      await setCurrentUser();
       const { error } = await supabase.storage
         .from('employee-documents')
         .remove([`${selectedCompanyId}/${employeeId}/${fileName}`]);

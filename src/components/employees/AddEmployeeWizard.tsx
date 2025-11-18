@@ -6,7 +6,7 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Autocomplete from '../ui/Autocomplete';
 import CountryCitySelector from '../ui/CountryCitySelector';
-import { supabase } from '../../lib/supabase';
+import { supabase, setCurrentUser } from '../../lib/supabase';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useToast } from '../../hooks/useToast';
 import { replaceContractVariables, EmployeeContractData } from '../../lib/contractTemplates';
@@ -420,6 +420,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
       }
 
       if (employeeData.documents.files.length > 0) {
+        await setCurrentUser();
         for (const doc of employeeData.documents.files) {
           const filePath = `${selectedCompanyId}/${employeeId}/${Date.now()}_${doc.name}`;
           const { error: uploadError } = await supabase.storage

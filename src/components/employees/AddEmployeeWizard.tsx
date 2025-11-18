@@ -895,36 +895,20 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
                 placeholder="dd/mm/aaaa"
                 maxLength={10}
               />
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Género
-                </label>
-                <select
-                  value={employeeData.personalInfo.genderId}
-                  onChange={(e) => updatePersonalInfo('genderId', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccionar</option>
-                  {genders.map(gender => (
-                    <option key={gender.id} value={gender.id}>{gender.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Tipo de Documento
-                </label>
-                <select
-                  value={employeeData.personalInfo.documentTypeId}
-                  onChange={(e) => updatePersonalInfo('documentTypeId', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccionar</option>
-                  {documentTypes.map(docType => (
-                    <option key={docType.id} value={docType.id}>{docType.name}</option>
-                  ))}
-                </select>
-              </div>
+              <Autocomplete
+                label="Género"
+                value={employeeData.personalInfo.genderId}
+                options={genders.map(gender => ({ value: gender.id, label: gender.name }))}
+                onChange={(value) => updatePersonalInfo('genderId', value)}
+                placeholder="Seleccionar género..."
+              />
+              <Autocomplete
+                label="Tipo de Documento"
+                value={employeeData.personalInfo.documentTypeId}
+                options={documentTypes.map(docType => ({ value: docType.id, label: docType.name }))}
+                onChange={(value) => updatePersonalInfo('documentTypeId', value)}
+                placeholder="Seleccionar tipo de documento..."
+              />
               <Input
                 label="Número de Documento"
                 value={employeeData.personalInfo.nationalId}
@@ -980,54 +964,30 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Nivel Académico Más Alto
-                </label>
-                <select
-                  value={employeeData.education.academicLevelId}
-                  onChange={(e) => updateEducation('academicLevelId', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccionar</option>
-                  {academicLevels.map(level => (
-                    <option key={level.id} value={level.id}>{level.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Institución
-                </label>
-                <select
-                  value={employeeData.education.institutionId}
-                  onChange={(e) => updateEducation('institutionId', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccionar</option>
-                  {institutions.map(inst => (
-                    <option key={inst.id} value={inst.id}>{inst.name}</option>
-                  ))}
-                </select>
-              </div>
+              <Autocomplete
+                label="Nivel Académico Más Alto"
+                value={employeeData.education.academicLevelId}
+                options={academicLevels.map(level => ({ value: level.id, label: level.name }))}
+                onChange={(value) => updateEducation('academicLevelId', value)}
+                placeholder="Escribe para buscar nivel académico..."
+              />
+              <Autocomplete
+                label="Institución"
+                value={employeeData.education.institutionId}
+                options={institutions.map(inst => ({ value: inst.id, label: inst.name }))}
+                onChange={(value) => updateEducation('institutionId', value)}
+                placeholder="Escribe para buscar institución..."
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Campo de Estudio
-                </label>
-                <select
-                  value={employeeData.education.fieldOfStudyId}
-                  onChange={(e) => updateEducation('fieldOfStudyId', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccionar</option>
-                  {fieldsOfStudy.map(field => (
-                    <option key={field.id} value={field.id}>{field.name}</option>
-                  ))}
-                </select>
-              </div>
+              <Autocomplete
+                label="Campo de Estudio"
+                value={employeeData.education.fieldOfStudyId}
+                options={fieldsOfStudy.map(field => ({ value: field.id, label: field.name }))}
+                onChange={(value) => updateEducation('fieldOfStudyId', value)}
+                placeholder="Escribe para buscar campo de estudio..."
+              />
               <Input
                 label="Año de Graduación"
                 type="number"
@@ -1134,36 +1094,20 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Tipo de Empleo
-                </label>
-                <select
-                  value={employeeData.employment.employmentTypeId}
-                  onChange={(e) => updateEmployment('employmentTypeId', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccionar</option>
-                  {employmentTypes.map(type => (
-                    <option key={type.id} value={type.id}>{type.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Ubicación de Trabajo
-                </label>
-                <select
-                  value={employeeData.employment.workLocationId}
-                  onChange={(e) => updateEmployment('workLocationId', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccionar</option>
-                  {workLocations.map(loc => (
-                    <option key={loc.id} value={loc.id}>{loc.name}</option>
-                  ))}
-                </select>
-              </div>
+              <Autocomplete
+                label="Tipo de Empleo"
+                value={employeeData.employment.employmentTypeId}
+                options={employmentTypes.map(type => ({ value: type.id, label: type.name }))}
+                onChange={(value) => updateEmployment('employmentTypeId', value)}
+                placeholder="Escribe para buscar tipo de empleo..."
+              />
+              <Autocomplete
+                label="Ubicación de Trabajo"
+                value={employeeData.employment.workLocationId}
+                options={workLocations.map(loc => ({ value: loc.id, label: loc.name }))}
+                onChange={(value) => updateEmployment('workLocationId', value)}
+                placeholder="Escribe para buscar ubicación..."
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -1176,21 +1120,11 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
               />
               <Autocomplete
                 label="Manager/Supervisor"
-                value={employeeData.employment.manager}
-                options={managers.map(mgr => mgr.name)}
-                onChange={(value) => {
-                  const mgr = managers.find(m => m.name === value);
-                  setEmployeeData(prev => ({
-                    ...prev,
-                    employment: {
-                      ...prev.employment,
-                      manager: value,
-                      managerId: mgr?.id || ''
-                    }
-                  }));
-                }}
+                value={employeeData.employment.managerId}
+                options={managers.map(mgr => ({ value: mgr.id, label: mgr.name }))}
+                onChange={(value) => updateEmployment('managerId', value)}
                 placeholder="Nombre del supervisor"
-                disabled={!employeeData.employment.department}
+                disabled={!employeeData.employment.departmentId}
               />
             </div>
           </div>

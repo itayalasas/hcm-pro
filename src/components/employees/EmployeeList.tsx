@@ -37,7 +37,11 @@ export default function EmployeeList() {
 
       const { data, error } = await supabase
         .from('employees')
-        .select('*')
+        .select(`
+          *,
+          position:positions(id, title, code),
+          department:departments(id, name, code)
+        `)
         .eq('company_id', selectedCompanyId)
         .order('last_name', { ascending: true });
 
@@ -199,9 +203,9 @@ export default function EmployeeList() {
                     <div className="text-sm">
                       <p className="text-slate-900 flex items-center gap-1">
                         <Briefcase className="w-3 h-3" />
-                        Puesto
+                        {employee.position?.title || 'Sin puesto'}
                       </p>
-                      <p className="text-slate-500 text-xs">Departamento</p>
+                      <p className="text-slate-500 text-xs">{employee.department?.name || 'Sin departamento'}</p>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">

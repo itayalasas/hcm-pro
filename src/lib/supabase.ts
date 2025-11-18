@@ -37,14 +37,16 @@ export type Employee = {
   employment_type?: string;
   health_card_number?: string;
   health_card_expiry?: string;
-  bank_name?: string;
+  bank_id?: string;
   bank_account_number?: string;
-  bank_account_type?: string;
+  bank_account_type_id?: string;
   bank_routing_number?: string;
   emergency_contact_name?: string;
   emergency_contact_relationship?: string;
   emergency_contact_phone?: string;
   emergency_contact_phone_alt?: string;
+  position?: { id: string; title: string; code: string };
+  department?: { id: string; name: string; code: string };
 };
 
 export type Company = {

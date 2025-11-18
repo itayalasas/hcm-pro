@@ -46,9 +46,9 @@ interface Employee {
   certifications: string | null;
   health_card_number: string | null;
   health_card_expiry: string | null;
-  bank_name: string | null;
+  bank_id: string | null;
   bank_account_number: string | null;
-  bank_account_type: string | null;
+  bank_account_type_id: string | null;
   bank_routing_number: string | null;
   emergency_contact_name: string | null;
   emergency_contact_relationship: string | null;
@@ -65,6 +65,8 @@ interface Employee {
   educational_institution: { id: string; name: string } | null;
   field_of_study: { id: string; name: string } | null;
   work_location_obj: { id: string; name: string } | null;
+  bank: { id: string; name: string; country: string } | null;
+  bank_account_type: { id: string; name: string } | null;
 }
 
 interface EmployeeProfileProps {
@@ -116,7 +118,9 @@ export default function EmployeeProfile({ employeeId, onBack }: EmployeeProfileP
           academic_level:academic_levels(id, name),
           educational_institution:educational_institutions(id, name),
           field_of_study:fields_of_study(id, name),
-          work_location_obj:work_locations(id, name)
+          work_location_obj:work_locations(id, name),
+          bank:banks(id, name, country),
+          bank_account_type:bank_account_types(id, name)
         `)
         .eq('id', employeeId)
         .eq('company_id', selectedCompanyId)
@@ -679,9 +683,9 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
   });
 
   const [bankingData, setBankingData] = useState({
-    bankName: employee.bank_name || '',
+    bankId: employee.bank_id || '',
     accountNumber: employee.bank_account_number || '',
-    accountType: employee.bank_account_type || '',
+    bankAccountTypeId: employee.bank_account_type_id || '',
     routingNumber: employee.bank_routing_number || ''
   });
 
@@ -766,9 +770,9 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
       const { error } = await supabase
         .from('employees')
         .update({
-          bank_name: bankingData.bankName,
+          bank_id: bankingData.bankId || null,
           bank_account_number: bankingData.accountNumber,
-          bank_account_type: bankingData.accountType,
+          bank_account_type_id: bankingData.bankAccountTypeId || null,
           bank_routing_number: bankingData.routingNumber
         })
         .eq('id', employee.id);
@@ -1182,7 +1186,7 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
             </label>
             <div className="flex items-center gap-2 text-slate-900">
               <CreditCard className="w-4 h-4 text-slate-400" />
-              {employee.bank_name || 'No especificado'}
+              {employee.bank ? `${employee.bank.name} (${employee.bank.country})` : 'No especificado'}
             </div>
           </div>
 
@@ -1200,7 +1204,7 @@ function GeneralTab({ employee, onRefresh }: { employee: Employee; onRefresh: ()
               Tipo de Cuenta
             </label>
             <div className="text-slate-900">
-              {employee.bank_account_type || 'No especificado'}
+              {employee.bank_account_type?.name || 'No especificado'}
             </div>
           </div>
 

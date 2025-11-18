@@ -529,8 +529,8 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
 
       let mgr = null;
       if (employeeToEdit.direct_manager_id && employeeToEdit.department_id) {
-        await loadManagersByDepartment(employeeToEdit.department_id);
-        mgr = managers.find(m => m.id === employeeToEdit.direct_manager_id);
+        const loadedManagers = await loadManagersByDepartment(employeeToEdit.department_id);
+        mgr = loadedManagers.find(m => m.id === employeeToEdit.direct_manager_id);
       }
 
       const dataToSet = {
@@ -792,7 +792,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
   };
 
   const loadManagersByDepartment = async (businessUnitId: string) => {
-    if (!selectedCompanyId || !businessUnitId) return;
+    if (!selectedCompanyId || !businessUnitId) return [];
 
     try {
       const { data: employees } = await supabase
@@ -808,9 +808,11 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
       }));
 
       setManagers(managersData);
+      return managersData;
     } catch (error) {
       console.error('Error loading managers:', error);
       setManagers([]);
+      return [];
     }
   };
 

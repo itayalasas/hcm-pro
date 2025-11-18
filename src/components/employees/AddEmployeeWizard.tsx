@@ -6,6 +6,8 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Autocomplete from '../ui/Autocomplete';
 import CountryCitySelector from '../ui/CountryCitySelector';
+import ConfirmDialog from '../ui/ConfirmDialog';
+import ValidationAlert from '../ui/ValidationAlert';
 import { supabase, setCurrentUser } from '../../lib/supabase';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useToast } from '../../hooks/useToast';
@@ -90,6 +92,8 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<Set<string>>(new Set());
+  const [showValidationAlert, setShowValidationAlert] = useState(false);
   const [contractTemplate, setContractTemplate] = useState<string>('');
 
   const [companyData, setCompanyData] = useState<{
@@ -169,18 +173,34 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
 
   const validateCurrentStep = (): boolean => {
     const errors: string[] = [];
+    const errorFields = new Set<string>();
 
     switch (currentStep) {
       case 0: // Personal Info
-        if (!employeeData.personalInfo.firstName.trim()) errors.push('Nombre es requerido');
-        if (!employeeData.personalInfo.lastName.trim()) errors.push('Apellido es requerido');
-        if (!employeeData.personalInfo.email.trim()) errors.push('Correo Electrónico es requerido');
-        if (!employeeData.personalInfo.country.trim()) errors.push('País es requerido');
+        if (!employeeData.personalInfo.firstName.trim()) {
+          errors.push('Nombre');
+          errorFields.add('firstName');
+        }
+        if (!employeeData.personalInfo.lastName.trim()) {
+          errors.push('Apellido');
+          errorFields.add('lastName');
+        }
+        if (!employeeData.personalInfo.email.trim()) {
+          errors.push('Correo Electrónico');
+          errorFields.add('email');
+        }
+        if (!employeeData.personalInfo.country.trim()) {
+          errors.push('País');
+          errorFields.add('country');
+        }
         break;
       case 1: // Education - No required fields
         break;
       case 2: // Employment
-        if (!employeeData.employment.hireDate.trim()) errors.push('Fecha de Contratación es requerida');
+        if (!employeeData.employment.hireDate.trim()) {
+          errors.push('Fecha de Contratación');
+          errorFields.add('hireDate');
+        }
         break;
       case 3: // Health - No required fields
         break;
@@ -193,16 +213,21 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
     }
 
     setValidationErrors(errors);
+    setFieldErrors(errorFields);
+
     if (errors.length > 0) {
-      toast.error(errors.join(', '));
+      setShowValidationAlert(true);
       return false;
     }
+
     return true;
   };
 
   const handleNext = async () => {
     if (validateCurrentStep() && currentStep < steps.length - 1) {
       setValidationErrors([]);
+      setFieldErrors(new Set());
+      setShowValidationAlert(false);
       const nextStep = currentStep + 1;
       setCurrentStep(nextStep);
 
@@ -339,6 +364,21 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
 
       const { data: authData } = await supabase.auth.getUser();
       const userId = authData.user?.id || null;
+
+      if (!editMode && employeeData.personalInfo.documentTypeId && employeeData.personalInfo.nationalId) {
+        const { data: existingEmployee } = await supabase
+          .from('employees')
+          .select('id, first_name, last_name, employee_number')
+          .eq('company_id', selectedCompanyId)
+          .eq('document_type_id', employeeData.personalInfo.documentTypeId)
+          .eq('national_id', employeeData.personalInfo.nationalId)
+          .maybeSingle();
+
+        if (existingEmployee) {
+          toast.error(`Ya existe un empleado con este tipo de documento y número: ${existingEmployee.first_name} ${existingEmployee.last_name} (${existingEmployee.employee_number})`);
+          return;
+        }
+      }
 
       const employeePayload = {
         first_name: employeeData.personalInfo.firstName,
@@ -898,6 +938,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
                 onChange={(e) => updatePersonalInfo('firstName', e.target.value)}
                 required
                 placeholder="Juan"
+                error={fieldErrors.has('firstName') ? 'Este campo es requerido' : ''}
               />
               <Input
                 label="Apellido(s)"
@@ -905,6 +946,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
                 onChange={(e) => updatePersonalInfo('lastName', e.target.value)}
                 required
                 placeholder="Pérez García"
+                error={fieldErrors.has('lastName') ? 'Este campo es requerido' : ''}
               />
             </div>
 
@@ -916,6 +958,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
                 onChange={(e) => updatePersonalInfo('email', e.target.value)}
                 required
                 placeholder="juan.perez@empresa.com"
+                error={fieldErrors.has('email') ? 'Este campo es requerido' : ''}
               />
               <Input
                 label="Teléfono"
@@ -987,6 +1030,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
                 });
               }}
               onCityChange={(city) => updatePersonalInfo('city', city)}
+              error={fieldErrors.has('country') ? 'País es requerido' : ''}
             />
 
             <Input
@@ -1102,6 +1146,7 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
                 placeholder="dd/mm/aaaa"
                 maxLength={10}
                 required
+                error={fieldErrors.has('hireDate') ? 'Este campo es requerido' : ''}
               />
             </div>
 
@@ -1546,6 +1591,16 @@ export default function AddEmployeeWizard({ isOpen, onClose, onSuccess, editMode
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={editMode ? "Editar Empleado" : "Agregar Nuevo Empleado"} size="xl" showClose={false}>
       <StepWizard steps={steps} currentStep={currentStep}>
+        {showValidationAlert && validationErrors.length > 0 && (
+          <ValidationAlert
+            errors={validationErrors}
+            onClose={() => {
+              setShowValidationAlert(false);
+              setValidationErrors([]);
+              setFieldErrors(new Set());
+            }}
+          />
+        )}
         {renderStepContent()}
 
         <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200">

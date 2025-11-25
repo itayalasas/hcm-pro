@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  const checkAuth = () => {
+  const checkAuth = async () => {
     const authData = getStoredAuthData();
 
     if (!authData.token || !authData.user || isTokenExpired()) {
@@ -38,6 +38,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser(authData.user);
     setTenant(authData.tenant);
+
+    // Set current user in database session for RLS policies
+    try {
+      const { data: appUserData } = await supabase
+        .from('app_users')
+        .select('id')
+        .eq('email', authData.user.email)
+        .maybeSingle();
+
+      if (appUserData) {
+        await supabase.rpc('set_current_user', { user_id: appUserData.id });
+      }
+    } catch (error) {
+      console.error('Error setting current user:', error);
+    }
+
     loadEmployeeData(authData.user.email);
   };
 

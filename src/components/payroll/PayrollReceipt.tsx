@@ -165,9 +165,8 @@ export default function PayrollReceipt({ periodDetailId, onClose }: PayrollRecei
     return null;
   }
 
-  const perceptions = receiptData.concepts.filter(c => c.category === 'perception');
-  const deductions = receiptData.concepts.filter(c => c.category === 'deduction');
-  const contributions = receiptData.concepts.filter(c => c.category === 'contribution');
+  const perceptions = receiptData.concepts.filter(c => c.category === 'perception' || c.category === 'benefit');
+  const deductions = receiptData.concepts.filter(c => c.category === 'deduction' || c.category === 'contribution');
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
@@ -271,30 +270,11 @@ export default function PayrollReceipt({ periodDetailId, onClose }: PayrollRecei
                 <tr className="border-t-2 border-slate-400 bg-slate-50 font-semibold">
                   <td className="p-3 text-sm text-slate-900 border-r border-slate-300" colSpan={2}>Total Gravado</td>
                   <td className="p-3 text-sm text-slate-900 text-right border-r border-slate-300">{formatCurrency(receiptData.detail.total_perceptions)}</td>
-                  <td className="p-3 text-sm text-slate-900 text-right">{formatCurrency(receiptData.detail.total_deductions)}</td>
+                  <td className="p-3 text-sm text-slate-900 text-right">{formatCurrency(receiptData.detail.total_deductions + receiptData.detail.total_contributions)}</td>
                 </tr>
               </tbody>
             </table>
           </div>
-
-          {/* Contributions summary */}
-          {contributions.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-slate-900 mb-2 text-sm">Aportes Patronales (BPS)</h3>
-              <div className="space-y-1">
-                {contributions.map((concept, idx) => (
-                  <div key={idx} className="flex justify-between text-sm">
-                    <span className="text-slate-700">{concept.name}:</span>
-                    <span className="font-semibold text-slate-900">{formatCurrency(concept.total_amount)}</span>
-                  </div>
-                ))}
-                <div className="flex justify-between text-sm font-semibold border-t border-blue-300 pt-2 mt-2">
-                  <span className="text-slate-900">Total Aportes Patronales:</span>
-                  <span className="text-slate-900">{formatCurrency(receiptData.detail.total_contributions)}</span>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Net amount */}
           <div className="bg-green-50 border-2 border-green-500 rounded-lg p-6">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DollarSign, Calendar, CheckCircle, Clock, Download, Eye, Plus, Play, Check, X, AlertCircle, Search } from 'lucide-react';
+import { DollarSign, Calendar, CheckCircle, Clock, Download, Eye, Plus, Play, Check, X, AlertCircle, Search, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useToast } from '../../hooks/useToast';
@@ -8,6 +8,7 @@ import Input from '../ui/Input';
 import Button from '../ui/Button';
 import StepWizard from '../ui/StepWizard';
 import PayrollReceipt from './PayrollReceipt';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface PayrollPeriod {
   id: string;
@@ -70,6 +71,8 @@ export default function PayrollPeriods() {
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedReceiptDetailId, setSelectedReceiptDetailId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [periodToDelete, setPeriodToDelete] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     period_name: '',
@@ -399,6 +402,35 @@ export default function PayrollPeriods() {
     }
   };
 
+  const handleDeletePeriod = async () => {
+    if (!periodToDelete) return;
+
+    try {
+      // First delete period details
+      await supabase
+        .from('payroll_period_details')
+        .delete()
+        .eq('period_id', periodToDelete);
+
+      // Then delete the period
+      const { error } = await supabase
+        .from('payroll_periods')
+        .delete()
+        .eq('id', periodToDelete);
+
+      if (error) throw error;
+
+      showToast('Período de nómina eliminado correctamente', 'success');
+      loadPayrollPeriods();
+    } catch (error) {
+      console.error('Error deleting period:', error);
+      showToast('Error al eliminar el período de nómina', 'error');
+    } finally {
+      setShowDeleteConfirm(false);
+      setPeriodToDelete(null);
+    }
+  };
+
   const handleViewReceipts = async (periodId: string) => {
     setSelectedPeriodId(periodId);
   };
@@ -615,6 +647,16 @@ export default function PayrollPeriods() {
                         </button>
                         <button className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors" title="Descargar">
                           <Download className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setPeriodToDelete(period.id);
+                            setShowDeleteConfirm(true);
+                          }}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -1004,6 +1046,21 @@ export default function PayrollPeriods() {
             setShowReceiptModal(false);
             setSelectedReceiptDetailId(null);
           }}
+        />
+      )}
+
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          title="Eliminar Período de Nómina"
+          message="¿Estás seguro de que deseas eliminar este período de nómina? Esta acción no se puede deshacer y se eliminarán todos los detalles asociados."
+          confirmLabel="Eliminar"
+          cancelLabel="Cancelar"
+          onConfirm={handleDeletePeriod}
+          onCancel={() => {
+            setShowDeleteConfirm(false);
+            setPeriodToDelete(null);
+          }}
+          variant="danger"
         />
       )}
     </div>

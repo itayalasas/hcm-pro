@@ -329,7 +329,8 @@ export default function PayrollPeriods() {
           }
 
           // Update period detail with calculated totals
-          const netSalary = totalPerceptions - totalDeductions;
+          // Net salary = Perceptions - Deductions - Contributions
+          const netSalary = totalPerceptions - totalDeductions - totalContributions;
 
           await supabase
             .from('payroll_period_details')
@@ -354,7 +355,7 @@ export default function PayrollPeriods() {
             total_gross: totalGrossAmount,
             total_deductions: totalDeductionsAmount,
             total_contributions: totalContributionsAmount,
-            total_net: totalGrossAmount - totalDeductionsAmount
+            total_net: totalGrossAmount - totalDeductionsAmount - totalContributionsAmount
           })
           .eq('id', newPeriod.id);
       }

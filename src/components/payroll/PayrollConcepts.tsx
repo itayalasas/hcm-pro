@@ -317,9 +317,10 @@ export default function PayrollConcepts() {
         isOpen={showModal}
         onClose={() => { setShowModal(false); resetForm(); }}
         title={editingConcept ? 'Editar Concepto' : 'Nuevo Concepto'}
+        maxWidth="2xl"
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-2 gap-6">
             <Input
               label="Código"
               value={formData.code}
@@ -334,15 +335,15 @@ export default function PayrollConcepts() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Tipo de Concepto
               </label>
               <select
                 value={formData.concept_type}
                 onChange={(e) => setFormData({ ...formData, concept_type: e.target.value as any })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               >
                 <option value="perception">Percepción</option>
                 <option value="deduction">Deducción</option>
@@ -352,13 +353,13 @@ export default function PayrollConcepts() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Tipo de Cálculo
               </label>
               <select
                 value={formData.calculation_type}
                 onChange={(e) => setFormData({ ...formData, calculation_type: e.target.value as any })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               >
                 <option value="fixed">Monto Fijo</option>
                 <option value="percentage">Porcentaje</option>
@@ -377,18 +378,19 @@ export default function PayrollConcepts() {
           />
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Descripción
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              placeholder="Describe el propósito de este concepto"
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="bg-slate-50 rounded-lg p-4 space-y-3">
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -420,7 +422,7 @@ export default function PayrollConcepts() {
             </label>
           </div>
 
-          <div className="flex gap-3 justify-end pt-4">
+          <div className="flex gap-3 justify-end pt-6 border-t border-slate-200">
             <Button
               type="button"
               variant="outline"

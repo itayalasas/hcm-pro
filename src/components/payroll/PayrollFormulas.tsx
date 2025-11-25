@@ -337,8 +337,9 @@ export default function PayrollFormulas() {
         isOpen={showModal}
         onClose={() => { setShowModal(false); resetForm(); }}
         title={editingFormula ? 'Editar Fórmula' : 'Nueva Fórmula'}
+        maxWidth="3xl"
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <Input
             label="Nombre de la Fórmula"
             value={formData.name}
@@ -355,62 +356,67 @@ export default function PayrollFormulas() {
           />
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Expresión de la Fórmula
             </label>
             <textarea
               value={formData.formula_expression}
               onChange={(e) => setFormData({ ...formData, formula_expression: e.target.value })}
-              rows={4}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+              rows={5}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm transition-all bg-slate-50"
               placeholder="Ejemplo: {SALARIO_BASE} * 0.10"
               required
             />
+            <p className="text-xs text-slate-500 mt-2">
+              Usa operadores matemáticos: +, -, *, /, () y las variables disponibles abajo
+            </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Variables disponibles
+            <label className="block text-sm font-medium text-slate-700 mb-3">
+              Variables disponibles (haz clic para insertar)
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               {commonVariables.map((variable) => (
                 <button
                   key={variable.value}
                   type="button"
                   onClick={() => insertVariable(variable.value)}
-                  className="text-left px-3 py-2 text-sm bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+                  className="text-left px-4 py-3 text-sm bg-white hover:bg-blue-50 hover:border-blue-500 border border-slate-200 rounded-lg transition-all"
                 >
-                  <code className="text-blue-600 font-mono text-xs">{variable.value}</code>
-                  <p className="text-slate-600 text-xs mt-0.5">{variable.label}</p>
+                  <code className="text-blue-600 font-mono text-xs font-semibold">{variable.value}</code>
+                  <p className="text-slate-600 text-xs mt-1">{variable.label}</p>
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Descripción
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={2}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Describe cómo funciona esta fórmula"
+              rows={3}
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              placeholder="Describe cómo funciona esta fórmula y cuándo se aplica"
             />
           </div>
 
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={formData.is_active}
-              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-sm text-slate-700">Activa</span>
-          </label>
+          <div className="bg-slate-50 rounded-lg p-4">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-slate-700">Fórmula activa</span>
+            </label>
+          </div>
 
-          <div className="flex gap-3 justify-end pt-4">
+          <div className="flex gap-3 justify-end pt-6 border-t border-slate-200">
             <Button
               type="button"
               variant="outline"

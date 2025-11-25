@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DollarSign, Calendar, CheckCircle, Clock, Download, Eye, Plus, Play, Check, X, AlertCircle } from 'lucide-react';
+import { DollarSign, Calendar, CheckCircle, Clock, Download, Eye, Plus, Play, Check, X, AlertCircle, Search } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useToast } from '../../hooks/useToast';
@@ -31,6 +31,7 @@ interface Employee {
   last_name: string;
   position: string;
   salary: number;
+  document_number?: string;
 }
 
 export default function PayrollPeriods() {
@@ -43,6 +44,8 @@ export default function PayrollPeriods() {
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [processingPayroll, setProcessingPayroll] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
 
   const [formData, setFormData] = useState({
     period_name: '',
@@ -79,19 +82,34 @@ export default function PayrollPeriods() {
   };
 
   const loadEmployees = async () => {
+    if (!selectedCompanyId) return;
+
     try {
+      setLoadingEmployees(true);
       const { data, error } = await supabase
         .from('employees')
-        .select('id, first_name, last_name, position, salary')
+        .select('id, first_name, last_name, position, salary, document_number')
         .eq('company_id', selectedCompanyId)
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .order('first_name', { ascending: true });
 
       if (error) throw error;
       setEmployees(data || []);
     } catch (error) {
       console.error('Error loading employees:', error);
+      showToast('Error al cargar empleados', 'error');
+    } finally {
+      setLoadingEmployees(false);
     }
   };
+
+  const filteredEmployees = employees.filter(emp => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
+    const docNumber = emp.document_number?.toLowerCase() || '';
+    return fullName.includes(search) || docNumber.includes(search);
+  });
 
   const generatePeriodName = () => {
     const start = new Date(formData.start_date);
@@ -121,6 +139,10 @@ export default function PayrollPeriods() {
       ...dates,
       notes: ''
     });
+
+    if (employees.length === 0) {
+      loadEmployees();
+    }
 
     setShowWizard(true);
   };
@@ -236,6 +258,7 @@ export default function PayrollPeriods() {
     });
     setCurrentStep(0);
     setSelectedEmployees([]);
+    setSearchTerm('');
   };
 
   const getStatusColor = (status: string) => {
@@ -537,19 +560,39 @@ export default function PayrollPeriods() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    if (selectedEmployees.length === employees.length) {
+                    if (selectedEmployees.length === filteredEmployees.length) {
                       setSelectedEmployees([]);
                     } else {
-                      setSelectedEmployees(employees.map(e => e.id));
+                      setSelectedEmployees(filteredEmployees.map(e => e.id));
                     }
                   }}
                 >
-                  {selectedEmployees.length === employees.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+                  {selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0 ? 'Deseleccionar todos' : 'Seleccionar todos'}
                 </Button>
               </div>
 
-              <div className="max-h-96 overflow-y-auto border border-slate-200 rounded-lg">
-                {employees.map((employee) => (
+              <div className="mb-4">
+                <Input
+                  label="Buscar empleado"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Buscar por nombre o número de documento"
+                />
+              </div>
+
+              {loadingEmployees ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : filteredEmployees.length === 0 ? (
+                <div className="text-center py-12 border border-slate-200 rounded-lg">
+                  <p className="text-slate-500">
+                    {searchTerm ? 'No se encontraron empleados con ese criterio' : 'No hay empleados activos disponibles'}
+                  </p>
+                </div>
+              ) : (
+                <div className="max-h-96 overflow-y-auto border border-slate-200 rounded-lg">
+                  {filteredEmployees.map((employee) => (
                   <label
                     key={employee.id}
                     className="flex items-center gap-4 p-4 hover:bg-slate-50 border-b border-slate-100 last:border-0 cursor-pointer transition-colors"
@@ -570,7 +613,15 @@ export default function PayrollPeriods() {
                       <p className="font-medium text-slate-900">
                         {employee.first_name} {employee.last_name}
                       </p>
-                      <p className="text-sm text-slate-500">{employee.position || 'Sin puesto'}</p>
+                      <div className="flex gap-3 text-sm text-slate-500">
+                        <span>{employee.position || 'Sin puesto'}</span>
+                        {employee.document_number && (
+                          <>
+                            <span>•</span>
+                            <span>Doc: {employee.document_number}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-slate-900">{formatCurrency(employee.salary || 0)}</p>
@@ -578,7 +629,8 @@ export default function PayrollPeriods() {
                     </div>
                   </label>
                 ))}
-              </div>
+                </div>
+              )}
 
               <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm font-medium text-slate-900">

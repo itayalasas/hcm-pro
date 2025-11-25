@@ -403,7 +403,7 @@ export default function PayrollPeriods() {
   };
 
   const handleDeletePeriod = async () => {
-    if (!periodToDelete) return;
+    if (!periodToDelete || !selectedCompanyId) return;
 
     try {
       // First delete period details
@@ -421,7 +421,8 @@ export default function PayrollPeriods() {
       const { error: periodError } = await supabase
         .from('payroll_periods')
         .delete()
-        .eq('id', periodToDelete);
+        .eq('id', periodToDelete)
+        .eq('company_id', selectedCompanyId);
 
       if (periodError) {
         console.error('Error deleting period:', periodError);
@@ -439,6 +440,73 @@ export default function PayrollPeriods() {
     } finally {
       setShowDeleteConfirm(false);
       setPeriodToDelete(null);
+    }
+  };
+
+  const handleDownloadPeriod = async (periodId: string) => {
+    try {
+      // Get period details with employee information
+      const { data: details, error } = await supabase
+        .from('payroll_period_details')
+        .select(`
+          *,
+          employee:employees(first_name, last_name, employee_number, national_id)
+        `)
+        .eq('period_id', periodId);
+
+      if (error) throw error;
+
+      // Get period information
+      const period = periods.find(p => p.id === periodId);
+      if (!period) throw new Error('Período no encontrado');
+
+      // Create CSV content
+      const headers = [
+        'Número Empleado',
+        'Nombre',
+        'CI',
+        'Salario Base',
+        'Percepciones',
+        'Deducciones',
+        'Contribuciones',
+        'Neto',
+        'Días Trabajados'
+      ];
+
+      const rows = details?.map(detail => [
+        detail.employee.employee_number || '',
+        `${detail.employee.first_name} ${detail.employee.last_name}`,
+        detail.employee.national_id || '',
+        detail.base_salary.toFixed(2),
+        detail.total_perceptions.toFixed(2),
+        detail.total_deductions.toFixed(2),
+        detail.total_contributions.toFixed(2),
+        detail.net_salary.toFixed(2),
+        detail.worked_days
+      ]) || [];
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.join(','))
+      ].join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+
+      link.setAttribute('href', url);
+      link.setAttribute('download', `nomina_${period.period_name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast('Nómina descargada correctamente', 'success');
+    } catch (error: any) {
+      console.error('Error downloading period:', error);
+      showToast('Error al descargar la nómina', 'error');
     }
   };
 
@@ -656,7 +724,11 @@ export default function PayrollPeriods() {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors" title="Descargar">
+                        <button
+                          onClick={() => handleDownloadPeriod(period.id)}
+                          className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                          title="Descargar"
+                        >
                           <Download className="w-4 h-4" />
                         </button>
                         <button

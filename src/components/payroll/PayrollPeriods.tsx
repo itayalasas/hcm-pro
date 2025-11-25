@@ -410,7 +410,7 @@ export default function PayrollPeriods() {
       const { error: detailsError } = await supabase
         .from('payroll_period_details')
         .delete()
-        .eq('period_id', periodToDelete);
+        .eq('payroll_period_id', periodToDelete);
 
       if (detailsError) {
         console.error('Error deleting period details:', detailsError);
@@ -452,7 +452,7 @@ export default function PayrollPeriods() {
           *,
           employee:employees(first_name, last_name, employee_number, national_id)
         `)
-        .eq('period_id', periodId);
+        .eq('payroll_period_id', periodId);
 
       if (error) throw error;
 

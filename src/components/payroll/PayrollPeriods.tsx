@@ -407,24 +407,35 @@ export default function PayrollPeriods() {
 
     try {
       // First delete period details
-      await supabase
+      const { error: detailsError } = await supabase
         .from('payroll_period_details')
         .delete()
         .eq('period_id', periodToDelete);
 
+      if (detailsError) {
+        console.error('Error deleting period details:', detailsError);
+        throw detailsError;
+      }
+
       // Then delete the period
-      const { error } = await supabase
+      const { error: periodError } = await supabase
         .from('payroll_periods')
         .delete()
         .eq('id', periodToDelete);
 
-      if (error) throw error;
+      if (periodError) {
+        console.error('Error deleting period:', periodError);
+        throw periodError;
+      }
 
       showToast('Período de nómina eliminado correctamente', 'success');
       loadPayrollPeriods();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting period:', error);
-      showToast('Error al eliminar el período de nómina', 'error');
+      showToast(
+        error?.message || 'Error al eliminar el período de nómina',
+        'error'
+      );
     } finally {
       setShowDeleteConfirm(false);
       setPeriodToDelete(null);

@@ -66,7 +66,7 @@ export default function PayrollReceipt({ periodDetailId, onClose }: PayrollRecei
             start_date,
             end_date,
             payment_date,
-            company:companies(name, tax_id, address_street, address_city, address_country)
+            company:companies(legal_name, trade_name, tax_id, address)
           )
         `)
         .eq('id', periodDetailId)
@@ -93,9 +93,9 @@ export default function PayrollReceipt({ periodDetailId, onClose }: PayrollRecei
           employee_number: detail.employee.employee_number
         },
         company: {
-          name: detail.payroll_period.company.name,
+          name: detail.payroll_period.company.trade_name || detail.payroll_period.company.legal_name,
           tax_id: detail.payroll_period.company.tax_id || '',
-          address: `${detail.payroll_period.company.address_street || ''}, ${detail.payroll_period.company.address_city || ''}, ${detail.payroll_period.company.address_country || ''}`
+          address: detail.payroll_period.company.address || ''
         },
         period: {
           period_name: detail.payroll_period.period_name,

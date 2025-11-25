@@ -7,6 +7,7 @@ import Modal from '../ui/Modal';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 import StepWizard from '../ui/StepWizard';
+import PayrollReceipt from './PayrollReceipt';
 
 interface PayrollPeriod {
   id: string;
@@ -66,6 +67,9 @@ export default function PayrollPeriods() {
   const [payrollConcepts, setPayrollConcepts] = useState<PayrollConcept[]>([]);
   const [conceptAssignments, setConceptAssignments] = useState<EmployeeConceptAssignment[]>([]);
   const [loadingConcepts, setLoadingConcepts] = useState(false);
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [selectedReceiptDetailId, setSelectedReceiptDetailId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     period_name: '',
@@ -236,31 +240,121 @@ export default function PayrollPeriods() {
         : employees;
 
       if (employeesToProcess.length > 0) {
-        const periodDetails = employeesToProcess.map(emp => ({
-          payroll_period_id: newPeriod.id,
-          employee_id: emp.id,
-          base_salary: emp.salary || 0,
-          total_perceptions: emp.salary || 0,
-          total_deductions: 0,
-          total_contributions: 0,
-          net_salary: emp.salary || 0,
-          worked_days: 30,
-          worked_hours: 0
-        }));
+        // Calculate days in period
+        const startDate = new Date(formData.start_date);
+        const endDate = new Date(formData.end_date);
+        const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-        const { error: detailsError } = await supabase
-          .from('payroll_period_details')
-          .insert(periodDetails);
+        let totalGrossAmount = 0;
+        let totalDeductionsAmount = 0;
+        let totalContributionsAmount = 0;
 
-        if (detailsError) throw detailsError;
+        // Process each employee
+        for (const emp of employeesToProcess) {
+          const baseSalary = emp.salary || 0;
+          let totalPerceptions = baseSalary;
+          let totalDeductions = 0;
+          let totalContributions = 0;
 
-        const totalGross = employeesToProcess.reduce((sum, e) => sum + (e.salary || 0), 0);
+          // Insert period detail for employee
+          const { data: periodDetail, error: detailError } = await supabase
+            .from('payroll_period_details')
+            .insert({
+              payroll_period_id: newPeriod.id,
+              employee_id: emp.id,
+              base_salary: baseSalary,
+              total_perceptions: totalPerceptions,
+              total_deductions: 0,
+              total_contributions: 0,
+              net_salary: baseSalary,
+              worked_days: totalDays,
+              worked_hours: totalDays * 8
+            })
+            .select()
+            .single();
 
+          if (detailError) throw detailError;
+
+          // Get concepts assigned to this employee
+          const employeeConcepts = conceptAssignments.filter(
+            a => a.employee_id === emp.id && a.apply
+          );
+
+          // Calculate and insert concept details
+          for (const assignment of employeeConcepts) {
+            const concept = payrollConcepts.find(c => c.id === assignment.concept_id);
+            if (!concept) continue;
+
+            let amount = 0;
+
+            // Calculate amount based on type
+            if (concept.calculation_type === 'percentage') {
+              const { data: conceptData } = await supabase
+                .from('payroll_concepts')
+                .select('percentage_value')
+                .eq('id', concept.id)
+                .single();
+
+              const percentage = conceptData?.percentage_value || 0;
+              amount = baseSalary * percentage;
+            } else if (concept.calculation_type === 'fixed') {
+              const { data: conceptData } = await supabase
+                .from('payroll_concepts')
+                .select('fixed_amount')
+                .eq('id', concept.id)
+                .single();
+
+              amount = conceptData?.fixed_amount || 0;
+            }
+
+            // Insert concept detail
+            await supabase
+              .from('payroll_concept_details')
+              .insert({
+                payroll_period_detail_id: periodDetail.id,
+                payroll_concept_id: concept.id,
+                quantity: 1,
+                unit_amount: amount,
+                total_amount: amount
+              });
+
+            // Accumulate totals by category
+            if (concept.category === 'perception') {
+              totalPerceptions += amount;
+            } else if (concept.category === 'deduction') {
+              totalDeductions += amount;
+            } else if (concept.category === 'contribution') {
+              totalContributions += amount;
+            }
+          }
+
+          // Update period detail with calculated totals
+          const netSalary = totalPerceptions - totalDeductions;
+
+          await supabase
+            .from('payroll_period_details')
+            .update({
+              total_perceptions: totalPerceptions,
+              total_deductions: totalDeductions,
+              total_contributions: totalContributions,
+              net_salary: netSalary
+            })
+            .eq('id', periodDetail.id);
+
+          // Accumulate period totals
+          totalGrossAmount += totalPerceptions;
+          totalDeductionsAmount += totalDeductions;
+          totalContributionsAmount += totalContributions;
+        }
+
+        // Update period with totals
         await supabase
           .from('payroll_periods')
           .update({
-            total_gross: totalGross,
-            total_net: totalGross
+            total_gross: totalGrossAmount,
+            total_deductions: totalDeductionsAmount,
+            total_contributions: totalContributionsAmount,
+            total_net: totalGrossAmount - totalDeductionsAmount
           })
           .eq('id', newPeriod.id);
       }
@@ -302,6 +396,15 @@ export default function PayrollPeriods() {
     } catch (error) {
       showToast('Error al aprobar nómina', 'error');
     }
+  };
+
+  const handleViewReceipts = async (periodId: string) => {
+    setSelectedPeriodId(periodId);
+  };
+
+  const handleViewEmployeeReceipt = (detailId: string) => {
+    setSelectedReceiptDetailId(detailId);
+    setShowReceiptModal(true);
   };
 
   const resetForm = () => {
@@ -502,7 +605,11 @@ export default function PayrollPeriods() {
                             <Check className="w-4 h-4" />
                           </button>
                         )}
-                        <button className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors" title="Ver detalle">
+                        <button
+                          onClick={() => handleViewReceipts(period.id)}
+                          className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                          title="Ver recibos"
+                        >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors" title="Descargar">
@@ -878,6 +985,142 @@ export default function PayrollPeriods() {
           </Button>
         </div>
       </Modal>
+
+      {/* Employee Receipts List Modal */}
+      {selectedPeriodId && (
+        <EmployeeReceiptsList
+          periodId={selectedPeriodId}
+          onClose={() => setSelectedPeriodId(null)}
+          onViewReceipt={handleViewEmployeeReceipt}
+        />
+      )}
+
+      {/* Receipt Modal */}
+      {showReceiptModal && selectedReceiptDetailId && (
+        <PayrollReceipt
+          periodDetailId={selectedReceiptDetailId}
+          onClose={() => {
+            setShowReceiptModal(false);
+            setSelectedReceiptDetailId(null);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+// Employee Receipts List Component
+interface EmployeeReceiptsListProps {
+  periodId: string;
+  onClose: () => void;
+  onViewReceipt: (detailId: string) => void;
+}
+
+function EmployeeReceiptsList({ periodId, onClose, onViewReceipt }: EmployeeReceiptsListProps) {
+  const [periodDetails, setPeriodDetails] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [periodName, setPeriodName] = useState('');
+
+  useEffect(() => {
+    loadPeriodDetails();
+  }, [periodId]);
+
+  const loadPeriodDetails = async () => {
+    try {
+      setLoading(true);
+
+      // Get period info
+      const { data: period } = await supabase
+        .from('payroll_periods')
+        .select('period_name')
+        .eq('id', periodId)
+        .single();
+
+      if (period) {
+        setPeriodName(period.period_name);
+      }
+
+      // Get all employee details for this period
+      const { data, error } = await supabase
+        .from('payroll_period_details')
+        .select(`
+          id,
+          base_salary,
+          net_salary,
+          worked_days,
+          employee:employees(
+            first_name,
+            last_name,
+            employee_number,
+            national_id
+          )
+        `)
+        .eq('payroll_period_id', periodId)
+        .order('employee(first_name)', { ascending: true });
+
+      if (error) throw error;
+      setPeriodDetails(data || []);
+    } catch (error) {
+      console.error('Error loading period details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-UY', {
+      style: 'currency',
+      currency: 'UYU',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
+
+  return (
+    <Modal isOpen={true} onClose={onClose} title={`Recibos - ${periodName}`} maxWidth="3xl">
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      ) : periodDetails.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-slate-500">No hay recibos disponibles para este período</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {periodDetails.map((detail) => (
+            <div
+              key={detail.id}
+              className="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              <div className="flex-1">
+                <p className="font-semibold text-slate-900">
+                  {detail.employee.first_name} {detail.employee.last_name}
+                </p>
+                <p className="text-sm text-slate-500">
+                  Nº {detail.employee.employee_number} • CI: {detail.employee.national_id}
+                </p>
+              </div>
+              <div className="text-right mr-4">
+                <p className="text-sm text-slate-500">Neto</p>
+                <p className="font-bold text-green-600">{formatCurrency(detail.net_salary)}</p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => onViewReceipt(detail.id)}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Ver Recibo
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex justify-end mt-6 pt-4 border-t border-slate-200">
+        <Button variant="outline" onClick={onClose}>
+          Cerrar
+        </Button>
+      </div>
+    </Modal>
   );
 }

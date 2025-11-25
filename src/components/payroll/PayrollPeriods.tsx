@@ -34,6 +34,23 @@ interface Employee {
   national_id?: string;
 }
 
+interface PayrollConcept {
+  id: string;
+  code: string;
+  name: string;
+  category: 'perception' | 'deduction' | 'contribution' | 'benefit';
+  calculation_type: 'fixed' | 'percentage' | 'formula';
+  active: boolean;
+}
+
+interface EmployeeConceptAssignment {
+  employee_id: string;
+  concept_id: string;
+  amount?: number;
+  percentage?: number;
+  apply: boolean;
+}
+
 export default function PayrollPeriods() {
   const { selectedCompanyId } = useCompany();
   const { showToast } = useToast();
@@ -46,6 +63,9 @@ export default function PayrollPeriods() {
   const [processingPayroll, setProcessingPayroll] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [payrollConcepts, setPayrollConcepts] = useState<PayrollConcept[]>([]);
+  const [conceptAssignments, setConceptAssignments] = useState<EmployeeConceptAssignment[]>([]);
+  const [loadingConcepts, setLoadingConcepts] = useState(false);
 
   const [formData, setFormData] = useState({
     period_name: '',
@@ -60,6 +80,7 @@ export default function PayrollPeriods() {
     if (selectedCompanyId) {
       loadPayrollPeriods();
       loadEmployees();
+      loadPayrollConcepts();
     }
   }, [selectedCompanyId]);
 
@@ -113,6 +134,29 @@ export default function PayrollPeriods() {
       showToast('Error al cargar empleados', 'error');
     } finally {
       setLoadingEmployees(false);
+    }
+  };
+
+  const loadPayrollConcepts = async () => {
+    if (!selectedCompanyId) return;
+
+    try {
+      setLoadingConcepts(true);
+      const { data, error } = await supabase
+        .from('payroll_concepts')
+        .select('*')
+        .eq('company_id', selectedCompanyId)
+        .eq('active', true)
+        .order('category', { ascending: true })
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setPayrollConcepts(data || []);
+    } catch (error) {
+      console.error('Error loading payroll concepts:', error);
+      showToast('Error al cargar conceptos de nómina', 'error');
+    } finally {
+      setLoadingConcepts(false);
     }
   };
 
@@ -272,6 +316,7 @@ export default function PayrollPeriods() {
     setCurrentStep(0);
     setSelectedEmployees([]);
     setSearchTerm('');
+    setConceptAssignments([]);
   };
 
   const getStatusColor = (status: string) => {
@@ -310,6 +355,10 @@ export default function PayrollPeriods() {
     {
       title: 'Selección de Empleados',
       description: 'Elige los empleados a incluir'
+    },
+    {
+      title: 'Conceptos de Nómina',
+      description: 'Configura haberes y descuentos'
     },
     {
       title: 'Revisión y Confirmación',
@@ -657,6 +706,92 @@ export default function PayrollPeriods() {
           )}
 
           {currentStep === 2 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-slate-600">
+                  Selecciona los conceptos que se aplicarán en esta nómina
+                </p>
+              </div>
+
+              {loadingConcepts ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : payrollConcepts.length === 0 ? (
+                <div className="text-center py-12 border border-slate-200 rounded-lg">
+                  <p className="text-slate-500">No hay conceptos de nómina configurados</p>
+                  <p className="text-sm text-slate-400 mt-2">Configure los conceptos en la sección de Configuración</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {['perception', 'deduction', 'contribution', 'benefit'].map(category => {
+                    const concepts = payrollConcepts.filter(c => c.category === category);
+                    if (concepts.length === 0) return null;
+
+                    const categoryNames = {
+                      perception: 'Haberes',
+                      deduction: 'Descuentos',
+                      contribution: 'Aportes Patronales',
+                      benefit: 'Beneficios'
+                    };
+
+                    return (
+                      <div key={category} className="bg-slate-50 rounded-lg p-4">
+                        <h4 className="font-semibold text-slate-900 mb-3">{categoryNames[category as keyof typeof categoryNames]}</h4>
+                        <div className="space-y-2">
+                          {concepts.map(concept => (
+                            <label
+                              key={concept.id}
+                              className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={conceptAssignments.some(a => a.concept_id === concept.id && a.apply)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setConceptAssignments([
+                                      ...conceptAssignments.filter(a => a.concept_id !== concept.id),
+                                      ...selectedEmployees.map(emp_id => ({
+                                        employee_id: emp_id,
+                                        concept_id: concept.id,
+                                        apply: true
+                                      }))
+                                    ]);
+                                  } else {
+                                    setConceptAssignments(
+                                      conceptAssignments.filter(a => a.concept_id !== concept.id)
+                                    );
+                                  }
+                                }}
+                                className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <div className="flex-1">
+                                <p className="font-medium text-slate-900">{concept.name}</p>
+                                <p className="text-xs text-slate-500">
+                                  {concept.code} • {concept.calculation_type === 'fixed' ? 'Monto fijo' : concept.calculation_type === 'percentage' ? 'Porcentaje' : 'Fórmula'}
+                                </p>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm font-medium text-slate-900">
+                  {conceptAssignments.filter(a => a.apply).length > 0
+                    ? `${conceptAssignments.filter(a => a.apply).length} concepto${conceptAssignments.filter(a => a.apply).length > 1 ? 's' : ''} seleccionado${conceptAssignments.filter(a => a.apply).length > 1 ? 's' : ''}`
+                    : 'No hay conceptos seleccionados'
+                  }
+                </p>
+              </div>
+            </div>
+          )}
+
+          {currentStep === 3 && (
             <div className="space-y-6">
               <div className="bg-slate-50 rounded-lg p-6 space-y-4">
                 <h3 className="font-semibold text-slate-900 text-lg mb-4">Resumen del Período</h3>
@@ -731,7 +866,7 @@ export default function PayrollPeriods() {
 
           <Button
             onClick={() => {
-              if (currentStep < 2) {
+              if (currentStep < 3) {
                 setCurrentStep(currentStep + 1);
               } else {
                 handleCreatePeriod();
@@ -739,7 +874,7 @@ export default function PayrollPeriods() {
             }}
             disabled={processingPayroll || !formData.start_date || !formData.end_date || !formData.payment_date}
           >
-            {processingPayroll ? 'Creando...' : currentStep < 2 ? 'Siguiente' : 'Crear Período'}
+            {processingPayroll ? 'Creando...' : currentStep < 3 ? 'Siguiente' : 'Crear Período'}
           </Button>
         </div>
       </Modal>

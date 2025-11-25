@@ -406,33 +406,31 @@ export default function PayrollPeriods() {
     if (!periodToDelete || !selectedCompanyId) return;
 
     try {
-      // First delete period details
-      const { error: detailsError } = await supabase
-        .from('payroll_period_details')
-        .delete()
-        .eq('payroll_period_id', periodToDelete);
+      console.log('Attempting to delete period:', periodToDelete);
 
-      if (detailsError) {
-        console.error('Error deleting period details:', detailsError);
-        throw detailsError;
-      }
-
-      // Then delete the period
-      const { error: periodError } = await supabase
+      // Delete the period - CASCADE will automatically delete related details
+      const { data, error, count } = await supabase
         .from('payroll_periods')
         .delete()
         .eq('id', periodToDelete)
-        .eq('company_id', selectedCompanyId);
+        .select();
 
-      if (periodError) {
-        console.error('Error deleting period:', periodError);
-        throw periodError;
+      console.log('Delete response:', { data, error, count });
+
+      if (error) {
+        console.error('Error deleting period:', error);
+        throw new Error(`Error al eliminar: ${error.message} (${error.code})`);
       }
 
+      if (!data || data.length === 0) {
+        throw new Error('No se encontró el período a eliminar o no tienes permisos para eliminarlo');
+      }
+
+      console.log('Period deleted successfully:', data);
       showToast('Período de nómina eliminado correctamente', 'success');
       loadPayrollPeriods();
     } catch (error: any) {
-      console.error('Error deleting period:', error);
+      console.error('Error in handleDeletePeriod:', error);
       showToast(
         error?.message || 'Error al eliminar el período de nómina',
         'error'

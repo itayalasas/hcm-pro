@@ -9,6 +9,9 @@ import EmployeeReports from './components/employees/EmployeeReports';
 import LeaveRequests from './components/leave/LeaveRequests';
 import Evaluations from './components/performance/Evaluations';
 import PayrollPeriods from './components/payroll/PayrollPeriods';
+import PayrollConcepts from './components/payroll/PayrollConcepts';
+import PayrollFormulas from './components/payroll/PayrollFormulas';
+import PayrollReports from './components/payroll/PayrollReports';
 import Companies from './components/organization/Companies';
 import BusinessUnits from './components/organization/BusinessUnits';
 import Positions from './components/organization/Positions';
@@ -125,6 +128,12 @@ function AppContent() {
         return <Evaluations />;
       case '/payroll/periods':
         return <PayrollPeriods />;
+      case '/payroll/concepts':
+        return <PayrollConcepts />;
+      case '/payroll/formulas':
+        return <PayrollFormulas />;
+      case '/payroll/reports':
+        return <PayrollReports />;
       case '/organization/companies':
         return <Companies />;
       case '/organization/units':

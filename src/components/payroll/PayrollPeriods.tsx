@@ -29,9 +29,9 @@ interface Employee {
   id: string;
   first_name: string;
   last_name: string;
-  position: string;
+  position_title?: string;
   salary: number;
-  document_number?: string;
+  national_id?: string;
 }
 
 export default function PayrollPeriods() {
@@ -88,13 +88,26 @@ export default function PayrollPeriods() {
       setLoadingEmployees(true);
       const { data, error } = await supabase
         .from('employees')
-        .select('id, first_name, last_name, position, salary, document_number')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          salary,
+          national_id,
+          positions!employees_position_id_fkey(title)
+        `)
         .eq('company_id', selectedCompanyId)
         .eq('status', 'active')
         .order('first_name', { ascending: true });
 
+      const transformedData = data?.map(emp => ({
+        ...emp,
+        position_title: emp.positions?.title
+      })) || [];
+
+      setEmployees(transformedData as Employee[]);
+
       if (error) throw error;
-      setEmployees(data || []);
     } catch (error) {
       console.error('Error loading employees:', error);
       showToast('Error al cargar empleados', 'error');
@@ -107,7 +120,7 @@ export default function PayrollPeriods() {
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
-    const docNumber = emp.document_number?.toLowerCase() || '';
+    const docNumber = emp.national_id?.toLowerCase() || '';
     return fullName.includes(search) || docNumber.includes(search);
   });
 
@@ -614,11 +627,11 @@ export default function PayrollPeriods() {
                         {employee.first_name} {employee.last_name}
                       </p>
                       <div className="flex gap-3 text-sm text-slate-500">
-                        <span>{employee.position || 'Sin puesto'}</span>
-                        {employee.document_number && (
+                        <span>{employee.position_title || 'Sin puesto'}</span>
+                        {employee.national_id && (
                           <>
                             <span>•</span>
-                            <span>Doc: {employee.document_number}</span>
+                            <span>Doc: {employee.national_id}</span>
                           </>
                         )}
                       </div>

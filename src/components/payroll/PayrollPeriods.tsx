@@ -449,14 +449,14 @@ export default function PayrollPeriods() {
         isOpen={showWizard}
         onClose={() => { setShowWizard(false); resetForm(); }}
         title="Crear Nuevo Período de Nómina"
-        maxWidth="3xl"
+        maxWidth="4xl"
       >
         <StepWizard steps={wizardSteps} currentStep={currentStep} />
 
         <div className="mt-6">
           {currentStep === 0 && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-5">
+              <div className="grid grid-cols-4 gap-5">
                 <div className="col-span-2">
                   <Input
                     label="Nombre del Período"
@@ -466,7 +466,7 @@ export default function PayrollPeriods() {
                   />
                 </div>
 
-                <div>
+                <div className="col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Tipo de Período
                   </label>
@@ -482,7 +482,7 @@ export default function PayrollPeriods() {
                   </select>
                 </div>
 
-                <div>
+                <div className="col-span-2">
                   <Input
                     label="Fecha de Inicio"
                     type="date"
@@ -512,14 +512,14 @@ export default function PayrollPeriods() {
                   />
                 </div>
 
-                <div className="col-span-2">
+                <div className="col-span-4">
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Notas (opcional)
                   </label>
                   <textarea
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={3}
+                    rows={2}
                     className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     placeholder="Agrega notas o comentarios sobre este período"
                   />

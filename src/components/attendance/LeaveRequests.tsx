@@ -69,6 +69,8 @@ export default function LeaveRequests() {
   const [vacationBalance, setVacationBalance] = useState<VacationBalance | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [calculatedDays, setCalculatedDays] = useState(0);
+  const [calculatingDays, setCalculatingDays] = useState(false);
 
   const [formData, setFormData] = useState({
     employee_id: '',
@@ -98,6 +100,20 @@ export default function LeaveRequests() {
       setVacationBalance(null);
     }
   }, [formData.employee_id, formData.leave_type_id, leaveTypes]);
+
+  useEffect(() => {
+    const updateCalculatedDays = async () => {
+      if (formData.start_date && formData.end_date) {
+        setCalculatingDays(true);
+        const days = await calculateDays();
+        setCalculatedDays(days);
+        setCalculatingDays(false);
+      } else {
+        setCalculatedDays(0);
+      }
+    };
+    updateCalculatedDays();
+  }, [formData.start_date, formData.end_date]);
 
   const loadLeaveRequests = async () => {
     try {
@@ -190,13 +206,27 @@ export default function LeaveRequests() {
     }
   };
 
-  const calculateDays = () => {
+  const calculateDays = async () => {
     if (!formData.start_date || !formData.end_date) return 0;
-    const start = new Date(formData.start_date);
-    const end = new Date(formData.end_date);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return diffDays;
+
+    try {
+      const { data, error } = await supabase
+        .rpc('calculate_working_days', {
+          p_start_date: formData.start_date,
+          p_end_date: formData.end_date,
+          p_company_id: selectedCompanyId
+        });
+
+      if (error) {
+        console.error('Error calculating working days:', error);
+        return 0;
+      }
+
+      return data || 0;
+    } catch (error) {
+      console.error('Error calculating working days:', error);
+      return 0;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -209,7 +239,7 @@ export default function LeaveRequests() {
 
     try {
       setSubmitting(true);
-      const totalDays = calculateDays();
+      const totalDays = await calculateDays();
 
       console.log('Creating leave request with data:', {
         employee_id: formData.employee_id,
@@ -638,9 +668,14 @@ export default function LeaveRequests() {
           {formData.start_date && formData.end_date && (
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
               <p className="text-sm font-medium text-slate-900">
-                Total de días solicitados: <span className="text-blue-600 font-bold">{calculateDays()}</span>
+                Total de días laborables solicitados: {' '}
+                {calculatingDays ? (
+                  <span className="text-slate-500">Calculando...</span>
+                ) : (
+                  <span className="text-blue-600 font-bold">{calculatedDays}</span>
+                )}
               </p>
-              {vacationBalance && calculateDays() > vacationBalance.available_days && (
+              {!calculatingDays && vacationBalance && calculatedDays > vacationBalance.available_days && (
                 <p className="text-sm text-red-600 mt-2 font-medium">
                   No hay suficientes días disponibles
                 </p>

@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Database, GitBranch, ListTree, Settings as SettingsIcon, Users, Hash } from 'lucide-react';
+import { Database, GitBranch, ListTree, Settings as SettingsIcon, Users, Hash, Calendar } from 'lucide-react';
 import MasterDataPanel from './MasterDataPanel';
 import WorkflowsPanel from './WorkflowsPanel';
 import CustomFieldsPanel from './CustomFieldsPanel';
 import SystemParametersPanel from './SystemParametersPanel';
 import UsersPanel from './UsersPanel';
 import CodeConfigurationPanel from './CodeConfigurationPanel';
+import { WorkCalendarPanel } from './WorkCalendarPanel';
 
-type ConfigSection = 'master-data' | 'workflows' | 'custom-fields' | 'parameters' | 'users' | 'codes';
+type ConfigSection = 'master-data' | 'workflows' | 'custom-fields' | 'parameters' | 'users' | 'codes' | 'work-calendar';
 
 export default function ConfigurationMain() {
   const [activeSection, setActiveSection] = useState<ConfigSection>('master-data');
@@ -16,6 +17,7 @@ export default function ConfigurationMain() {
     { id: 'master-data' as ConfigSection, label: 'Datos Maestros', icon: Database },
     { id: 'users' as ConfigSection, label: 'Usuarios', icon: Users },
     { id: 'codes' as ConfigSection, label: 'Códigos Automáticos', icon: Hash },
+    { id: 'work-calendar' as ConfigSection, label: 'Calendario Laboral', icon: Calendar },
     { id: 'workflows' as ConfigSection, label: 'Flujos de Trabajo', icon: GitBranch },
     { id: 'custom-fields' as ConfigSection, label: 'Campos Personalizados', icon: ListTree },
     { id: 'parameters' as ConfigSection, label: 'Parámetros del Sistema', icon: SettingsIcon },
@@ -29,6 +31,8 @@ export default function ConfigurationMain() {
         return <UsersPanel />;
       case 'codes':
         return <CodeConfigurationPanel />;
+      case 'work-calendar':
+        return <WorkCalendarPanel />;
       case 'workflows':
         return <WorkflowsPanel />;
       case 'custom-fields':

@@ -57,7 +57,7 @@ export default function TeamCalendar() {
           employee:employees(first_name, last_name, employee_number),
           leave_type:leave_types(name, code)
         `)
-        .eq('employees.company_id', selectedCompanyId)
+        .eq('company_id', selectedCompanyId)
         .eq('status', 'approved')
         .or(`start_date.lte.${endOfMonth.toISOString().split('T')[0]},end_date.gte.${startOfMonth.toISOString().split('T')[0]}`)
         .order('start_date');

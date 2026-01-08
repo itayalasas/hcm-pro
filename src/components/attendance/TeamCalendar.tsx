@@ -23,10 +23,31 @@ interface LeaveRequest {
   };
 }
 
+interface Holiday {
+  id: string;
+  date: string;
+  name: string;
+  recurring: boolean;
+  is_active: boolean;
+}
+
+interface WorkWeek {
+  monday: boolean;
+  tuesday: boolean;
+  wednesday: boolean;
+  thursday: boolean;
+  friday: boolean;
+  saturday: boolean;
+  sunday: boolean;
+}
+
 interface DayData {
   date: Date;
   isCurrentMonth: boolean;
   isToday: boolean;
+  isWorkingDay: boolean;
+  isHoliday: boolean;
+  holidayName?: string;
   leaves: LeaveRequest[];
 }
 
@@ -35,41 +56,107 @@ export default function TeamCalendar() {
   const { showToast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [workWeek, setWorkWeek] = useState<WorkWeek>({
+    monday: true,
+    tuesday: true,
+    wednesday: true,
+    thursday: true,
+    friday: true,
+    saturday: false,
+    sunday: false,
+  });
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   useEffect(() => {
     if (selectedCompanyId) {
-      loadLeaves();
+      loadCalendarData();
     }
   }, [selectedCompanyId, currentDate]);
 
-  const loadLeaves = async () => {
+  const loadCalendarData = async () => {
     try {
       setLoading(true);
       const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-      const { data, error } = await supabase
-        .from('leave_requests')
-        .select(`
-          *,
-          employee:employees!leave_requests_employee_id_fkey(first_name, last_name, employee_number),
-          leave_type:leave_types(name, code)
-        `)
-        .eq('company_id', selectedCompanyId)
-        .eq('status', 'approved')
-        .or(`start_date.lte.${endOfMonth.toISOString().split('T')[0]},end_date.gte.${startOfMonth.toISOString().split('T')[0]}`)
-        .order('start_date');
+      const [leavesResult, holidaysResult, workWeekResult] = await Promise.all([
+        supabase
+          .from('leave_requests')
+          .select(`
+            *,
+            employee:employees!leave_requests_employee_id_fkey(first_name, last_name, employee_number),
+            leave_type:leave_types(name, code)
+          `)
+          .eq('company_id', selectedCompanyId)
+          .eq('status', 'approved')
+          .or(`start_date.lte.${endOfMonth.toISOString().split('T')[0]},end_date.gte.${startOfMonth.toISOString().split('T')[0]}`)
+          .order('start_date'),
 
-      if (error) throw error;
-      setLeaves(data || []);
+        supabase
+          .from('holidays')
+          .select('*')
+          .eq('company_id', selectedCompanyId)
+          .eq('is_active', true),
+
+        supabase
+          .from('work_weeks')
+          .select('*')
+          .eq('company_id', selectedCompanyId)
+          .maybeSingle()
+      ]);
+
+      if (leavesResult.error) throw leavesResult.error;
+      if (holidaysResult.error) throw holidaysResult.error;
+      if (workWeekResult.error) throw workWeekResult.error;
+
+      setLeaves(leavesResult.data || []);
+      setHolidays(holidaysResult.data || []);
+
+      if (workWeekResult.data) {
+        setWorkWeek({
+          monday: workWeekResult.data.monday,
+          tuesday: workWeekResult.data.tuesday,
+          wednesday: workWeekResult.data.wednesday,
+          thursday: workWeekResult.data.thursday,
+          friday: workWeekResult.data.friday,
+          saturday: workWeekResult.data.saturday,
+          sunday: workWeekResult.data.sunday,
+        });
+      }
     } catch (error) {
-      console.error('Error loading leaves:', error);
+      console.error('Error loading calendar data:', error);
       showToast('Error al cargar el calendario', 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const isWorkingDay = (date: Date): boolean => {
+    const dayOfWeek = date.getDay();
+    const dayMap = [
+      workWeek.sunday,
+      workWeek.monday,
+      workWeek.tuesday,
+      workWeek.wednesday,
+      workWeek.thursday,
+      workWeek.friday,
+      workWeek.saturday
+    ];
+    return dayMap[dayOfWeek];
+  };
+
+  const getHolidayForDate = (date: Date): Holiday | undefined => {
+    const dateString = date.toISOString().split('T')[0];
+    return holidays.find(holiday => {
+      if (holiday.recurring) {
+        const holidayDate = new Date(holiday.date);
+        return holidayDate.getMonth() === date.getMonth() &&
+               holidayDate.getDate() === date.getDate();
+      }
+      return holiday.date === dateString;
+    });
   };
 
   const getDaysInMonth = (): DayData[] => {
@@ -87,10 +174,14 @@ export default function TeamCalendar() {
 
     for (let i = 0; i < startingDayOfWeek; i++) {
       const date = new Date(year, month, -startingDayOfWeek + i + 1);
+      const holiday = getHolidayForDate(date);
       days.push({
         date,
         isCurrentMonth: false,
         isToday: false,
+        isWorkingDay: isWorkingDay(date) && !holiday,
+        isHoliday: !!holiday,
+        holidayName: holiday?.name,
         leaves: []
       });
     }
@@ -105,10 +196,15 @@ export default function TeamCalendar() {
         return dateString >= startDate && dateString <= endDate;
       });
 
+      const holiday = getHolidayForDate(date);
+
       days.push({
         date,
         isCurrentMonth: true,
         isToday: date.getTime() === today.getTime(),
+        isWorkingDay: isWorkingDay(date) && !holiday,
+        isHoliday: !!holiday,
+        holidayName: holiday?.name,
         leaves: dayLeaves
       });
     }
@@ -116,10 +212,14 @@ export default function TeamCalendar() {
     const remainingDays = 42 - days.length;
     for (let i = 1; i <= remainingDays; i++) {
       const date = new Date(year, month + 1, i);
+      const holiday = getHolidayForDate(date);
       days.push({
         date,
         isCurrentMonth: false,
         isToday: false,
+        isWorkingDay: isWorkingDay(date) && !holiday,
+        isHoliday: !!holiday,
+        holidayName: holiday?.name,
         leaves: []
       });
     }
@@ -213,6 +313,29 @@ export default function TeamCalendar() {
         </div>
       </div>
 
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6">
+        <div className="p-4 border-b border-slate-200">
+          <div className="flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-white border-2 border-blue-500"></div>
+              <span className="text-slate-600">Día actual</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-amber-50 border border-slate-200"></div>
+              <span className="text-slate-600">Con ausencias</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-red-50 border border-red-200"></div>
+              <span className="text-slate-600">Feriado</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-slate-100 border border-slate-200 opacity-50"></div>
+              <span className="text-slate-600">No laborable</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900 capitalize">{getMonthName()}</h2>
@@ -251,18 +374,22 @@ export default function TeamCalendar() {
             {days.map((day, index) => {
               const isSelected = selectedDate?.toDateString() === day.date.toDateString();
               const hasLeaves = day.leaves.length > 0;
+              const isDisabled = !day.isWorkingDay;
 
               return (
                 <button
                   key={index}
-                  onClick={() => setSelectedDate(day.date)}
+                  onClick={() => day.isWorkingDay && setSelectedDate(day.date)}
+                  disabled={isDisabled}
                   className={`
                     min-h-[100px] p-2 rounded-lg border transition-all
                     ${!day.isCurrentMonth ? 'bg-slate-50 text-slate-400' : 'bg-white text-slate-900'}
                     ${day.isToday ? 'border-blue-500 border-2' : 'border-slate-200'}
                     ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}
                     ${hasLeaves ? 'bg-amber-50' : ''}
-                    hover:shadow-md hover:border-blue-300
+                    ${day.isHoliday ? 'bg-red-50 border-red-200' : ''}
+                    ${!day.isWorkingDay && !day.isHoliday ? 'bg-slate-100 opacity-50' : ''}
+                    ${day.isWorkingDay ? 'hover:shadow-md hover:border-blue-300 cursor-pointer' : 'cursor-not-allowed'}
                   `}
                 >
                   <div className="text-left">
@@ -270,10 +397,19 @@ export default function TeamCalendar() {
                       text-sm font-semibold
                       ${day.isToday ? 'text-blue-600' : ''}
                       ${!day.isCurrentMonth ? 'text-slate-400' : 'text-slate-900'}
+                      ${day.isHoliday ? 'text-red-600' : ''}
                     `}>
                       {day.date.getDate()}
                     </span>
                   </div>
+
+                  {day.isHoliday && (
+                    <div className="mt-1">
+                      <div className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700 rounded truncate font-medium">
+                        {day.holidayName}
+                      </div>
+                    </div>
+                  )}
 
                   {day.leaves.length > 0 && (
                     <div className="mt-1 space-y-1">

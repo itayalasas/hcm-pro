@@ -35,36 +35,51 @@ Salario Vacacional = (Salario Mensual / 30) × Días a liquidar
 1. Ir a **Nómina > Períodos de Nómina**
 2. Clic en **Crear Período**
 3. Seleccionar tipo: **"Liquidación de Vacaciones"**
-4. Completar fechas y seleccionar empleados
-5. El sistema calculará automáticamente:
-   - Lee `available_days` del saldo de vacaciones del empleado
-   - Tarifa diaria: Salario / 30
-   - Monto total: Tarifa diaria × Días disponibles
+4. Ingresar fechas de inicio y fin del período (ej: 15 enero - 31 enero)
+5. El sistema **automáticamente**:
+   - Busca empleados con solicitudes de vacaciones APROBADAS en ese período
+   - Pre-selecciona esos empleados
+   - Muestra notificación con cantidad de empleados encontrados
+6. Continuar con el wizard para procesar la nómina
 
-**Nota importante:** En la nómina de liquidación NO se incluye el salario base mensual, solo se paga el valor de los días de vacaciones acumulados.
+**Notas importantes:**
+- La nómina NO incluye el salario base, solo el pago por días de vacaciones
+- Solo se procesan empleados con solicitudes aprobadas en el período
+- Si un empleado no tiene solicitudes aprobadas, no se genera recibo para él
 
 ### Proceso Automático
 
 Al procesar la nómina de liquidación:
 
-1. El sistema consulta `leave_balances` para obtener días disponibles
-2. Calcula el monto según la fórmula de Uruguay
-3. Crea el concepto "Liquidación de Vacaciones" en el recibo
-4. **Actualiza automáticamente** el saldo de vacaciones:
-   - Descuenta de `carryover_days` primero (días arrastrados del año anterior)
-   - Luego descuenta de `total_days` (días del año actual)
-   - Registra en `settled_days` los días liquidados
-   - Actualiza `last_settlement_date`
+1. El sistema busca **solicitudes de vacaciones aprobadas** del empleado que caen dentro del período
+2. Suma los días de todas las solicitudes en ese rango
+3. Calcula: **(Salario / 30) × Días de vacaciones**
+4. Crea el concepto "Liquidación de Vacaciones" en el recibo con:
+   - Cantidad: Número de días de vacaciones
+   - Tarifa: Salario diario (Salario/30)
+   - Total: Tarifa × Días
+5. El recibo muestra SOLO el pago de vacaciones (sin salario base)
+
+**Ejemplo:** Pedro tiene vacaciones aprobadas del 19-23 enero (5 días). Al generar nómina del 15-31 enero, el sistema:
+- Detecta las vacaciones del 19-23
+- Calcula: $160,000 / 30 = $5,333.33 por día
+- Genera recibo por: $5,333.33 × 5 = $26,666.67
 
 ### Funciones de Base de Datos
 
-**`calculate_vacation_settlement(employee_id, year, days_to_settle)`**
+**`calculate_vacation_settlement_by_period(employee_id, start_date, end_date)`**
 
-Retorna:
-- `available_days` - Días disponibles totales
-- `days_to_pay` - Días que se van a liquidar
+Busca solicitudes de vacaciones aprobadas del empleado en el período y retorna:
+- `vacation_days` - Días de vacaciones aprobadas en el período
 - `daily_rate` - Tarifa por día (salario/30)
 - `total_amount` - Monto total a pagar
+
+**`get_employees_with_approved_vacations(company_id, start_date, end_date)`**
+
+Retorna lista de empleados con solicitudes de vacaciones aprobadas en el período:
+- `employee_id` - ID del empleado
+- `employee_name` - Nombre completo
+- `total_vacation_days` - Total de días de vacaciones en el período
 
 ---
 
@@ -156,22 +171,31 @@ Las ausencias registradas en el calendario impactan automáticamente la nómina:
 
 ### Escenario 1: Liquidar Vacaciones
 
-**Ejemplo con Maria Victoria Ortiz:**
-1. Empleada tiene acumulados **16.67 días** de vacaciones en 2026
-2. Su salario mensual es **$65,200**
-3. Decide liquidar todos sus días acumulados
-4. Proceso:
-   - Crear nómina tipo "Liquidación de Vacaciones"
-   - Sistema calcula: $65,200 / 30 = **$2,173.33** por día
-   - Total a pagar: $2,173.33 × 16.67 = **$36,229.47**
-   - Recibo muestra:
-     - **Bruto:** $36,229.47 (solo liquidación, sin salario base)
-     - **Deducciones:** IRPF según tasa aplicable
-     - **Neto:** $36,229.47 - IRPF
-   - Se descuentan 16.67 días del saldo disponible
-   - Quedan 0 días disponibles
+**Ejemplo con Pedro Ayala:**
+1. **Situación:** Pedro tiene vacaciones aprobadas del **19 al 23 de enero** (5 días)
+2. **Salario:** $160,000 mensuales
+3. **Proceso de nómina:**
+   - Usuario crea período tipo "Liquidación de Vacaciones"
+   - Ingresa fechas: **15 enero al 31 enero**
+   - Sistema automáticamente:
+     - Busca solicitudes aprobadas en ese período
+     - Encuentra la solicitud de Pedro (19-23 enero)
+     - Pre-selecciona a Pedro
+     - Muestra: "1 empleado(s) con vacaciones aprobadas encontrado(s)"
+   - Usuario continúa con el wizard
+   - Sistema procesa:
+     - Calcula: $160,000 / 30 = **$5,333.33** por día
+     - Total: $5,333.33 × 5 días = **$26,666.67**
+4. **Recibo generado:**
+   - **Bruto:** $26,666.67 (solo liquidación, sin salario base)
+   - **Concepto:** "Liquidación de 5 días de vacaciones"
+   - **Deducciones:** IRPF según tasa aplicable
+   - **Neto:** $26,666.67 - IRPF
 
-**Importante:** El monto de la liquidación NO tiene descuento de BPS (15%), pero SÍ está sujeto a IRPF.
+**Importante:**
+- El monto NO tiene descuento de BPS (15%), pero SÍ está sujeto a IRPF
+- Solo se genera recibo para empleados con solicitudes aprobadas en el período
+- Los días vienen de las solicitudes aprobadas, no del balance general
 
 ### Escenario 2: Ausencia No Remunerada
 

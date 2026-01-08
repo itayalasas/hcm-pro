@@ -111,6 +111,12 @@ export default function PayrollPeriods() {
     }
   }, [selectedCompanyId]);
 
+  useEffect(() => {
+    if (formData.period_type === 'vacation_settlement' && formData.start_date && formData.end_date) {
+      loadEmployeesWithApprovedVacations();
+    }
+  }, [formData.period_type, formData.start_date, formData.end_date]);
+
   const loadPayrollPeriods = async () => {
     try {
       setLoading(true);
@@ -161,6 +167,33 @@ export default function PayrollPeriods() {
       showToast('Error al cargar empleados', 'error');
     } finally {
       setLoadingEmployees(false);
+    }
+  };
+
+  const loadEmployeesWithApprovedVacations = async () => {
+    if (!selectedCompanyId || !formData.start_date || !formData.end_date) return;
+
+    try {
+      const { data, error } = await supabase
+        .rpc('get_employees_with_approved_vacations', {
+          p_company_id: selectedCompanyId,
+          p_start_date: formData.start_date,
+          p_end_date: formData.end_date
+        });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const employeeIds = data.map((emp: any) => emp.employee_id);
+        setSelectedEmployees(employeeIds);
+        showToast(`${data.length} empleado(s) con vacaciones aprobadas encontrado(s)`, 'success');
+      } else {
+        setSelectedEmployees([]);
+        showToast('No hay empleados con vacaciones aprobadas en este período', 'info');
+      }
+    } catch (error) {
+      console.error('Error loading employees with vacations:', error);
+      showToast('Error al buscar empleados con vacaciones', 'error');
     }
   };
 
@@ -303,16 +336,14 @@ export default function PayrollPeriods() {
 
           // Handle vacation settlement payroll
           if (formData.period_type === 'vacation_settlement') {
-            const currentYear = new Date(formData.end_date).getFullYear();
-
             const { data: vacationCalc } = await supabase
-              .rpc('calculate_vacation_settlement', {
+              .rpc('calculate_vacation_settlement_by_period', {
                 p_employee_id: emp.id,
-                p_year: currentYear,
-                p_days_to_settle: null
+                p_start_date: formData.start_date,
+                p_end_date: formData.end_date
               });
 
-            if (vacationCalc && vacationCalc.length > 0 && vacationCalc[0].days_to_pay > 0) {
+            if (vacationCalc && vacationCalc.length > 0 && vacationCalc[0].vacation_days > 0) {
               const vacationData = vacationCalc[0];
 
               const { data: vacationConcept } = await supabase
@@ -328,10 +359,10 @@ export default function PayrollPeriods() {
                   .insert({
                     payroll_period_detail_id: periodDetail.id,
                     payroll_concept_id: vacationConcept.id,
-                    quantity: vacationData.days_to_pay,
+                    quantity: vacationData.vacation_days,
                     unit_amount: vacationData.daily_rate,
                     total_amount: vacationData.total_amount,
-                    notes: `Liquidación de ${vacationData.days_to_pay} días de vacaciones`
+                    notes: `Liquidación de ${vacationData.vacation_days} días de vacaciones`
                   });
 
                 totalPerceptions = vacationData.total_amount;

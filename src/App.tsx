@@ -6,7 +6,7 @@ import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import EmployeeList from './components/employees/EmployeeList';
 import EmployeeReports from './components/employees/EmployeeReports';
-import LeaveRequests from './components/leave/LeaveRequests';
+import TimeAndAttendance from './components/attendance/TimeAndAttendance';
 import Evaluations from './components/performance/Evaluations';
 import PayrollPeriods from './components/payroll/PayrollPeriods';
 import PayrollConcepts from './components/payroll/PayrollConcepts';
@@ -123,7 +123,10 @@ function AppContent() {
       case '/employees/reports':
         return <EmployeeReports />;
       case '/time/requests':
-        return <LeaveRequests />;
+      case '/time/balances':
+      case '/time/types':
+      case '/time/calendar':
+        return <TimeAndAttendance />;
       case '/performance/evaluations':
         return <Evaluations />;
       case '/payroll/periods':

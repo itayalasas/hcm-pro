@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Calendar, Plus, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, Plus, Edit, Trash2, CheckCircle, XCircle, Sparkles } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useToast } from '../../hooks/useToast';
@@ -30,6 +30,7 @@ export default function LeaveTypes() {
   const [editingType, setEditingType] = useState<LeaveType | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [typeToDelete, setTypeToDelete] = useState<string | null>(null);
+  const [creatingDefaults, setCreatingDefaults] = useState(false);
 
   const [formData, setFormData] = useState({
     code: '',
@@ -181,6 +182,25 @@ export default function LeaveTypes() {
     setEditingType(null);
   };
 
+  const handleCreateDefaults = async () => {
+    try {
+      setCreatingDefaults(true);
+      const { error } = await supabase.rpc('create_default_leave_types', {
+        p_company_id: selectedCompanyId
+      });
+
+      if (error) throw error;
+
+      showToast('Tipos de ausencia por defecto creados exitosamente', 'success');
+      loadLeaveTypes();
+    } catch (error: any) {
+      console.error('Error creating default leave types:', error);
+      showToast(error.message || 'Error al crear tipos por defecto', 'error');
+    } finally {
+      setCreatingDefaults(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -196,10 +216,22 @@ export default function LeaveTypes() {
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Tipos de Ausencia</h1>
           <p className="text-slate-600">Configura los tipos de ausencia disponibles en tu empresa</p>
         </div>
-        <Button onClick={() => setShowModal(true)}>
-          <Plus className="w-5 h-5 mr-2" />
-          Nuevo Tipo
-        </Button>
+        <div className="flex gap-3">
+          {leaveTypes.length === 0 && (
+            <Button
+              onClick={handleCreateDefaults}
+              disabled={creatingDefaults}
+              variant="outline"
+            >
+              <Sparkles className="w-5 h-5 mr-2" />
+              {creatingDefaults ? 'Creando...' : 'Crear Tipos por Defecto'}
+            </Button>
+          )}
+          <Button onClick={() => setShowModal(true)}>
+            <Plus className="w-5 h-5 mr-2" />
+            Nuevo Tipo
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -344,10 +376,23 @@ export default function LeaveTypes() {
           <div className="text-center py-12">
             <Calendar className="w-12 h-12 text-slate-400 mx-auto mb-3" />
             <p className="text-slate-500 mb-4">No hay tipos de ausencia configurados</p>
-            <Button onClick={() => setShowModal(true)}>
-              <Plus className="w-5 h-5 mr-2" />
-              Crear Primer Tipo
-            </Button>
+            <p className="text-sm text-slate-400 mb-6">
+              Puedes crear tipos manualmente o usar los tipos por defecto del sistema
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Button
+                onClick={handleCreateDefaults}
+                disabled={creatingDefaults}
+                variant="outline"
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                {creatingDefaults ? 'Creando...' : 'Usar Tipos por Defecto'}
+              </Button>
+              <Button onClick={() => setShowModal(true)}>
+                <Plus className="w-5 h-5 mr-2" />
+                Crear Manualmente
+              </Button>
+            </div>
           </div>
         )}
       </div>

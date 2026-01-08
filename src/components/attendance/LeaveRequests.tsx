@@ -68,6 +68,7 @@ export default function LeaveRequests() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [vacationBalance, setVacationBalance] = useState<VacationBalance | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     employee_id: '',
@@ -201,8 +202,23 @@ export default function LeaveRequests() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (submitting) {
+      console.log('Already submitting, ignoring duplicate submit');
+      return;
+    }
+
     try {
+      setSubmitting(true);
       const totalDays = calculateDays();
+
+      console.log('Creating leave request with data:', {
+        employee_id: formData.employee_id,
+        leave_type_id: formData.leave_type_id,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        total_days: totalDays,
+        company_id: selectedCompanyId
+      });
 
       const selectedType = leaveTypes.find(t => t.id === formData.leave_type_id);
       if (selectedType && selectedType.code.toLowerCase() === 'vac' && vacationBalance) {
@@ -211,11 +227,12 @@ export default function LeaveRequests() {
             `No hay suficientes días de vacaciones disponibles. Disponibles: ${vacationBalance.available_days}, Solicitados: ${totalDays}`,
             'error'
           );
+          setSubmitting(false);
           return;
         }
       }
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('leave_requests')
         .insert({
           employee_id: formData.employee_id,
@@ -226,17 +243,26 @@ export default function LeaveRequests() {
           reason: formData.reason,
           status: 'pending',
           company_id: selectedCompanyId
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      console.log('Insert result:', { data, error });
 
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Request created successfully:', data);
       showToast('Solicitud creada exitosamente', 'success');
       setShowModal(false);
       resetForm();
-      loadLeaveRequests();
+      await loadLeaveRequests();
     } catch (error: any) {
       console.error('Error creating request:', error);
       showToast(error.message || 'Error al crear solicitud', 'error');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -641,11 +667,12 @@ export default function LeaveRequests() {
               variant="outline"
               onClick={() => { setShowModal(false); resetForm(); }}
               className="flex-1"
+              disabled={submitting}
             >
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1">
-              Crear Solicitud
+            <Button type="submit" className="flex-1" disabled={submitting}>
+              {submitting ? 'Creando...' : 'Crear Solicitud'}
             </Button>
           </div>
         </form>

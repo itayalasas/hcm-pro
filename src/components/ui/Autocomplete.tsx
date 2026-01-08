@@ -108,6 +108,12 @@ export default function Autocomplete({
         </label>
       )}
 
+      <input
+        type="hidden"
+        value={value}
+        required={required}
+      />
+
       <div className="relative">
         <div
           onClick={() => !disabled && setIsOpen(!isOpen)}

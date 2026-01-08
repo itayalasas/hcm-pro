@@ -37,7 +37,7 @@ interface LeaveType {
   id: string;
   code: string;
   name: string;
-  max_days: number;
+  annual_days: number;
 }
 
 interface Employee {

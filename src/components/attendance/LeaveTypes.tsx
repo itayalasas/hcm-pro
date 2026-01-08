@@ -14,7 +14,7 @@ interface LeaveType {
   code: string;
   name: string;
   description: string;
-  max_days: number;
+  annual_days: number;
   requires_approval: boolean;
   is_paid: boolean;
   active: boolean;
@@ -36,7 +36,7 @@ export default function LeaveTypes() {
     code: '',
     name: '',
     description: '',
-    max_days: '',
+    annual_days: '',
     requires_approval: true,
     is_paid: true,
     active: true
@@ -78,7 +78,7 @@ export default function LeaveTypes() {
             code: formData.code,
             name: formData.name,
             description: formData.description,
-            max_days: parseFloat(formData.max_days),
+            annual_days: parseFloat(formData.annual_days),
             requires_approval: formData.requires_approval,
             is_paid: formData.is_paid,
             active: formData.active
@@ -95,7 +95,7 @@ export default function LeaveTypes() {
             code: formData.code,
             name: formData.name,
             description: formData.description,
-            max_days: parseFloat(formData.max_days),
+            annual_days: parseFloat(formData.annual_days),
             requires_approval: formData.requires_approval,
             is_paid: formData.is_paid,
             active: formData.active
@@ -120,7 +120,7 @@ export default function LeaveTypes() {
       code: type.code,
       name: type.name,
       description: type.description || '',
-      max_days: type.max_days.toString(),
+      annual_days: type.annual_days.toString(),
       requires_approval: type.requires_approval,
       is_paid: type.is_paid,
       active: type.active
@@ -174,7 +174,7 @@ export default function LeaveTypes() {
       code: '',
       name: '',
       description: '',
-      max_days: '',
+      annual_days: '',
       requires_approval: true,
       is_paid: true,
       active: true
@@ -300,7 +300,7 @@ export default function LeaveTypes() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                      {type.max_days} días
+                      {type.annual_days} días
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {type.requires_approval ? (
@@ -413,10 +413,10 @@ export default function LeaveTypes() {
               maxLength={20}
             />
             <Input
-              label="Días Máximos"
+              label="Días Anuales"
               type="number"
-              value={formData.max_days}
-              onChange={(e) => setFormData({ ...formData, max_days: e.target.value })}
+              value={formData.annual_days}
+              onChange={(e) => setFormData({ ...formData, annual_days: e.target.value })}
               required
               min="0"
               step="0.5"

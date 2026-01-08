@@ -309,7 +309,14 @@ export default function LeaveRequests() {
       if (error) throw error;
 
       showToast('Solicitud aprobada', 'success');
-      loadLeaveRequests();
+      await loadLeaveRequests();
+
+      if (formData.employee_id && formData.leave_type_id) {
+        const selectedType = leaveTypes.find(t => t.id === formData.leave_type_id);
+        if (selectedType && selectedType.code.toLowerCase() === 'vac') {
+          await loadVacationBalance(formData.employee_id);
+        }
+      }
     } catch (error) {
       showToast('Error al aprobar solicitud', 'error');
     }
@@ -328,7 +335,14 @@ export default function LeaveRequests() {
       if (error) throw error;
 
       showToast('Solicitud rechazada', 'success');
-      loadLeaveRequests();
+      await loadLeaveRequests();
+
+      if (formData.employee_id && formData.leave_type_id) {
+        const selectedType = leaveTypes.find(t => t.id === formData.leave_type_id);
+        if (selectedType && selectedType.code.toLowerCase() === 'vac') {
+          await loadVacationBalance(formData.employee_id);
+        }
+      }
     } catch (error) {
       showToast('Error al rechazar solicitud', 'error');
     }
@@ -346,7 +360,14 @@ export default function LeaveRequests() {
       if (error) throw error;
 
       showToast('Solicitud eliminada', 'success');
-      loadLeaveRequests();
+      await loadLeaveRequests();
+
+      if (formData.employee_id && formData.leave_type_id) {
+        const selectedType = leaveTypes.find(t => t.id === formData.leave_type_id);
+        if (selectedType && selectedType.code.toLowerCase() === 'vac') {
+          await loadVacationBalance(formData.employee_id);
+        }
+      }
     } catch (error) {
       showToast('Error al eliminar solicitud', 'error');
     } finally {

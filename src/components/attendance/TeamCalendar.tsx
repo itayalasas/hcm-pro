@@ -54,7 +54,7 @@ export default function TeamCalendar() {
         .from('leave_requests')
         .select(`
           *,
-          employee:employees(first_name, last_name, employee_number),
+          employee:employees!leave_requests_employee_id_fkey(first_name, last_name, employee_number),
           leave_type:leave_types(name, code)
         `)
         .eq('company_id', selectedCompanyId)

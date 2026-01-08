@@ -22,6 +22,7 @@ interface ReceiptData {
   };
   period: {
     period_name: string;
+    period_type: string;
     start_date: string;
     end_date: string;
     payment_date: string;
@@ -63,6 +64,7 @@ export default function PayrollReceipt({ periodDetailId, onClose }: PayrollRecei
           employee:employees(first_name, last_name, national_id, employee_number),
           payroll_period:payroll_periods(
             period_name,
+            period_type,
             start_date,
             end_date,
             payment_date,
@@ -99,6 +101,7 @@ export default function PayrollReceipt({ periodDetailId, onClose }: PayrollRecei
         },
         period: {
           period_name: detail.payroll_period.period_name,
+          period_type: detail.payroll_period.period_type,
           start_date: detail.payroll_period.start_date,
           end_date: detail.payroll_period.end_date,
           payment_date: detail.payroll_period.payment_date
@@ -240,14 +243,21 @@ export default function PayrollReceipt({ periodDetailId, onClose }: PayrollRecei
               <tbody>
                 {/* Base salary */}
                 <tr className="border-t border-slate-200">
-                  <td className="p-3 text-sm text-slate-900 border-r border-slate-300">Sueldo Básico</td>
-                  <td className="p-3 text-sm text-slate-600 border-r border-slate-300">1 x {formatCurrency(receiptData.detail.base_salary)}</td>
+                  <td className="p-3 text-sm text-slate-900 border-r border-slate-300">
+                    {receiptData.period.period_type === 'vacation_settlement' ? 'Vacaciones' : 'Sueldo Básico'}
+                  </td>
+                  <td className="p-3 text-sm text-slate-600 border-r border-slate-300">
+                    {receiptData.period.period_type === 'vacation_settlement'
+                      ? `${receiptData.detail.worked_days} días`
+                      : `1 x ${formatCurrency(receiptData.detail.base_salary)}`
+                    }
+                  </td>
                   <td className="p-3 text-sm text-slate-900 text-right font-semibold border-r border-slate-300">{formatCurrency(receiptData.detail.base_salary)}</td>
                   <td className="p-3 text-sm text-slate-900 text-right"></td>
                 </tr>
 
-                {/* Perceptions (other than base) */}
-                {perceptions.map((concept, idx) => (
+                {/* Perceptions (other than base) - Skip VACATION_PAY as it's already shown as base */}
+                {perceptions.filter(p => p.code !== 'VACATION_PAY').map((concept, idx) => (
                   <tr key={idx} className="border-t border-slate-200">
                     <td className="p-3 text-sm text-slate-900 border-r border-slate-300">{concept.name}</td>
                     <td className="p-3 text-sm text-slate-600 border-r border-slate-300">{concept.calculation_details}</td>

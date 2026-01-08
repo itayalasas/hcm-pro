@@ -26,9 +26,10 @@ Salario Vacacional = (Salario Mensual / 30) × Días a liquidar
 ```
 
 **Características:**
-- **NO** se descuenta el 15% de BPS (Seguridad Social)
+- **SÍ** se descuenta el 15% de BPS (Seguridad Social) sobre el monto de liquidación
 - **SÍ** está sujeto a IRPF (Impuesto a la Renta)
 - Debe pagarse ANTES del período de vacaciones
+- El cálculo de aportes (BPS) se hace sobre el monto total de la liquidación, no sobre el salario base
 
 ### Cómo Crear una Nómina de Liquidación
 
@@ -64,6 +65,11 @@ Al procesar la nómina de liquidación:
 - Detecta las vacaciones del 19-23
 - Calcula: $160,000 / 30 = $5,333.33 por día
 - Genera recibo por: $5,333.33 × 5 = $26,666.67
+- El recibo muestra:
+  - **Concepto:** "Vacaciones"
+  - **Detalles:** "5 días"
+  - **Haberes:** $26,666.67
+  - **Aporte Jubilatorio (BPS 15%):** $4,000 (calculado sobre $26,666.67, no sobre el salario base)
 
 ### Funciones de Base de Datos
 
@@ -155,7 +161,8 @@ Las ausencias registradas en el calendario impactan automáticamente la nómina:
 - **Categoría:** Haber (percepción)
 - **Cálculo:** Fórmula
 - **Fórmula:** `(base_salary / 30) * vacation_days`
-- **Aplica BPS:** NO
+- **Nota:** El monto de liquidación se registra como `base_salary` en el período de nómina
+- **BPS (15%):** Se calcula automáticamente sobre el monto total de la liquidación
 - **Sujeto a IRPF:** SÍ
 
 ### UNPAID_LEAVE - Descuento por Ausencias
@@ -187,13 +194,16 @@ Las ausencias registradas en el calendario impactan automáticamente la nómina:
      - Calcula: $160,000 / 30 = **$5,333.33** por día
      - Total: $5,333.33 × 5 días = **$26,666.67**
 4. **Recibo generado:**
-   - **Bruto:** $26,666.67 (solo liquidación, sin salario base)
-   - **Concepto:** "Liquidación de 5 días de vacaciones"
-   - **Deducciones:** IRPF según tasa aplicable
-   - **Neto:** $26,666.67 - IRPF
+   - **Sueldo Básico:** Se muestra como "Vacaciones" / "5 días" / **$26,666.67**
+   - **Aporte Jubilatorio (BPS 15%):** $4,000 (calculado sobre $26,666.67)
+   - **Total Gravado:** $26,666.67
+   - **Total Descuentos:** $4,000
+   - **Neto:** $22,666.67
 
 **Importante:**
-- El monto NO tiene descuento de BPS (15%), pero SÍ está sujeto a IRPF
+- El recibo muestra "Vacaciones X días" en lugar de "Sueldo Básico"
+- BPS (15%) SÍ se calcula sobre el monto de liquidación
+- IRPF también se calcula según corresponda
 - Solo se genera recibo para empleados con solicitudes aprobadas en el período
 - Los días vienen de las solicitudes aprobadas, no del balance general
 

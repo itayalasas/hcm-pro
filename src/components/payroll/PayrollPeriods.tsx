@@ -307,13 +307,33 @@ export default function PayrollPeriods() {
 
         // Process each employee
         for (const emp of employeesToProcess) {
-          const baseSalary = emp.salary || 0;
-
-          // Para liquidación de vacaciones, no se incluye el salario base
-          // Solo se paga por los días de vacaciones
-          let totalPerceptions = formData.period_type === 'vacation_settlement' ? 0 : baseSalary;
+          const employeeSalary = emp.salary || 0;
+          let baseSalary = employeeSalary;
+          let vacationDays = 0;
+          let totalPerceptions = 0;
           let totalDeductions = 0;
           let totalContributions = 0;
+
+          // For vacation settlement, calculate first to get the correct base_salary
+          if (formData.period_type === 'vacation_settlement') {
+            const { data: vacationCalc } = await supabase
+              .rpc('calculate_vacation_settlement_by_period', {
+                p_employee_id: emp.id,
+                p_start_date: formData.start_date,
+                p_end_date: formData.end_date
+              });
+
+            if (vacationCalc && vacationCalc.length > 0 && vacationCalc[0].vacation_days > 0) {
+              const vacationData = vacationCalc[0];
+              baseSalary = vacationData.total_amount;
+              totalPerceptions = vacationData.total_amount;
+              vacationDays = vacationData.vacation_days;
+            } else {
+              continue;
+            }
+          } else {
+            totalPerceptions = baseSalary;
+          }
 
           // Insert period detail for employee
           const { data: periodDetail, error: detailError } = await supabase
@@ -326,47 +346,34 @@ export default function PayrollPeriods() {
               total_deductions: 0,
               total_contributions: 0,
               net_salary: totalPerceptions,
-              worked_days: totalDays,
-              worked_hours: totalDays * 8
+              worked_days: formData.period_type === 'vacation_settlement' ? vacationDays : totalDays,
+              worked_hours: formData.period_type === 'vacation_settlement' ? 0 : totalDays * 8
             })
             .select()
             .single();
 
           if (detailError) throw detailError;
 
-          // Handle vacation settlement payroll
-          if (formData.period_type === 'vacation_settlement') {
-            const { data: vacationCalc } = await supabase
-              .rpc('calculate_vacation_settlement_by_period', {
-                p_employee_id: emp.id,
-                p_start_date: formData.start_date,
-                p_end_date: formData.end_date
-              });
+          // Insert vacation concept detail if vacation settlement
+          if (formData.period_type === 'vacation_settlement' && vacationDays > 0) {
+            const { data: vacationConcept } = await supabase
+              .from('payroll_concepts')
+              .select('id')
+              .eq('company_id', selectedCompanyId)
+              .eq('code', 'VACATION_PAY')
+              .maybeSingle();
 
-            if (vacationCalc && vacationCalc.length > 0 && vacationCalc[0].vacation_days > 0) {
-              const vacationData = vacationCalc[0];
-
-              const { data: vacationConcept } = await supabase
-                .from('payroll_concepts')
-                .select('id')
-                .eq('company_id', selectedCompanyId)
-                .eq('code', 'VACATION_PAY')
-                .maybeSingle();
-
-              if (vacationConcept) {
-                await supabase
-                  .from('payroll_concept_details')
-                  .insert({
-                    payroll_period_detail_id: periodDetail.id,
-                    payroll_concept_id: vacationConcept.id,
-                    quantity: vacationData.vacation_days,
-                    unit_amount: vacationData.daily_rate,
-                    total_amount: vacationData.total_amount,
-                    notes: `Liquidación de ${vacationData.vacation_days} días de vacaciones`
-                  });
-
-                totalPerceptions = vacationData.total_amount;
-              }
+            if (vacationConcept) {
+              await supabase
+                .from('payroll_concept_details')
+                .insert({
+                  payroll_period_detail_id: periodDetail.id,
+                  payroll_concept_id: vacationConcept.id,
+                  quantity: vacationDays,
+                  unit_amount: baseSalary / vacationDays,
+                  total_amount: baseSalary,
+                  notes: `Liquidación de ${vacationDays} días de vacaciones`
+                });
             }
           }
 

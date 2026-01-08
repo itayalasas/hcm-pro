@@ -37,9 +37,11 @@ Salario Vacacional = (Salario Mensual / 30) × Días a liquidar
 3. Seleccionar tipo: **"Liquidación de Vacaciones"**
 4. Completar fechas y seleccionar empleados
 5. El sistema calculará automáticamente:
-   - Días disponibles del empleado (total - usado + arrastre)
+   - Lee `available_days` del saldo de vacaciones del empleado
    - Tarifa diaria: Salario / 30
-   - Monto total a pagar
+   - Monto total: Tarifa diaria × Días disponibles
+
+**Nota importante:** En la nómina de liquidación NO se incluye el salario base mensual, solo se paga el valor de los días de vacaciones acumulados.
 
 ### Proceso Automático
 
@@ -154,14 +156,22 @@ Las ausencias registradas en el calendario impactan automáticamente la nómina:
 
 ### Escenario 1: Liquidar Vacaciones
 
-1. Empleado acumula 20 días de vacaciones en el año
-2. Al terminar el año, decide liquidar 10 días
-3. Proceso:
+**Ejemplo con Maria Victoria Ortiz:**
+1. Empleada tiene acumulados **16.67 días** de vacaciones en 2026
+2. Su salario mensual es **$65,200**
+3. Decide liquidar todos sus días acumulados
+4. Proceso:
    - Crear nómina tipo "Liquidación de Vacaciones"
-   - Sistema calcula: $50,000 / 30 = $1,666.67 por día
-   - Total a pagar: $1,666.67 × 10 = $16,666.70
-   - Se descuentan 10 días del saldo disponible
-   - Quedan 10 días disponibles para tomar
+   - Sistema calcula: $65,200 / 30 = **$2,173.33** por día
+   - Total a pagar: $2,173.33 × 16.67 = **$36,229.47**
+   - Recibo muestra:
+     - **Bruto:** $36,229.47 (solo liquidación, sin salario base)
+     - **Deducciones:** IRPF según tasa aplicable
+     - **Neto:** $36,229.47 - IRPF
+   - Se descuentan 16.67 días del saldo disponible
+   - Quedan 0 días disponibles
+
+**Importante:** El monto de la liquidación NO tiene descuento de BPS (15%), pero SÍ está sujeto a IRPF.
 
 ### Escenario 2: Ausencia No Remunerada
 

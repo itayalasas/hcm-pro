@@ -275,7 +275,10 @@ export default function PayrollPeriods() {
         // Process each employee
         for (const emp of employeesToProcess) {
           const baseSalary = emp.salary || 0;
-          let totalPerceptions = baseSalary;
+
+          // Para liquidación de vacaciones, no se incluye el salario base
+          // Solo se paga por los días de vacaciones
+          let totalPerceptions = formData.period_type === 'vacation_settlement' ? 0 : baseSalary;
           let totalDeductions = 0;
           let totalContributions = 0;
 
@@ -289,7 +292,7 @@ export default function PayrollPeriods() {
               total_perceptions: totalPerceptions,
               total_deductions: 0,
               total_contributions: 0,
-              net_salary: baseSalary,
+              net_salary: totalPerceptions,
               worked_days: totalDays,
               worked_hours: totalDays * 8
             })
@@ -331,7 +334,7 @@ export default function PayrollPeriods() {
                     notes: `Liquidación de ${vacationData.days_to_pay} días de vacaciones`
                   });
 
-                totalPerceptions += vacationData.total_amount;
+                totalPerceptions = vacationData.total_amount;
               }
             }
           }

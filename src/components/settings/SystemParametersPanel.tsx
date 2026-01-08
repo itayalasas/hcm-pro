@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useCompany } from '../../contexts/CompanyContext';
 import { supabase } from '../../lib/supabase';
-import { Settings, Save, Database, Sliders } from 'lucide-react';
+import { Settings, Save, Database, Sliders, Calendar } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import PayrollNomenclatorsPanel from './PayrollNomenclatorsPanel';
+import VacationConfigPanel from './VacationConfigPanel';
 
 interface SystemParameter {
   id: string;
@@ -18,7 +19,7 @@ interface SystemParameter {
 
 export default function SystemParametersPanel() {
   const { selectedCompanyId } = useCompany();
-  const [activeTab, setActiveTab] = useState<'parameters' | 'nomenclators'>('nomenclators');
+  const [activeTab, setActiveTab] = useState<'parameters' | 'nomenclators' | 'vacation'>('nomenclators');
   const [parameters, setParameters] = useState<SystemParameter[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -130,6 +131,17 @@ export default function SystemParametersPanel() {
             Nomencladores de Nómina
           </button>
           <button
+            onClick={() => setActiveTab('vacation')}
+            className={`flex items-center gap-2 px-1 py-3 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'vacation'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            Configuración de Vacaciones
+          </button>
+          <button
             onClick={() => setActiveTab('parameters')}
             className={`flex items-center gap-2 px-1 py-3 border-b-2 font-medium text-sm transition-colors ${
               activeTab === 'parameters'
@@ -145,6 +157,8 @@ export default function SystemParametersPanel() {
 
       {activeTab === 'nomenclators' ? (
         <PayrollNomenclatorsPanel />
+      ) : activeTab === 'vacation' ? (
+        <VacationConfigPanel />
       ) : (
         <>
           {loading ? (

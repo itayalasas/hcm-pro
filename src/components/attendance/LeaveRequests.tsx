@@ -7,6 +7,7 @@ import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import ConfirmDialog from '../ui/ConfirmDialog';
+import Autocomplete from '../ui/Autocomplete';
 
 interface LeaveRequest {
   id: string;
@@ -39,6 +40,21 @@ interface LeaveType {
   max_days: number;
 }
 
+interface Employee {
+  id: string;
+  first_name: string;
+  last_name: string;
+  employee_number: string;
+}
+
+interface VacationBalance {
+  total_days: number;
+  used_days: number;
+  pending_days: number;
+  available_days: number;
+  carryover_days: number;
+}
+
 export default function LeaveRequests() {
   const { selectedCompanyId } = useCompany();
   const { showToast } = useToast();
@@ -46,10 +62,12 @@ export default function LeaveRequests() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [vacationBalance, setVacationBalance] = useState<VacationBalance | null>(null);
+  const [loadingBalance, setLoadingBalance] = useState(false);
 
   const [formData, setFormData] = useState({
     employee_id: '',
@@ -66,6 +84,19 @@ export default function LeaveRequests() {
       loadEmployees();
     }
   }, [selectedCompanyId]);
+
+  useEffect(() => {
+    if (formData.employee_id && formData.leave_type_id) {
+      const selectedType = leaveTypes.find(t => t.id === formData.leave_type_id);
+      if (selectedType && selectedType.code.toLowerCase() === 'vac') {
+        loadVacationBalance(formData.employee_id);
+      } else {
+        setVacationBalance(null);
+      }
+    } else {
+      setVacationBalance(null);
+    }
+  }, [formData.employee_id, formData.leave_type_id, leaveTypes]);
 
   const loadLeaveRequests = async () => {
     try {
@@ -122,6 +153,42 @@ export default function LeaveRequests() {
     }
   };
 
+  const loadVacationBalance = async (employeeId: string) => {
+    try {
+      setLoadingBalance(true);
+      const currentYear = new Date().getFullYear();
+
+      const vacationType = leaveTypes.find(t => t.code.toLowerCase() === 'vac');
+      if (!vacationType) return;
+
+      const { data, error } = await supabase
+        .from('leave_balances')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .eq('leave_type_id', vacationType.id)
+        .eq('year', currentYear)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setVacationBalance({
+          total_days: data.total_days,
+          used_days: data.used_days,
+          pending_days: data.pending_days,
+          available_days: data.available_days,
+          carryover_days: data.carryover_days || 0
+        });
+      } else {
+        setVacationBalance(null);
+      }
+    } catch (error) {
+      console.error('Error loading vacation balance:', error);
+    } finally {
+      setLoadingBalance(false);
+    }
+  };
+
   const calculateDays = () => {
     if (!formData.start_date || !formData.end_date) return 0;
     const start = new Date(formData.start_date);
@@ -136,6 +203,17 @@ export default function LeaveRequests() {
 
     try {
       const totalDays = calculateDays();
+
+      const selectedType = leaveTypes.find(t => t.id === formData.leave_type_id);
+      if (selectedType && selectedType.code.toLowerCase() === 'vac' && vacationBalance) {
+        if (totalDays > vacationBalance.available_days) {
+          showToast(
+            `No hay suficientes días de vacaciones disponibles. Disponibles: ${vacationBalance.available_days}, Solicitados: ${totalDays}`,
+            'error'
+          );
+          return;
+        }
+      }
 
       const { error } = await supabase
         .from('leave_requests')
@@ -228,6 +306,7 @@ export default function LeaveRequests() {
       end_date: '',
       reason: ''
     });
+    setVacationBalance(null);
   };
 
   const getStatusIcon = (status: string) => {
@@ -264,6 +343,16 @@ export default function LeaveRequests() {
     if (filter === 'all') return true;
     return req.status === filter;
   });
+
+  const employeeOptions = employees.map(emp => ({
+    value: emp.id,
+    label: `${emp.first_name} ${emp.last_name} - #${emp.employee_number}`
+  }));
+
+  const leaveTypeOptions = leaveTypes.map(type => ({
+    value: type.id,
+    label: `${type.name} (${type.code})`
+  }));
 
   if (loading) {
     return (
@@ -447,43 +536,59 @@ export default function LeaveRequests() {
         title="Nueva Solicitud de Ausencia"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Empleado
-            </label>
-            <select
-              value={formData.employee_id}
-              onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
-              required
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            >
-              <option value="">Seleccionar empleado</option>
-              {employees.map(emp => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.first_name} {emp.last_name} - #{emp.employee_number}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Autocomplete
+            label="Empleado"
+            options={employeeOptions}
+            value={formData.employee_id}
+            onChange={(value) => setFormData({ ...formData, employee_id: value })}
+            placeholder="Buscar por nombre o número de empleado..."
+            required
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Tipo de Ausencia
-            </label>
-            <select
-              value={formData.leave_type_id}
-              onChange={(e) => setFormData({ ...formData, leave_type_id: e.target.value })}
-              required
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            >
-              <option value="">Seleccionar tipo</option>
-              {leaveTypes.map(type => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Autocomplete
+            label="Tipo de Ausencia"
+            options={leaveTypeOptions}
+            value={formData.leave_type_id}
+            onChange={(value) => setFormData({ ...formData, leave_type_id: value })}
+            placeholder="Buscar tipo de ausencia..."
+            required
+          />
+
+          {vacationBalance && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="text-sm font-semibold text-blue-900 mb-2">Saldo de Vacaciones</h4>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-blue-700">Total:</p>
+                  <p className="font-bold text-blue-900">{vacationBalance.total_days} días</p>
+                </div>
+                <div>
+                  <p className="text-blue-700">Usados:</p>
+                  <p className="font-bold text-blue-900">{vacationBalance.used_days} días</p>
+                </div>
+                <div>
+                  <p className="text-blue-700">Pendientes:</p>
+                  <p className="font-bold text-blue-900">{vacationBalance.pending_days} días</p>
+                </div>
+                <div>
+                  <p className="text-green-700">Disponibles:</p>
+                  <p className="font-bold text-green-900">{vacationBalance.available_days} días</p>
+                </div>
+                {vacationBalance.carryover_days > 0 && (
+                  <div className="col-span-2">
+                    <p className="text-amber-700">Días arrastrados del año anterior:</p>
+                    <p className="font-bold text-amber-900">{vacationBalance.carryover_days} días</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {loadingBalance && (
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-center">
+              <p className="text-sm text-slate-600">Cargando saldo de vacaciones...</p>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -504,10 +609,15 @@ export default function LeaveRequests() {
           </div>
 
           {formData.start_date && formData.end_date && (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm font-medium text-blue-900">
-                Total de días: {calculateDays()}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+              <p className="text-sm font-medium text-slate-900">
+                Total de días solicitados: <span className="text-blue-600 font-bold">{calculateDays()}</span>
               </p>
+              {vacationBalance && calculateDays() > vacationBalance.available_days && (
+                <p className="text-sm text-red-600 mt-2 font-medium">
+                  No hay suficientes días disponibles
+                </p>
+              )}
             </div>
           )}
 

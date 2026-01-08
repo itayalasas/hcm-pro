@@ -20,7 +20,7 @@ interface LeaveRequest {
   status: string;
   approved_by?: string;
   approval_comments?: string;
-  approved_at?: string;
+  approval_date?: string;
   created_at: string;
   employee?: {
     first_name: string;
@@ -272,7 +272,7 @@ export default function LeaveRequests() {
         .from('leave_requests')
         .update({
           status: 'approved',
-          approved_at: new Date().toISOString()
+          approval_date: new Date().toISOString()
         })
         .eq('id', requestId);
 
@@ -291,7 +291,7 @@ export default function LeaveRequests() {
         .from('leave_requests')
         .update({
           status: 'rejected',
-          approved_at: new Date().toISOString()
+          approval_date: new Date().toISOString()
         })
         .eq('id', requestId);
 

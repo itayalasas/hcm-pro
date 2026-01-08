@@ -58,6 +58,18 @@ interface EmployeeConceptAssignment {
   apply: boolean;
 }
 
+const getPeriodTypeLabel = (type: string): string => {
+  const labels: Record<string, string> = {
+    'weekly': 'Semanal',
+    'biweekly': 'Quincenal',
+    'monthly': 'Mensual',
+    'bimonthly': 'Bimestral',
+    'vacation_settlement': 'Liquidación de Vacaciones',
+    'custom': 'Personalizado'
+  };
+  return labels[type] || type;
+};
+
 export default function PayrollPeriods() {
   const { selectedCompanyId } = useCompany();
   const { showToast } = useToast();
@@ -285,6 +297,80 @@ export default function PayrollPeriods() {
             .single();
 
           if (detailError) throw detailError;
+
+          // Handle vacation settlement payroll
+          if (formData.period_type === 'vacation_settlement') {
+            const currentYear = new Date(formData.end_date).getFullYear();
+
+            const { data: vacationCalc } = await supabase
+              .rpc('calculate_vacation_settlement', {
+                p_employee_id: emp.id,
+                p_year: currentYear,
+                p_days_to_settle: null
+              });
+
+            if (vacationCalc && vacationCalc.length > 0 && vacationCalc[0].days_to_pay > 0) {
+              const vacationData = vacationCalc[0];
+
+              const { data: vacationConcept } = await supabase
+                .from('payroll_concepts')
+                .select('id')
+                .eq('company_id', selectedCompanyId)
+                .eq('code', 'VACATION_PAY')
+                .maybeSingle();
+
+              if (vacationConcept) {
+                await supabase
+                  .from('payroll_concept_details')
+                  .insert({
+                    payroll_period_detail_id: periodDetail.id,
+                    payroll_concept_id: vacationConcept.id,
+                    quantity: vacationData.days_to_pay,
+                    unit_amount: vacationData.daily_rate,
+                    total_amount: vacationData.total_amount,
+                    notes: `Liquidación de ${vacationData.days_to_pay} días de vacaciones`
+                  });
+
+                totalPerceptions += vacationData.total_amount;
+              }
+            }
+          }
+
+          // Handle unpaid leave deductions for monthly payroll
+          if (formData.period_type === 'monthly') {
+            const { data: unpaidCalc } = await supabase
+              .rpc('calculate_unpaid_leave_deductions', {
+                p_employee_id: emp.id,
+                p_start_date: formData.start_date,
+                p_end_date: formData.end_date
+              });
+
+            if (unpaidCalc && unpaidCalc.length > 0 && unpaidCalc[0].unpaid_days > 0) {
+              const unpaidData = unpaidCalc[0];
+
+              const { data: unpaidConcept } = await supabase
+                .from('payroll_concepts')
+                .select('id')
+                .eq('company_id', selectedCompanyId)
+                .eq('code', 'UNPAID_LEAVE')
+                .maybeSingle();
+
+              if (unpaidConcept) {
+                await supabase
+                  .from('payroll_concept_details')
+                  .insert({
+                    payroll_period_detail_id: periodDetail.id,
+                    payroll_concept_id: unpaidConcept.id,
+                    quantity: unpaidData.unpaid_days,
+                    unit_amount: unpaidData.daily_rate,
+                    total_amount: unpaidData.total_deduction,
+                    notes: `Descuento por ${unpaidData.unpaid_days} días de ausencias no remuneradas`
+                  });
+
+                totalDeductions += unpaidData.total_deduction;
+              }
+            }
+          }
 
           // Get concepts assigned to this employee
           const employeeConcepts = conceptAssignments.filter(
@@ -764,7 +850,7 @@ export default function PayrollPeriods() {
                         {getStatusIcon(period.status)}
                         <div>
                           <p className="text-sm font-medium text-slate-900">{period.period_name}</p>
-                          <p className="text-xs text-slate-500 capitalize">{period.period_type}</p>
+                          <p className="text-xs text-slate-500">{getPeriodTypeLabel(period.period_type)}</p>
                         </div>
                       </div>
                     </td>
@@ -944,6 +1030,7 @@ export default function PayrollPeriods() {
                     <option value="biweekly">Quincenal</option>
                     <option value="monthly">Mensual</option>
                     <option value="bimonthly">Bimestral</option>
+                    <option value="vacation_settlement">Liquidación de Vacaciones</option>
                   </select>
                 </div>
 

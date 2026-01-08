@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DollarSign, Calendar, CheckCircle, Clock, Download, Eye, Plus, Play, Check, X, AlertCircle, Search, Trash2 } from 'lucide-react';
+import { DollarSign, Calendar, CheckCircle, Clock, Download, Eye, Plus, Play, Check, X, AlertCircle, Search, Trash2, Edit, RotateCcw, FileCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useToast } from '../../hooks/useToast';
@@ -25,6 +25,11 @@ interface PayrollPeriod {
   total_net: number;
   notes: string;
   created_at: string;
+  rollback_count?: number;
+  last_rollback_at?: string;
+  last_rollback_by?: string;
+  accounted_at?: string;
+  accounted_by?: string;
 }
 
 interface Employee {
@@ -73,6 +78,9 @@ export default function PayrollPeriods() {
   const [selectedReceiptDetailId, setSelectedReceiptDetailId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [periodToDelete, setPeriodToDelete] = useState<string | null>(null);
+  const [editingPeriod, setEditingPeriod] = useState<PayrollPeriod | null>(null);
+  const [showRollbackConfirm, setShowRollbackConfirm] = useState(false);
+  const [periodToRollback, setPeriodToRollback] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     period_name: '',
@@ -402,6 +410,91 @@ export default function PayrollPeriods() {
     }
   };
 
+  const handleAccountPeriod = async (periodId: string) => {
+    try {
+      await supabase
+        .from('payroll_periods')
+        .update({
+          status: 'accounted',
+          accounted_at: new Date().toISOString()
+        })
+        .eq('id', periodId);
+
+      showToast('Nómina contabilizada correctamente', 'success');
+      loadPayrollPeriods();
+    } catch (error) {
+      showToast('Error al contabilizar nómina', 'error');
+    }
+  };
+
+  const handleRollbackPeriod = async () => {
+    if (!periodToRollback) return;
+
+    try {
+      const period = periods.find(p => p.id === periodToRollback);
+
+      await supabase
+        .from('payroll_periods')
+        .update({
+          status: 'draft',
+          rollback_count: (period?.rollback_count || 0) + 1,
+          last_rollback_at: new Date().toISOString()
+        })
+        .eq('id', periodToRollback);
+
+      showToast('Nómina revertida a borrador correctamente', 'success');
+      loadPayrollPeriods();
+    } catch (error) {
+      showToast('Error al revertir nómina', 'error');
+    } finally {
+      setShowRollbackConfirm(false);
+      setPeriodToRollback(null);
+    }
+  };
+
+  const handleEditPeriod = (period: PayrollPeriod) => {
+    setEditingPeriod(period);
+    setFormData({
+      period_name: period.period_name,
+      period_type: period.period_type,
+      start_date: period.start_date,
+      end_date: period.end_date,
+      payment_date: period.payment_date,
+      notes: period.notes || ''
+    });
+    setShowWizard(true);
+  };
+
+  const handleUpdatePeriod = async () => {
+    if (!editingPeriod) return;
+
+    try {
+      setProcessingPayroll(true);
+
+      await supabase
+        .from('payroll_periods')
+        .update({
+          period_name: formData.period_name,
+          period_type: formData.period_type,
+          start_date: formData.start_date,
+          end_date: formData.end_date,
+          payment_date: formData.payment_date,
+          notes: formData.notes
+        })
+        .eq('id', editingPeriod.id);
+
+      showToast('Período actualizado correctamente', 'success');
+      setShowWizard(false);
+      setEditingPeriod(null);
+      resetForm();
+      loadPayrollPeriods();
+    } catch (error) {
+      showToast('Error al actualizar período', 'error');
+    } finally {
+      setProcessingPayroll(false);
+    }
+  };
+
   const handleDeletePeriod = async () => {
     if (!periodToDelete || !selectedCompanyId) return;
 
@@ -530,11 +623,13 @@ export default function PayrollPeriods() {
     setSelectedEmployees([]);
     setSearchTerm('');
     setConceptAssignments([]);
+    setEditingPeriod(null);
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'paid': return 'bg-green-100 text-green-700 border-green-200';
+      case 'accounted': return 'bg-purple-100 text-purple-700 border-purple-200';
       case 'approved': return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'validated': return 'bg-cyan-100 text-cyan-700 border-cyan-200';
       case 'calculated': return 'bg-amber-100 text-amber-700 border-amber-200';
@@ -546,6 +641,7 @@ export default function PayrollPeriods() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'paid': return <CheckCircle className="w-5 h-5 text-green-600" />;
+      case 'accounted': return <FileCheck className="w-5 h-5 text-purple-600" />;
       case 'approved': return <Check className="w-5 h-5 text-blue-600" />;
       case 'calculated': return <Clock className="w-5 h-5 text-amber-600" />;
       case 'draft': return <AlertCircle className="w-5 h-5 text-slate-600" />;
@@ -692,19 +788,29 @@ export default function PayrollPeriods() {
                         {period.status === 'draft' && 'Borrador'}
                         {period.status === 'calculated' && 'Calculada'}
                         {period.status === 'approved' && 'Aprobada'}
+                        {period.status === 'accounted' && 'Contabilizada'}
                         {period.status === 'paid' && 'Pagada'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex gap-2">
                         {period.status === 'draft' && (
-                          <button
-                            onClick={() => handleProcessPeriod(period.id)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Procesar"
-                          >
-                            <Play className="w-4 h-4" />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleEditPeriod(period)}
+                              className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                              title="Editar"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleProcessPeriod(period.id)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Procesar"
+                            >
+                              <Play className="w-4 h-4" />
+                            </button>
+                          </>
                         )}
                         {period.status === 'calculated' && (
                           <button
@@ -713,6 +819,39 @@ export default function PayrollPeriods() {
                             title="Aprobar"
                           >
                             <Check className="w-4 h-4" />
+                          </button>
+                        )}
+                        {period.status === 'approved' && (
+                          <>
+                            <button
+                              onClick={() => handleAccountPeriod(period.id)}
+                              className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                              title="Contabilizar"
+                            >
+                              <FileCheck className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setPeriodToRollback(period.id);
+                                setShowRollbackConfirm(true);
+                              }}
+                              className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                              title="Revertir a borrador"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                        {(period.status === 'accounted' || period.status === 'paid') && (
+                          <button
+                            onClick={() => {
+                              setPeriodToRollback(period.id);
+                              setShowRollbackConfirm(true);
+                            }}
+                            className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                            title="Revertir a borrador"
+                          >
+                            <RotateCcw className="w-4 h-4" />
                           </button>
                         )}
                         <button
@@ -729,16 +868,18 @@ export default function PayrollPeriods() {
                         >
                           <Download className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => {
-                            setPeriodToDelete(period.id);
-                            setShowDeleteConfirm(true);
-                          }}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {period.status === 'draft' && (
+                          <button
+                            onClick={() => {
+                              setPeriodToDelete(period.id);
+                              setShowDeleteConfirm(true);
+                            }}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -764,13 +905,21 @@ export default function PayrollPeriods() {
       <Modal
         isOpen={showWizard}
         onClose={() => { setShowWizard(false); resetForm(); }}
-        title="Crear Nuevo Período de Nómina"
+        title={editingPeriod ? "Editar Período de Nómina" : "Crear Nuevo Período de Nómina"}
         maxWidth="4xl"
       >
-        <StepWizard steps={wizardSteps} currentStep={currentStep} />
+        {!editingPeriod && <StepWizard steps={wizardSteps} currentStep={currentStep} />}
 
         <div className="mt-6">
-          {currentStep === 0 && (
+          {editingPeriod && (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-900">
+                Editando período en borrador. Solo se pueden modificar los datos básicos del período.
+              </p>
+            </div>
+          )}
+
+          {(currentStep === 0 || editingPeriod) && (
             <div className="space-y-5">
               <div className="grid grid-cols-4 gap-5">
                 <div className="col-span-2">
@@ -844,7 +993,7 @@ export default function PayrollPeriods() {
             </div>
           )}
 
-          {currentStep === 1 && (
+          {!editingPeriod && currentStep === 1 && (
             <div className="space-y-4">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm text-slate-600">
@@ -936,7 +1085,7 @@ export default function PayrollPeriods() {
             </div>
           )}
 
-          {currentStep === 2 && (
+          {!editingPeriod && currentStep === 2 && (
             <div className="space-y-4">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm text-slate-600">
@@ -1022,7 +1171,7 @@ export default function PayrollPeriods() {
             </div>
           )}
 
-          {currentStep === 3 && (
+          {!editingPeriod && currentStep === 3 && (
             <div className="space-y-6">
               <div className="bg-slate-50 rounded-lg p-6 space-y-4">
                 <h3 className="font-semibold text-slate-900 text-lg mb-4">Resumen del Período</h3>
@@ -1081,23 +1230,39 @@ export default function PayrollPeriods() {
         </div>
 
         <div className="flex gap-3 justify-between mt-8 pt-6 border-t border-slate-200">
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (currentStep > 0) {
-                setCurrentStep(currentStep - 1);
-              } else {
+          {!editingPeriod && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (currentStep > 0) {
+                  setCurrentStep(currentStep - 1);
+                } else {
+                  setShowWizard(false);
+                  resetForm();
+                }
+              }}
+            >
+              {currentStep > 0 ? 'Anterior' : 'Cancelar'}
+            </Button>
+          )}
+
+          {editingPeriod && (
+            <Button
+              variant="outline"
+              onClick={() => {
                 setShowWizard(false);
                 resetForm();
-              }
-            }}
-          >
-            {currentStep > 0 ? 'Anterior' : 'Cancelar'}
-          </Button>
+              }}
+            >
+              Cancelar
+            </Button>
+          )}
 
           <Button
             onClick={() => {
-              if (currentStep < 3) {
+              if (editingPeriod) {
+                handleUpdatePeriod();
+              } else if (currentStep < 3) {
                 setCurrentStep(currentStep + 1);
               } else {
                 handleCreatePeriod();
@@ -1105,7 +1270,14 @@ export default function PayrollPeriods() {
             }}
             disabled={processingPayroll || !formData.start_date || !formData.end_date || !formData.payment_date}
           >
-            {processingPayroll ? 'Creando...' : currentStep < 3 ? 'Siguiente' : 'Crear Período'}
+            {processingPayroll
+              ? (editingPeriod ? 'Actualizando...' : 'Creando...')
+              : editingPeriod
+                ? 'Guardar Cambios'
+                : currentStep < 3
+                  ? 'Siguiente'
+                  : 'Crear Período'
+            }
           </Button>
         </div>
       </Modal>
@@ -1132,16 +1304,33 @@ export default function PayrollPeriods() {
 
       {showDeleteConfirm && (
         <ConfirmDialog
+          isOpen={showDeleteConfirm}
           title="Eliminar Período de Nómina"
           message="¿Estás seguro de que deseas eliminar este período de nómina? Esta acción no se puede deshacer y se eliminarán todos los detalles asociados."
-          confirmLabel="Eliminar"
-          cancelLabel="Cancelar"
+          confirmText="Eliminar"
+          cancelText="Cancelar"
           onConfirm={handleDeletePeriod}
-          onCancel={() => {
+          onClose={() => {
             setShowDeleteConfirm(false);
             setPeriodToDelete(null);
           }}
-          variant="danger"
+          type="danger"
+        />
+      )}
+
+      {showRollbackConfirm && (
+        <ConfirmDialog
+          isOpen={showRollbackConfirm}
+          title="Revertir Nómina a Borrador"
+          message="¿Estás seguro de que deseas revertir esta nómina a borrador? Esto permitirá editarla nuevamente. Esta acción quedará registrada en el historial."
+          confirmText="Revertir"
+          cancelText="Cancelar"
+          onConfirm={handleRollbackPeriod}
+          onClose={() => {
+            setShowRollbackConfirm(false);
+            setPeriodToRollback(null);
+          }}
+          type="warning"
         />
       )}
     </div>

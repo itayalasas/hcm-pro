@@ -108,7 +108,7 @@ export default function LeaveRequests() {
           employee:employees(first_name, last_name, employee_number),
           leave_type:leave_types(name, code)
         `)
-        .eq('employees.company_id', selectedCompanyId)
+        .eq('company_id', selectedCompanyId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -224,7 +224,8 @@ export default function LeaveRequests() {
           end_date: formData.end_date,
           total_days: totalDays,
           reason: formData.reason,
-          status: 'pending'
+          status: 'pending',
+          company_id: selectedCompanyId
         });
 
       if (error) throw error;

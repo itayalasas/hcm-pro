@@ -7,6 +7,7 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
 import ConfirmDialog from '../ui/ConfirmDialog';
+import Autocomplete from '../ui/Autocomplete';
 
 interface DevelopmentPlan {
   id: string;
@@ -505,23 +506,18 @@ export default function DevelopmentPlans() {
         title={selectedPlan ? 'Editar Plan de Desarrollo' : 'Nuevo Plan de Desarrollo'}
       >
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Empleado *
-            </label>
-            <select
-              value={planFormData.employee_id}
-              onChange={(e) => setPlanFormData({ ...planFormData, employee_id: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Seleccionar empleado</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.first_name} {emp.last_name} ({emp.employee_number})
-                </option>
-              ))}
-            </select>
-          </div>
+          <Autocomplete
+            label="Empleado"
+            value={planFormData.employee_id}
+            onChange={(value) => setPlanFormData({ ...planFormData, employee_id: value })}
+            options={employees.map((emp) => ({
+              value: emp.id,
+              label: `${emp.first_name} ${emp.last_name}`,
+              description: `Nro: ${emp.employee_number}`
+            }))}
+            placeholder="Buscar por nombre o número de empleado"
+            required
+          />
 
           <Input
             label="Título del Plan *"

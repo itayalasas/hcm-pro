@@ -24,7 +24,7 @@ interface NineBoxAssessment {
     last_name: string;
     employee_number: string;
     position?: {
-      name: string;
+      title: string;
     };
   };
 }
@@ -87,7 +87,7 @@ export default function NineBoxMatrix() {
             first_name,
             last_name,
             employee_number,
-            position:positions(name)
+            position:positions(title)
           )
         `)
         .eq('company_id', selectedCompanyId)
@@ -416,7 +416,7 @@ export default function NineBoxMatrix() {
                       </h3>
                       <p className="text-sm text-slate-600">
                         {assessment.employee?.employee_number}
-                        {assessment.employee?.position && ` • ${assessment.employee.position.name}`}
+                        {assessment.employee?.position && ` • ${assessment.employee.position.title}`}
                       </p>
                     </div>
                     <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full text-white ${getBoxColor(assessment.performance_rating, assessment.potential_rating)}`}>

@@ -21,6 +21,9 @@ import Positions from './components/organization/Positions';
 import Organigram from './components/organization/Organigram';
 import ContractTemplates from './components/organization/ContractTemplates';
 import ConfigurationMain from './components/settings/ConfigurationMain';
+import Courses from './components/learning/Courses';
+import Certifications from './components/learning/Certifications';
+import SkillsMatrix from './components/learning/SkillsMatrix';
 import AuthCallback from './components/AuthCallback';
 import CompanySelector from './components/CompanySelector';
 import { ExternalLink } from 'lucide-react';
@@ -156,6 +159,12 @@ function AppContent() {
         return <Organigram />;
       case '/organization/contract-templates':
         return <ContractTemplates />;
+      case '/learning/courses':
+        return <Courses />;
+      case '/learning/certifications':
+        return <Certifications />;
+      case '/learning/skills':
+        return <SkillsMatrix />;
       case '/config/master-data':
       case '/config/workflows':
       case '/config/custom-fields':

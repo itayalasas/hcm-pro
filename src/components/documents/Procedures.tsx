@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { FileText, Plus, Edit2, Trash2, CheckCircle, AlertCircle, Search } from 'lucide-react';
+import { FileText, Plus, Edit2, Trash2, CheckCircle, AlertCircle, Search, Download } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useToast } from '../../hooks/useToast';
+import { useFileUpload } from '../../hooks/useFileUpload';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
 import ConfirmDialog from '../ui/ConfirmDialog';
+import FileUpload from '../ui/FileUpload';
 
 interface Document {
   id: string;
@@ -47,6 +49,7 @@ const documentStatuses = [
 export default function Procedures() {
   const { selectedCompanyId } = useCompany();
   const { showToast } = useToast();
+  const { uploadFile, downloadFile, uploading } = useFileUpload();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -55,6 +58,7 @@ export default function Procedures() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState({
     code: '',
@@ -97,6 +101,7 @@ export default function Procedures() {
 
   const handleCreate = () => {
     setSelectedDocument(null);
+    setSelectedFile(null);
     setFormData({
       code: '',
       title: '',
@@ -114,6 +119,7 @@ export default function Procedures() {
 
   const handleEdit = (doc: Document) => {
     setSelectedDocument(doc);
+    setSelectedFile(null);
     setFormData({
       code: doc.code,
       title: doc.title,
@@ -138,11 +144,32 @@ export default function Procedures() {
     }
 
     try {
-      const documentData = {
+      let documentData = {
         ...formData,
         company_id: selectedCompanyId,
         document_type: 'procedure'
       };
+
+      if (selectedFile) {
+        const uploadResult = await uploadFile(selectedFile, {
+          bucket: 'documents',
+          folder: 'procedures',
+          companyId: selectedCompanyId
+        });
+
+        if (uploadResult) {
+          documentData = {
+            ...documentData,
+            file_path: uploadResult.path,
+            file_name: uploadResult.name,
+            file_size: uploadResult.size,
+            file_type: uploadResult.type
+          };
+        } else {
+          showToast('Error al subir archivo', 'error');
+          return;
+        }
+      }
 
       if (selectedDocument) {
         const { error } = await supabase
@@ -162,6 +189,7 @@ export default function Procedures() {
       }
 
       setShowModal(false);
+      setSelectedFile(null);
       loadDocuments();
     } catch (error: any) {
       console.error('Error saving procedure:', error);
@@ -378,6 +406,15 @@ export default function Procedures() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-2">
+                          {doc.file_path && (
+                            <button
+                              onClick={() => downloadFile('documents', doc.file_path, doc.file_name)}
+                              className="text-purple-600 hover:text-purple-900"
+                              title="Descargar"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          )}
                           {doc.status === 'draft' && (
                             <button
                               onClick={() => handlePublish(doc)}
@@ -498,18 +535,19 @@ export default function Procedures() {
             />
           </div>
 
-          <Input
-            label="Nombre del Archivo"
-            value={formData.file_name}
-            onChange={(e) => setFormData({ ...formData, file_name: e.target.value })}
-            placeholder="procedimiento-compras.pdf"
+          <FileUpload
+            onFileSelect={(file) => setSelectedFile(file)}
+            currentFile={selectedDocument?.file_name}
+            label="Documento de Procedimiento"
+            accept=".pdf,.doc,.docx"
+            maxSizeMB={10}
           />
 
           <div className="flex gap-3 pt-4">
-            <Button type="submit" className="flex-1">
-              {selectedDocument ? 'Actualizar' : 'Crear'} Procedimiento
+            <Button type="submit" className="flex-1" disabled={uploading}>
+              {uploading ? 'Subiendo archivo...' : selectedDocument ? 'Actualizar Procedimiento' : 'Crear Procedimiento'}
             </Button>
-            <Button type="button" variant="outline" onClick={() => setShowModal(false)} className="flex-1">
+            <Button type="button" variant="outline" onClick={() => setShowModal(false)} className="flex-1" disabled={uploading}>
               Cancelar
             </Button>
           </div>

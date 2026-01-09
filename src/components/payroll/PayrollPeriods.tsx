@@ -425,8 +425,24 @@ export default function PayrollPeriods() {
 
             let amount = 0;
 
+            // Special handling for IRPF - use progressive calculation
+            if (concept.code === 'IRPF') {
+              const { data: irpfAmount, error: irpfError } = await supabase
+                .rpc('calculate_irpf', {
+                  p_company_id: selectedCompanyId,
+                  p_gross_salary: baseSalary,
+                  p_fiscal_year: new Date().getFullYear()
+                });
+
+              if (irpfError) {
+                console.error('Error calculating IRPF:', irpfError);
+                amount = 0;
+              } else {
+                amount = irpfAmount || 0;
+              }
+            }
             // Calculate amount based on type
-            if (concept.calculation_type === 'percentage') {
+            else if (concept.calculation_type === 'percentage') {
               const { data: conceptData } = await supabase
                 .from('payroll_concepts')
                 .select('percentage_value')

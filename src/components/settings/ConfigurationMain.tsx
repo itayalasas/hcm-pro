@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Database, GitBranch, ListTree, Settings as SettingsIcon, Users, Hash, Calendar } from 'lucide-react';
+import { Database, GitBranch, ListTree, Settings as SettingsIcon, Users, Hash, Calendar, Percent } from 'lucide-react';
 import MasterDataPanel from './MasterDataPanel';
 import WorkflowsPanel from './WorkflowsPanel';
 import CustomFieldsPanel from './CustomFieldsPanel';
@@ -7,8 +7,9 @@ import SystemParametersPanel from './SystemParametersPanel';
 import UsersPanel from './UsersPanel';
 import CodeConfigurationPanel from './CodeConfigurationPanel';
 import { WorkCalendarPanel } from './WorkCalendarPanel';
+import IRPFConfigPanel from './IRPFConfigPanel';
 
-type ConfigSection = 'master-data' | 'workflows' | 'custom-fields' | 'parameters' | 'users' | 'codes' | 'work-calendar';
+type ConfigSection = 'master-data' | 'workflows' | 'custom-fields' | 'parameters' | 'users' | 'codes' | 'work-calendar' | 'irpf';
 
 export default function ConfigurationMain() {
   const [activeSection, setActiveSection] = useState<ConfigSection>('master-data');
@@ -18,6 +19,7 @@ export default function ConfigurationMain() {
     { id: 'users' as ConfigSection, label: 'Usuarios', icon: Users },
     { id: 'codes' as ConfigSection, label: 'Códigos Automáticos', icon: Hash },
     { id: 'work-calendar' as ConfigSection, label: 'Calendario Laboral', icon: Calendar },
+    { id: 'irpf' as ConfigSection, label: 'IRPF', icon: Percent },
     { id: 'workflows' as ConfigSection, label: 'Flujos de Trabajo', icon: GitBranch },
     { id: 'custom-fields' as ConfigSection, label: 'Campos Personalizados', icon: ListTree },
     { id: 'parameters' as ConfigSection, label: 'Parámetros del Sistema', icon: SettingsIcon },
@@ -33,6 +35,8 @@ export default function ConfigurationMain() {
         return <CodeConfigurationPanel />;
       case 'work-calendar':
         return <WorkCalendarPanel />;
+      case 'irpf':
+        return <IRPFConfigPanel />;
       case 'workflows':
         return <WorkflowsPanel />;
       case 'custom-fields':
@@ -72,6 +76,8 @@ export default function ConfigurationMain() {
               {section.id === 'master-data' && 'Ubicaciones, niveles, instituciones'}
               {section.id === 'users' && 'Gestión y asignación de empresas'}
               {section.id === 'codes' && 'Configuración de códigos automáticos'}
+              {section.id === 'work-calendar' && 'Feriados y calendario laboral'}
+              {section.id === 'irpf' && 'Tramos y configuración de IRPF'}
               {section.id === 'workflows' && 'Aprobaciones y procesos'}
               {section.id === 'custom-fields' && 'Campos adicionales por módulo'}
               {section.id === 'parameters' && 'Configuración general del sistema'}

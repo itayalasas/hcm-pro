@@ -8,6 +8,9 @@ import EmployeeList from './components/employees/EmployeeList';
 import EmployeeReports from './components/employees/EmployeeReports';
 import TimeAndAttendance from './components/attendance/TimeAndAttendance';
 import Evaluations from './components/performance/Evaluations';
+import EvaluationCycles from './components/performance/EvaluationCycles';
+import DevelopmentPlans from './components/performance/DevelopmentPlans';
+import NineBoxMatrix from './components/performance/NineBoxMatrix';
 import PayrollPeriods from './components/payroll/PayrollPeriods';
 import PayrollConcepts from './components/payroll/PayrollConcepts';
 import PayrollFormulas from './components/payroll/PayrollFormulas';
@@ -129,6 +132,12 @@ function AppContent() {
         return <TimeAndAttendance />;
       case '/performance/evaluations':
         return <Evaluations />;
+      case '/performance/cycles':
+        return <EvaluationCycles />;
+      case '/performance/development':
+        return <DevelopmentPlans />;
+      case '/performance/matrix':
+        return <NineBoxMatrix />;
       case '/payroll/periods':
         return <PayrollPeriods />;
       case '/payroll/concepts':

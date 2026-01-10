@@ -4,6 +4,7 @@ import { NavigationProvider, useNavigation } from './contexts/NavigationContext'
 import { CompanyProvider, useCompany } from './contexts/CompanyContext';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
+import EmployeeDashboard from './components/EmployeeDashboard';
 import EmployeeList from './components/employees/EmployeeList';
 import EmployeeReports from './components/employees/EmployeeReports';
 import TimeAndAttendance from './components/attendance/TimeAndAttendance';
@@ -99,8 +100,9 @@ function AppContent() {
     }
   }, [isEmployee, employeeCompanyId, employeeCompanyLoaded, companyLoading, autoLoadEmployeeCompany]);
 
-  const handleCallbackSuccess = () => {
+  const handleCallbackSuccess = async () => {
     setIsCallback(false);
+    await new Promise(resolve => setTimeout(resolve, 500));
     refreshAuth();
   };
 
@@ -125,23 +127,30 @@ function AppContent() {
     return <LoginPage />;
   }
 
+  useEffect(() => {
+    if (isEmployee && !employeeCompanyId && !loading && isAuthenticated) {
+      const timer = setTimeout(() => {
+        refreshAuth();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isEmployee, employeeCompanyId, loading, isAuthenticated]);
+
   if (isEmployee && !employeeCompanyId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
           <div className="text-center mb-4">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Sin Empresa Asignada</h2>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Verificando Acceso</h2>
             <p className="text-slate-600 mb-6">
-              Tu cuenta de empleado no tiene una empresa asignada. Por favor, contacta al administrador del sistema para que te asigne a una empresa.
+              Estamos cargando tu información de empresa. Por favor espera...
             </p>
             <div className="space-y-3">
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => refreshAuth()}
                 className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Intentar de nuevo
@@ -180,7 +189,7 @@ function AppContent() {
     switch (currentView) {
       case '/':
       case 'dashboard':
-        return <Dashboard />;
+        return isEmployee ? <EmployeeDashboard /> : <Dashboard />;
       case '/employees':
       case '/employees/new':
         return <EmployeeList />;

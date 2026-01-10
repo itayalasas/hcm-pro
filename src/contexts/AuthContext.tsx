@@ -21,6 +21,8 @@ interface AuthContextType {
   hasAccess: boolean;
   loading: boolean;
   isAuthenticated: boolean;
+  isEmployee: boolean;
+  employeeCompanyId: string | null;
   signOut: () => Promise<void>;
   refreshAuth: () => void;
   hasModulePermission: (module: string, permission: string) => boolean;
@@ -39,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [tenant, setTenant] = useState<ExternalAuthTenant | null>(null);
   const [hasAccess, setHasAccess] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [employeeCompanyId, setEmployeeCompanyId] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -92,6 +95,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setEmployee(data);
+
+      if (data && data.company_id) {
+        setEmployeeCompanyId(data.company_id);
+      }
     } catch (error) {
       console.error('Error loading employee data:', error);
     } finally {
@@ -110,10 +117,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setEmployee(null);
     setTenant(null);
     setHasAccess(false);
+    setEmployeeCompanyId(null);
     window.location.href = '/';
   };
 
   const isAuthenticated = !!user && !!getStoredAuthData().token && !isTokenExpired();
+  const isEmployee = user?.role === 'empleado';
 
   const checkModulePermission = (module: string, permission: string) => {
     return hasModulePermission(user, module, permission);
@@ -148,6 +157,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         hasAccess,
         loading,
         isAuthenticated,
+        isEmployee,
+        employeeCompanyId,
         signOut,
         refreshAuth,
         hasModulePermission: checkModulePermission,

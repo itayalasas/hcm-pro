@@ -18,6 +18,7 @@ interface CompanyContextType {
   selectedCompanyId: string | null;
   selectCompany: (companyId: string) => void;
   loading: boolean;
+  autoLoadEmployeeCompany: (companyId: string) => Promise<void>;
 }
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
@@ -26,16 +27,20 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const [currentCompany, setCurrentCompany] = useState<Company | null>(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    const storedCompanyId = localStorage.getItem('selected_company_id');
-    if (storedCompanyId) {
-      setSelectedCompanyId(storedCompanyId);
-      loadCompany(storedCompanyId);
-    } else {
-      setLoading(false);
+    if (!initialized) {
+      const storedCompanyId = localStorage.getItem('selected_company_id');
+      if (storedCompanyId) {
+        setSelectedCompanyId(storedCompanyId);
+        loadCompany(storedCompanyId);
+      } else {
+        setLoading(false);
+      }
+      setInitialized(true);
     }
-  }, []);
+  }, [initialized]);
 
   const loadCompany = async (companyId: string) => {
     try {
@@ -64,6 +69,13 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     await loadCompany(companyId);
   };
 
+  const autoLoadEmployeeCompany = async (companyId: string) => {
+    setLoading(true);
+    setSelectedCompanyId(companyId);
+    localStorage.setItem('selected_company_id', companyId);
+    await loadCompany(companyId);
+  };
+
   return (
     <CompanyContext.Provider
       value={{
@@ -71,7 +83,8 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         setCurrentCompany,
         selectedCompanyId,
         selectCompany,
-        loading
+        loading,
+        autoLoadEmployeeCompany
       }}
     >
       {children}

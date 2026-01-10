@@ -9,7 +9,7 @@ export interface ExternalAuthUser {
   email: string;
   name: string;
   role: string;
-  permissions: Record<string, any>;
+  permissions: Record<string, string[]>;
   metadata: Record<string, any>;
   created_at: string;
 }
@@ -113,6 +113,7 @@ export function storeAuthData(authData: ExternalAuthResponse['data']): void {
   localStorage.setItem('external_auth_user', JSON.stringify(authData.user));
   localStorage.setItem('external_auth_tenant', JSON.stringify(authData.tenant));
   localStorage.setItem('external_auth_expires_at', String(Date.now() + authData.expires_in * 1000));
+  localStorage.setItem('external_auth_has_access', String(authData.has_access));
 }
 
 export function getStoredAuthData(): {
@@ -121,19 +122,41 @@ export function getStoredAuthData(): {
   user: ExternalAuthUser | null;
   tenant: ExternalAuthTenant | null;
   expiresAt: number | null;
+  hasAccess: boolean;
 } {
   const token = localStorage.getItem('external_auth_token');
   const refreshToken = localStorage.getItem('external_auth_refresh_token');
   const userStr = localStorage.getItem('external_auth_user');
   const tenantStr = localStorage.getItem('external_auth_tenant');
   const expiresAtStr = localStorage.getItem('external_auth_expires_at');
+  const hasAccessStr = localStorage.getItem('external_auth_has_access');
+
+  let user: ExternalAuthUser | null = null;
+  let tenant: ExternalAuthTenant | null = null;
+
+  try {
+    if (userStr && userStr !== 'undefined' && userStr !== 'null') {
+      user = JSON.parse(userStr);
+    }
+  } catch (error) {
+    console.error('Error parsing user data:', error);
+  }
+
+  try {
+    if (tenantStr && tenantStr !== 'undefined' && tenantStr !== 'null') {
+      tenant = JSON.parse(tenantStr);
+    }
+  } catch (error) {
+    console.error('Error parsing tenant data:', error);
+  }
 
   return {
     token,
     refreshToken,
-    user: userStr ? JSON.parse(userStr) : null,
-    tenant: tenantStr ? JSON.parse(tenantStr) : null,
+    user,
+    tenant,
     expiresAt: expiresAtStr ? parseInt(expiresAtStr) : null,
+    hasAccess: hasAccessStr === 'true',
   };
 }
 
@@ -143,6 +166,7 @@ export function clearAuthData(): void {
   localStorage.removeItem('external_auth_user');
   localStorage.removeItem('external_auth_tenant');
   localStorage.removeItem('external_auth_expires_at');
+  localStorage.removeItem('external_auth_has_access');
 }
 
 export function isTokenExpired(): boolean {
@@ -151,4 +175,36 @@ export function isTokenExpired(): boolean {
 
   const expiresAt = parseInt(expiresAtStr);
   return Date.now() >= expiresAt;
+}
+
+export function hasModulePermission(user: ExternalAuthUser | null, module: string, permission: string): boolean {
+  if (!user || !user.permissions) return false;
+
+  const modulePermissions = user.permissions[module];
+  if (!modulePermissions) return false;
+
+  return modulePermissions.includes(permission);
+}
+
+export function hasAnyPermission(user: ExternalAuthUser | null, module: string): boolean {
+  if (!user || !user.permissions) return false;
+
+  const modulePermissions = user.permissions[module];
+  return modulePermissions && modulePermissions.length > 0;
+}
+
+export function canRead(user: ExternalAuthUser | null, module: string): boolean {
+  return hasModulePermission(user, module, 'read');
+}
+
+export function canCreate(user: ExternalAuthUser | null, module: string): boolean {
+  return hasModulePermission(user, module, 'create');
+}
+
+export function canUpdate(user: ExternalAuthUser | null, module: string): boolean {
+  return hasModulePermission(user, module, 'update');
+}
+
+export function canDelete(user: ExternalAuthUser | null, module: string): boolean {
+  return hasModulePermission(user, module, 'delete');
 }

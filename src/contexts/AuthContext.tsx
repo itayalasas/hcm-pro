@@ -1,15 +1,34 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase, Employee } from '../lib/supabase';
-import { getStoredAuthData, clearAuthData, isTokenExpired, ExternalAuthUser, ExternalAuthTenant } from '../lib/externalAuth';
+import {
+  getStoredAuthData,
+  clearAuthData,
+  isTokenExpired,
+  ExternalAuthUser,
+  ExternalAuthTenant,
+  hasModulePermission,
+  hasAnyPermission,
+  canRead,
+  canCreate,
+  canUpdate,
+  canDelete
+} from '../lib/externalAuth';
 
 interface AuthContextType {
   user: ExternalAuthUser | null;
   employee: Employee | null;
   tenant: ExternalAuthTenant | null;
+  hasAccess: boolean;
   loading: boolean;
   isAuthenticated: boolean;
   signOut: () => Promise<void>;
   refreshAuth: () => void;
+  hasModulePermission: (module: string, permission: string) => boolean;
+  hasAnyPermission: (module: string) => boolean;
+  canRead: (module: string) => boolean;
+  canCreate: (module: string) => boolean;
+  canUpdate: (module: string) => boolean;
+  canDelete: (module: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<ExternalAuthUser | null>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [tenant, setTenant] = useState<ExternalAuthTenant | null>(null);
+  const [hasAccess, setHasAccess] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,12 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setEmployee(null);
       setTenant(null);
+      setHasAccess(false);
       setLoading(false);
       return;
     }
 
     setUser(authData.user);
     setTenant(authData.tenant);
+    setHasAccess(authData.hasAccess);
 
     // Set current user in database session for RLS policies
     try {
@@ -87,13 +109,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setEmployee(null);
     setTenant(null);
+    setHasAccess(false);
     window.location.href = '/';
   };
 
   const isAuthenticated = !!user && !!getStoredAuthData().token && !isTokenExpired();
 
+  const checkModulePermission = (module: string, permission: string) => {
+    return hasModulePermission(user, module, permission);
+  };
+
+  const checkAnyPermission = (module: string) => {
+    return hasAnyPermission(user, module);
+  };
+
+  const checkCanRead = (module: string) => {
+    return canRead(user, module);
+  };
+
+  const checkCanCreate = (module: string) => {
+    return canCreate(user, module);
+  };
+
+  const checkCanUpdate = (module: string) => {
+    return canUpdate(user, module);
+  };
+
+  const checkCanDelete = (module: string) => {
+    return canDelete(user, module);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, employee, tenant, loading, isAuthenticated, signOut, refreshAuth }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        employee,
+        tenant,
+        hasAccess,
+        loading,
+        isAuthenticated,
+        signOut,
+        refreshAuth,
+        hasModulePermission: checkModulePermission,
+        hasAnyPermission: checkAnyPermission,
+        canRead: checkCanRead,
+        canCreate: checkCanCreate,
+        canUpdate: checkCanUpdate,
+        canDelete: checkCanDelete
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

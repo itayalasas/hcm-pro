@@ -13,11 +13,12 @@ interface LayoutProps {
 }
 
 const navigation = [
-  { name: 'Tablero', icon: LayoutDashboard, path: '/' },
+  { name: 'Tablero', icon: LayoutDashboard, path: '/', moduleKey: 'tablero' },
   {
     name: 'Organización',
     icon: Building2,
     path: '/organization',
+    moduleKey: 'organizacion',
     children: [
       { name: 'Empresas', path: '/organization/companies' },
       { name: 'Unidades de Negocio', path: '/organization/units' },
@@ -30,6 +31,7 @@ const navigation = [
     name: 'Empleados',
     icon: Users,
     path: '/employees',
+    moduleKey: 'empleados',
     children: [
       { name: 'Todos los Empleados', path: '/employees' },
       { name: 'Agregar Empleado', path: '/employees/new' },
@@ -40,6 +42,7 @@ const navigation = [
     name: 'Tiempo y Asistencia',
     icon: Calendar,
     path: '/time',
+    moduleKey: 'tiempo',
     children: [
       { name: 'Solicitudes de Ausencia', path: '/time/requests' },
       { name: 'Saldos de Ausencia', path: '/time/balances' },
@@ -51,6 +54,7 @@ const navigation = [
     name: 'Desempeño',
     icon: TrendingUp,
     path: '/performance',
+    moduleKey: 'desempeno',
     children: [
       { name: 'Evaluaciones', path: '/performance/evaluations' },
       { name: 'Ciclos de Evaluación', path: '/performance/cycles' },
@@ -62,6 +66,7 @@ const navigation = [
     name: 'Nómina',
     icon: DollarSign,
     path: '/payroll',
+    moduleKey: 'nomina',
     children: [
       { name: 'Períodos de Nómina', path: '/payroll/periods' },
       { name: 'Conceptos', path: '/payroll/concepts' },
@@ -73,6 +78,7 @@ const navigation = [
     name: 'Aprendizaje',
     icon: BookOpen,
     path: '/learning',
+    moduleKey: 'aprendizaje',
     children: [
       { name: 'Cursos', path: '/learning/courses' },
       { name: 'Certificaciones', path: '/learning/certifications' },
@@ -83,6 +89,7 @@ const navigation = [
     name: 'Documentación',
     icon: FileText,
     path: '/documents',
+    moduleKey: 'documentacion',
     children: [
       { name: 'Políticas', path: '/documents/policies' },
       { name: 'Procedimientos', path: '/documents/procedures' },
@@ -93,6 +100,7 @@ const navigation = [
     name: 'Configuración',
     icon: Settings,
     path: '/config',
+    moduleKey: 'configuracion',
     children: [
       { name: 'Datos Maestros', path: '/config/master-data' },
       { name: 'Flujos de Trabajo', path: '/config/workflows' },
@@ -103,12 +111,17 @@ const navigation = [
 ];
 
 export default function Layout({ children }: LayoutProps) {
-  const { user, employee, signOut } = useAuth();
+  const { user, employee, signOut, hasAnyPermission } = useAuth();
   const { navigateTo } = useNavigation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  const allowedNavigation = navigation.filter(item => {
+    if (!item.moduleKey) return true;
+    return hasAnyPermission(item.moduleKey);
+  });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -140,7 +153,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
 
           <nav className="flex-1 px-3 py-4 overflow-y-auto">
-            {navigation.map((item) => (
+            {allowedNavigation.map((item) => (
               <div key={item.name} className="mb-1">
                 {item.children ? (
                   <div>

@@ -127,41 +127,10 @@ export default function AuthCallback({ onSuccess }: AuthCallbackProps) {
             console.error('Error checking employee:', checkError);
           }
 
-          let employeeId = existingEmployee?.id;
-
-          if (!existingEmployee) {
-            const nameParts = user.name.split(' ');
-            const firstName = nameParts[0] || user.name;
-            const lastName = nameParts.slice(1).join(' ') || '';
-
-            const employeeNumber = `EMP-${Date.now().toString().slice(-6)}`;
-
-            const { data: newEmployee, error: employeeError } = await supabase
-              .from('employees')
-              .insert({
-                employee_number: employeeNumber,
-                company_id: company.id,
-                first_name: firstName,
-                last_name: lastName,
-                email: user.email,
-                status: 'active',
-                hire_date: new Date().toISOString().split('T')[0],
-                work_location: 'remote',
-              })
-              .select('id')
-              .single();
-
-            if (employeeError) {
-              console.error('Error creating employee:', employeeError);
-            } else {
-              employeeId = newEmployee?.id;
-            }
-          }
-
-          if (employeeId) {
+          if (existingEmployee) {
             const { error: updateError } = await supabase
               .from('app_users')
-              .update({ employee_id: employeeId })
+              .update({ employee_id: existingEmployee.id })
               .eq('email', user.email);
 
             if (updateError) {

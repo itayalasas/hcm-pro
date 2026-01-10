@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Users, RefreshCw, Plus, Trash2, Building2, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { Users, RefreshCw, Plus, Trash2, Building2, AlertCircle, CheckCircle, XCircle, UserCircle, Link } from 'lucide-react';
 import Button from '../ui/Button';
 import Modal from '../ui/Modal';
 
@@ -12,6 +12,9 @@ interface AppUser {
   permissions: string[];
   is_active: boolean;
   last_sync_at: string;
+  employee_id?: string;
+  employee_name?: string;
+  employee_number?: string;
   companies?: { id: string; legal_name: string; role: string }[];
 }
 
@@ -19,6 +22,15 @@ interface Company {
   id: string;
   legal_name: string;
   code: string;
+}
+
+interface Employee {
+  id: string;
+  employee_number: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  company_id: string;
 }
 
 interface SyncResult {
@@ -36,11 +48,13 @@ interface SyncResult {
 export default function UsersPanel() {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
@@ -59,7 +73,7 @@ export default function UsersPanel() {
   const loadData = async () => {
     setLoading(true);
     try {
-      await Promise.all([loadUsers(), loadCompanies()]);
+      await Promise.all([loadUsers(), loadCompanies(), loadEmployees()]);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -87,8 +101,21 @@ export default function UsersPanel() {
             .eq('user_id', user.id)
             .eq('active', true);
 
+          let employeeData = null;
+          if (user.employee_id) {
+            const { data: employee } = await supabase
+              .from('employees')
+              .select('employee_number, first_name, last_name')
+              .eq('id', user.employee_id)
+              .maybeSingle();
+
+            employeeData = employee;
+          }
+
           return {
             ...user,
+            employee_name: employeeData ? `${employeeData.first_name} ${employeeData.last_name}` : undefined,
+            employee_number: employeeData?.employee_number,
             companies: userCompanies?.map((uc: any) => ({
               id: uc.company.id,
               legal_name: uc.company.legal_name,
@@ -116,6 +143,21 @@ export default function UsersPanel() {
       setCompanies(data || []);
     } catch (error) {
       console.error('Error loading companies:', error);
+    }
+  };
+
+  const loadEmployees = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id, employee_number, first_name, last_name, email, company_id')
+        .eq('status', 'active')
+        .order('first_name');
+
+      if (error) throw error;
+      setEmployees(data || []);
+    } catch (error) {
+      console.error('Error loading employees:', error);
     }
   };
 
@@ -193,10 +235,23 @@ export default function UsersPanel() {
         return;
       }
 
+      if (selectedEmployeeId && (userRole === 'employee' || selectedUser.role.toLowerCase() === 'empleado')) {
+        const { error: employeeError } = await supabase
+          .from('app_users')
+          .update({ employee_id: selectedEmployeeId })
+          .eq('id', selectedUser.id);
+
+        if (employeeError) {
+          console.error('Error linking employee:', employeeError);
+          setToast({ message: 'Empresa asignada, pero hubo un error al vincular el empleado', type: 'warning' });
+        }
+      }
+
       setShowAssignModal(false);
       setSelectedUser(null);
       setSelectedCompanyId('');
-      setToast({ message: 'Empresa asignada exitosamente', type: 'success' });
+      setSelectedEmployeeId('');
+      setToast({ message: 'Asignación completada exitosamente', type: 'success' });
       loadUsers();
     } catch (error) {
       console.error('Error assigning company:', error);
@@ -284,7 +339,17 @@ export default function UsersPanel() {
                     )}
                   </div>
                   <p className="text-sm text-slate-600 mb-1">{user.email}</p>
-                  <p className="text-xs text-slate-500">
+                  {user.employee_id && user.employee_name && (
+                    <div className="flex items-center gap-2 mt-2 text-xs">
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 border border-blue-200 rounded">
+                        <Link className="w-3.5 h-3.5 text-blue-600" />
+                        <span className="text-blue-900 font-medium">
+                          Vinculado: {user.employee_name} ({user.employee_number})
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-xs text-slate-500 mt-2">
                     Última sincronización: {new Date(user.last_sync_at).toLocaleString('es-ES')}
                   </p>
                 </div>
@@ -346,6 +411,7 @@ export default function UsersPanel() {
           setShowAssignModal(false);
           setSelectedUser(null);
           setSelectedCompanyId('');
+          setSelectedEmployeeId('');
         }}
         title={`Asignar Empresa a ${selectedUser?.name}`}
       >
@@ -356,7 +422,10 @@ export default function UsersPanel() {
             </label>
             <select
               value={selectedCompanyId}
-              onChange={(e) => setSelectedCompanyId(e.target.value)}
+              onChange={(e) => {
+                setSelectedCompanyId(e.target.value);
+                setSelectedEmployeeId('');
+              }}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Seleccionar empresa...</option>
@@ -381,6 +450,38 @@ export default function UsersPanel() {
             </p>
           </div>
 
+          {(selectedUser?.role === 'employee' || selectedUser?.role === 'Empleado' || selectedUser?.role === 'Usuario') && selectedCompanyId && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Vincular con Empleado (Opcional)
+              </label>
+              <select
+                value={selectedEmployeeId}
+                onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Sin vincular...</option>
+                {employees
+                  .filter(emp => emp.company_id === selectedCompanyId)
+                  .map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {employee.first_name} {employee.last_name} ({employee.employee_number}) - {employee.email}
+                    </option>
+                  ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-500">
+                Si el usuario tiene rol de empleado, puedes vincularlo con un registro de empleado existente.
+                Esto conectará su perfil de usuario con sus datos de empleado.
+              </p>
+              {employees.filter(emp => emp.company_id === selectedCompanyId && emp.email === selectedUser?.email).length > 0 && (
+                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-900">
+                  <AlertCircle className="w-3.5 h-3.5 inline mr-1" />
+                  Se encontró un empleado con el mismo email
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-3 pt-4">
             <Button
               variant="outline"
@@ -388,6 +489,7 @@ export default function UsersPanel() {
                 setShowAssignModal(false);
                 setSelectedUser(null);
                 setSelectedCompanyId('');
+                setSelectedEmployeeId('');
               }}
               className="flex-1"
             >

@@ -100,6 +100,15 @@ function AppContent() {
     }
   }, [isEmployee, employeeCompanyId, employeeCompanyLoaded, companyLoading, autoLoadEmployeeCompany]);
 
+  useEffect(() => {
+    if (isEmployee && !employeeCompanyId && !loading && isAuthenticated) {
+      const timer = setTimeout(() => {
+        refreshAuth();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isEmployee, employeeCompanyId, loading, isAuthenticated, refreshAuth]);
+
   const handleCallbackSuccess = async () => {
     setIsCallback(false);
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -126,15 +135,6 @@ function AppContent() {
   if (!isAuthenticated) {
     return <LoginPage />;
   }
-
-  useEffect(() => {
-    if (isEmployee && !employeeCompanyId && !loading && isAuthenticated) {
-      const timer = setTimeout(() => {
-        refreshAuth();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [isEmployee, employeeCompanyId, loading, isAuthenticated]);
 
   if (isEmployee && !employeeCompanyId) {
     return (

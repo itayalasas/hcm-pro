@@ -98,6 +98,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data && data.company_id) {
         setEmployeeCompanyId(data.company_id);
+      } else {
+        const authData = getStoredAuthData();
+        const userRole = authData.user?.role?.toLowerCase() || '';
+        if (authData.user && (userRole === 'empleado' || userRole === 'employee')) {
+          const { data: appUserData } = await supabase
+            .from('app_users')
+            .select('id')
+            .eq('email', email)
+            .maybeSingle();
+
+          if (appUserData) {
+            const { data: userCompany } = await supabase
+              .from('user_companies')
+              .select('company_id')
+              .eq('user_id', appUserData.id)
+              .eq('active', true)
+              .maybeSingle();
+
+            if (userCompany && userCompany.company_id) {
+              setEmployeeCompanyId(userCompany.company_id);
+            }
+          }
+        }
       }
     } catch (error) {
       console.error('Error loading employee data:', error);

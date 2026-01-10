@@ -52,6 +52,7 @@ export default function UsersPanel() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showLinkEmployeeModal, setShowLinkEmployeeModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
@@ -278,6 +279,31 @@ export default function UsersPanel() {
     }
   };
 
+  const handleLinkEmployee = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const { error } = await supabase
+        .from('app_users')
+        .update({ employee_id: selectedEmployeeId || null })
+        .eq('id', selectedUser.id);
+
+      if (error) throw error;
+
+      setShowLinkEmployeeModal(false);
+      setSelectedUser(null);
+      setSelectedEmployeeId('');
+      setToast({
+        message: selectedEmployeeId ? 'Empleado vinculado exitosamente' : 'Empleado desvinculado exitosamente',
+        type: 'success'
+      });
+      loadUsers();
+    } catch (error) {
+      console.error('Error linking employee:', error);
+      setToast({ message: 'Error al vincular empleado', type: 'error' });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -353,16 +379,31 @@ export default function UsersPanel() {
                     Última sincronización: {new Date(user.last_sync_at).toLocaleString('es-ES')}
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSelectedUser(user);
-                    setShowAssignModal(true);
-                  }}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Asignar Empresa
-                </Button>
+                <div className="flex gap-2">
+                  {(user.role === 'Empleado' || user.role === 'employee' || user.role === 'Usuario') && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setSelectedEmployeeId(user.employee_id || '');
+                        setShowLinkEmployeeModal(true);
+                      }}
+                    >
+                      <UserCircle className="w-4 h-4 mr-2" />
+                      {user.employee_id ? 'Cambiar' : 'Vincular'} Empleado
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedUser(user);
+                      setShowAssignModal(true);
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Asignar Empresa
+                  </Button>
+                </div>
               </div>
 
               {user.companies && user.companies.length > 0 ? (
@@ -497,6 +538,79 @@ export default function UsersPanel() {
             </Button>
             <Button onClick={handleAssignCompany} className="flex-1">
               Asignar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showLinkEmployeeModal}
+        onClose={() => {
+          setShowLinkEmployeeModal(false);
+          setSelectedUser(null);
+          setSelectedEmployeeId('');
+        }}
+        title={`Vincular Empleado - ${selectedUser?.name}`}
+      >
+        <div className="space-y-4">
+          {selectedUser?.employee_id && selectedUser.employee_name && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-900">
+                <strong>Vinculación actual:</strong> {selectedUser.employee_name} ({selectedUser.employee_number})
+              </p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Seleccionar Empleado
+            </label>
+            <select
+              value={selectedEmployeeId}
+              onChange={(e) => setSelectedEmployeeId(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Sin vincular (desvincular)</option>
+              {employees.map((employee) => {
+                const company = companies.find(c => c.id === employee.company_id);
+                return (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.first_name} {employee.last_name} ({employee.employee_number}) - {company?.legal_name || 'Sin empresa'}
+                  </option>
+                );
+              })}
+            </select>
+            <p className="mt-2 text-xs text-slate-500">
+              Selecciona un empleado para vincular este usuario a su perfil de empleado.
+              Esto permite que el usuario acceda a su información personal y recibos de nómina.
+            </p>
+          </div>
+
+          {selectedUser?.email && employees.filter(emp => emp.email === selectedUser.email).length > 0 && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-900">
+                  <strong>Sugerencia:</strong> Se encontraron {employees.filter(emp => emp.email === selectedUser.email).length} empleado(s) con el mismo email
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowLinkEmployeeModal(false);
+                setSelectedUser(null);
+                setSelectedEmployeeId('');
+              }}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleLinkEmployee} className="flex-1">
+              {selectedEmployeeId ? 'Vincular' : 'Desvincular'}
             </Button>
           </div>
         </div>

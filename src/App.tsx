@@ -79,7 +79,7 @@ function LoginPage() {
 }
 
 function AppContent() {
-  const { user, loading, isAuthenticated, refreshAuth, isEmployee, employeeCompanyId } = useAuth();
+  const { user, loading, isAuthenticated, refreshAuth, isEmployee, employeeCompanyId, signOut } = useAuth();
   const { currentView } = useNavigation();
   const { selectedCompanyId, selectCompany, loading: companyLoading, autoLoadEmployeeCompany } = useCompany();
   const [isCallback, setIsCallback] = useState(false);
@@ -139,12 +139,20 @@ function AppContent() {
             <p className="text-slate-600 mb-6">
               Tu cuenta de empleado no tiene una empresa asignada. Por favor, contacta al administrador del sistema para que te asigne a una empresa.
             </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Intentar de nuevo
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Intentar de nuevo
+              </button>
+              <button
+                onClick={signOut}
+                className="w-full py-2 px-4 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
+              >
+                Cerrar Sesión
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -59,59 +59,118 @@ export default function AuthCallback({ onSuccess }: AuthCallbackProps) {
 
       const { user, tenant } = authResponse.data;
 
-      const { data: existingEmployee, error: checkError } = await supabase
-        .from('employees')
+      const { data: existingAppUser } = await supabase
+        .from('app_users')
         .select('id')
         .eq('email', user.email)
         .maybeSingle();
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
+      if (!existingAppUser) {
+        const { error: appUserError } = await supabase
+          .from('app_users')
+          .insert({
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            active: true,
+          });
+
+        if (appUserError) {
+          console.error('Error creating app user:', appUserError);
+        }
       }
 
-      if (!existingEmployee) {
-        const nameParts = user.name.split(' ');
-        const firstName = nameParts[0] || user.name;
-        const lastName = nameParts.slice(1).join(' ') || '';
+      let { data: company } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('legal_name', tenant.organization_name)
+        .maybeSingle();
 
-        let { data: company } = await supabase
+      if (!company) {
+        const { data: newCompany, error: companyError } = await supabase
           .from('companies')
+          .insert({
+            code: tenant.id.substring(0, 10).toUpperCase(),
+            legal_name: tenant.organization_name,
+            trade_name: tenant.name,
+            tax_id: tenant.id,
+            email: tenant.owner_email,
+            active: true,
+          })
+          .select()
+          .single();
+
+        if (companyError) {
+          console.error('Error creating company:', companyError);
+          throw companyError;
+        }
+        company = newCompany;
+      }
+
+      if (user.role.toLowerCase() === 'empleado' || user.role.toLowerCase() === 'employee') {
+        const { data: existingEmployee, error: checkError } = await supabase
+          .from('employees')
           .select('id')
-          .eq('legal_name', tenant.organization_name)
+          .eq('email', user.email)
           .maybeSingle();
 
-        if (!company) {
-          const { data: newCompany, error: companyError } = await supabase
-            .from('companies')
-            .insert({
-              code: tenant.id.substring(0, 10).toUpperCase(),
-              legal_name: tenant.organization_name,
-              trade_name: tenant.name,
-              tax_id: tenant.id,
-              email: tenant.owner_email,
-              active: true,
-            })
-            .select()
-            .single();
-
-          if (companyError) throw companyError;
-          company = newCompany;
+        if (checkError && checkError.code !== 'PGRST116') {
+          console.error('Error checking employee:', checkError);
         }
 
-        const employeeNumber = `EMP-${Date.now().toString().slice(-6)}`;
+        if (!existingEmployee) {
+          const nameParts = user.name.split(' ');
+          const firstName = nameParts[0] || user.name;
+          const lastName = nameParts.slice(1).join(' ') || '';
 
-        const { error: employeeError } = await supabase.from('employees').insert({
-          employee_number: employeeNumber,
-          company_id: company.id,
-          first_name: firstName,
-          last_name: lastName,
-          email: user.email,
-          status: 'active',
-          hire_date: new Date().toISOString().split('T')[0],
-          work_location: 'remote',
-        });
+          const employeeNumber = `EMP-${Date.now().toString().slice(-6)}`;
 
-        if (employeeError) throw employeeError;
+          const { error: employeeError } = await supabase.from('employees').insert({
+            employee_number: employeeNumber,
+            company_id: company.id,
+            first_name: firstName,
+            last_name: lastName,
+            email: user.email,
+            status: 'active',
+            hire_date: new Date().toISOString().split('T')[0],
+            work_location: 'remote',
+          });
+
+          if (employeeError) {
+            console.error('Error creating employee:', employeeError);
+            throw employeeError;
+          }
+        }
+      } else {
+        const { data: appUserData } = await supabase
+          .from('app_users')
+          .select('id')
+          .eq('email', user.email)
+          .maybeSingle();
+
+        if (appUserData && company) {
+          const { data: existingUserCompany } = await supabase
+            .from('user_companies')
+            .select('id')
+            .eq('user_id', appUserData.id)
+            .eq('company_id', company.id)
+            .maybeSingle();
+
+          if (!existingUserCompany) {
+            const { error: userCompanyError } = await supabase
+              .from('user_companies')
+              .insert({
+                user_id: appUserData.id,
+                company_id: company.id,
+                role: user.role,
+                active: true,
+              });
+
+            if (userCompanyError) {
+              console.error('Error creating user-company relationship:', userCompanyError);
+            }
+          }
+        }
       }
 
       setStatus('success');

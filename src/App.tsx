@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NavigationProvider, useNavigation } from './contexts/NavigationContext';
 import { CompanyProvider, useCompany } from './contexts/CompanyContext';
+import { PermissionsProvider } from './contexts/PermissionsContext';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import EmployeeDashboard from './components/EmployeeDashboard';
@@ -265,9 +266,11 @@ function App() {
   return (
     <AuthProvider>
       <CompanyProvider>
-        <NavigationProvider>
-          <AppContent />
-        </NavigationProvider>
+        <PermissionsProvider>
+          <NavigationProvider>
+            <AppContent />
+          </NavigationProvider>
+        </PermissionsProvider>
       </CompanyProvider>
     </AuthProvider>
   );

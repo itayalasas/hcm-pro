@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Plus, Trash2, FileText } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Plus, Trash2, FileText, Shield } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermissions } from '../../contexts/PermissionsContext';
 import { useToast } from '../../hooks/useToast';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
@@ -59,6 +60,7 @@ interface VacationBalance {
 export default function LeaveRequests() {
   const { selectedCompanyId } = useCompany();
   const { user, employee, isEmployee } = useAuth();
+  const { hasPermission, canApproveLeaveRequest } = usePermissions();
   const { showToast } = useToast();
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -346,11 +348,19 @@ export default function LeaveRequests() {
 
   const handleApprove = async (requestId: string) => {
     try {
+      const approvalCheck = await canApproveLeaveRequest(requestId);
+
+      if (!approvalCheck.canApprove) {
+        showToast(approvalCheck.reason, 'error');
+        return;
+      }
+
       const { error } = await supabase
         .from('leave_requests')
         .update({
           status: 'approved',
-          approval_date: new Date().toISOString()
+          approval_date: new Date().toISOString(),
+          approved_by: user?.id
         })
         .eq('id', requestId);
 
@@ -372,11 +382,19 @@ export default function LeaveRequests() {
 
   const handleReject = async (requestId: string) => {
     try {
+      const approvalCheck = await canApproveLeaveRequest(requestId);
+
+      if (!approvalCheck.canApprove) {
+        showToast(approvalCheck.reason, 'error');
+        return;
+      }
+
       const { error } = await supabase
         .from('leave_requests')
         .update({
           status: 'rejected',
-          approval_date: new Date().toISOString()
+          approval_date: new Date().toISOString(),
+          approved_by: user?.id
         })
         .eq('id', requestId);
 
@@ -495,10 +513,12 @@ export default function LeaveRequests() {
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Solicitudes de Ausencia</h1>
           <p className="text-slate-600">Gestiona las solicitudes de tiempo libre del equipo</p>
         </div>
-        <Button onClick={handleOpenModal}>
-          <Plus className="w-5 h-5 mr-2" />
-          Nueva Solicitud
-        </Button>
+        {(hasPermission('attendance', 'create_own') || hasPermission('attendance', 'approve_all')) && (
+          <Button onClick={handleOpenModal}>
+            <Plus className="w-5 h-5 mr-2" />
+            Nueva Solicitud
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
@@ -609,7 +629,7 @@ export default function LeaveRequests() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex gap-2">
-                        {request.status === 'pending' && (
+                        {request.status === 'pending' && (hasPermission('attendance', 'approve_team') || hasPermission('attendance', 'approve_all')) && (
                           <>
                             <button
                               onClick={() => handleApprove(request.id)}
@@ -627,16 +647,18 @@ export default function LeaveRequests() {
                             </button>
                           </>
                         )}
-                        <button
-                          onClick={() => {
-                            setRequestToDelete(request.id);
-                            setShowDeleteConfirm(true);
-                          }}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {(hasPermission('attendance', 'delete') || request.employee_id === currentUserEmployeeId) && (
+                          <button
+                            onClick={() => {
+                              setRequestToDelete(request.id);
+                              setShowDeleteConfirm(true);
+                            }}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

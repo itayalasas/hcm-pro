@@ -147,14 +147,21 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        message: `Error en sincronización: ${error.message}`,
+        stats: {
+          total: 0,
+          synced: 0,
+          updated: 0,
+          errors: 1,
+        },
+        errors: [error.message],
       }),
       {
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
-        status: 500,
+        status: 200,
       }
     );
   }

@@ -410,38 +410,38 @@ export default function UsersPanel() {
         {syncResult && (
           <div className="space-y-4">
             <div className={`p-4 rounded-lg border-2 ${
-              syncResult.success && syncResult.stats.errors === 0
+              syncResult.success && syncResult.stats?.errors === 0
                 ? 'bg-green-50 border-green-200'
-                : syncResult.stats.errors > 0
+                : (syncResult.stats?.errors || 0) > 0
                 ? 'bg-amber-50 border-amber-200'
                 : 'bg-red-50 border-red-200'
             }`}>
               <div className="flex items-start gap-3">
-                {syncResult.success && syncResult.stats.errors === 0 ? (
+                {syncResult.success && (syncResult.stats?.errors || 0) === 0 ? (
                   <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
-                ) : syncResult.stats.errors > 0 ? (
+                ) : (syncResult.stats?.errors || 0) > 0 ? (
                   <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0" />
                 ) : (
                   <XCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
                 )}
                 <div className="flex-1">
                   <h3 className={`font-semibold mb-1 ${
-                    syncResult.success && syncResult.stats.errors === 0
+                    syncResult.success && (syncResult.stats?.errors || 0) === 0
                       ? 'text-green-900'
-                      : syncResult.stats.errors > 0
+                      : (syncResult.stats?.errors || 0) > 0
                       ? 'text-amber-900'
                       : 'text-red-900'
                   }`}>
-                    {syncResult.success && syncResult.stats.errors === 0
+                    {syncResult.success && (syncResult.stats?.errors || 0) === 0
                       ? 'Sincronización Completada'
-                      : syncResult.stats.errors > 0
+                      : (syncResult.stats?.errors || 0) > 0
                       ? 'Sincronización Completada con Advertencias'
                       : 'Error en Sincronización'}
                   </h3>
                   <p className={`text-sm ${
-                    syncResult.success && syncResult.stats.errors === 0
+                    syncResult.success && (syncResult.stats?.errors || 0) === 0
                       ? 'text-green-700'
-                      : syncResult.stats.errors > 0
+                      : (syncResult.stats?.errors || 0) > 0
                       ? 'text-amber-700'
                       : 'text-red-700'
                   }`}>
@@ -454,19 +454,19 @@ export default function UsersPanel() {
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
                 <p className="text-xs text-slate-500 uppercase font-medium mb-1">Total Procesados</p>
-                <p className="text-2xl font-bold text-slate-900">{syncResult.stats.total}</p>
+                <p className="text-2xl font-bold text-slate-900">{syncResult.stats?.total || 0}</p>
               </div>
               <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                 <p className="text-xs text-green-600 uppercase font-medium mb-1">Nuevos</p>
-                <p className="text-2xl font-bold text-green-700">{syncResult.stats.synced}</p>
+                <p className="text-2xl font-bold text-green-700">{syncResult.stats?.synced || 0}</p>
               </div>
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <p className="text-xs text-blue-600 uppercase font-medium mb-1">Actualizados</p>
-                <p className="text-2xl font-bold text-blue-700">{syncResult.stats.updated}</p>
+                <p className="text-2xl font-bold text-blue-700">{syncResult.stats?.updated || 0}</p>
               </div>
               <div className="p-4 bg-red-50 rounded-lg border border-red-200">
                 <p className="text-xs text-red-600 uppercase font-medium mb-1">Errores</p>
-                <p className="text-2xl font-bold text-red-700">{syncResult.stats.errors}</p>
+                <p className="text-2xl font-bold text-red-700">{syncResult.stats?.errors || 0}</p>
               </div>
             </div>
 

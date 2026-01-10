@@ -52,10 +52,24 @@ Deno.serve(async (req: Request) => {
     });
 
     if (!response.ok) {
-      throw new Error(`External API error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText.substring(0, 500));
+      throw new Error(`External API error: ${response.status} ${response.statusText}`);
     }
 
-    const data: ExternalAPIResponse = await response.json();
+    const responseText = await response.text();
+    console.log('API Response (first 200 chars):', responseText.substring(0, 200));
+
+    if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+      throw new Error('La API externa devolvió HTML en lugar de JSON. Verifica que la URL sea correcta y que el endpoint exista.');
+    }
+
+    let data: ExternalAPIResponse;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      throw new Error(`La respuesta de la API no es JSON válido: ${parseError.message}`);
+    }
 
     if (!data.success || !data.users) {
       throw new Error('Invalid response from external API');

@@ -2,7 +2,7 @@ import { ReactNode, useState, useRef, useEffect } from 'react';
 import {
   LayoutDashboard, Users, Building2, Calendar, TrendingUp,
   FileText, DollarSign, Settings, LogOut, Menu, X, ChevronDown,
-  Award, BookOpen, FolderTree, User
+  Award, BookOpen, FolderTree, User, Receipt
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '../contexts/NavigationContext';
@@ -73,6 +73,12 @@ const navigation = [
       { name: 'Fórmulas', path: '/payroll/formulas' },
       { name: 'Reportes', path: '/payroll/reports' },
     ]
+  },
+  {
+    name: 'Mis Nóminas',
+    icon: Receipt,
+    path: '/my-payroll',
+    moduleKey: 'mis-nominas'
   },
   {
     name: 'Aprendizaje',

@@ -17,6 +17,7 @@ import PayrollPeriods from './components/payroll/PayrollPeriods';
 import PayrollConcepts from './components/payroll/PayrollConcepts';
 import PayrollFormulas from './components/payroll/PayrollFormulas';
 import PayrollReports from './components/payroll/PayrollReports';
+import MyPayroll from './components/payroll/MyPayroll';
 import Companies from './components/organization/Companies';
 import BusinessUnits from './components/organization/BusinessUnits';
 import Positions from './components/organization/Positions';
@@ -217,6 +218,8 @@ function AppContent() {
         return <PayrollFormulas />;
       case '/payroll/reports':
         return <PayrollReports />;
+      case '/my-payroll':
+        return <MyPayroll />;
       case '/organization/companies':
         return <Companies />;
       case '/organization/units':

@@ -34,7 +34,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
     try {
       setLoading(true);
-      const modules = ['employees', 'attendance', 'payroll', 'organization', 'performance', 'learning', 'documents', 'settings'];
+      const modules = ['employees', 'attendance', 'payroll', 'my_payroll', 'organization', 'performance', 'learning', 'documents', 'settings'];
       const newPermissions = new Map<string, Permission[]>();
 
       for (const moduleCode of modules) {

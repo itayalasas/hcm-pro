@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Plus, Trash2, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCompany } from '../../contexts/CompanyContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../hooks/useToast';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
@@ -57,6 +58,7 @@ interface VacationBalance {
 
 export default function LeaveRequests() {
   const { selectedCompanyId } = useCompany();
+  const { user, employee, isEmployee } = useAuth();
   const { showToast } = useToast();
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +73,7 @@ export default function LeaveRequests() {
   const [submitting, setSubmitting] = useState(false);
   const [calculatedDays, setCalculatedDays] = useState(0);
   const [calculatingDays, setCalculatingDays] = useState(false);
+  const [currentUserEmployeeId, setCurrentUserEmployeeId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     employee_id: '',
@@ -81,12 +84,43 @@ export default function LeaveRequests() {
   });
 
   useEffect(() => {
+    if (user?.email) {
+      loadCurrentUserEmployee();
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (selectedCompanyId) {
       loadLeaveRequests();
       loadLeaveTypes();
       loadEmployees();
     }
-  }, [selectedCompanyId]);
+  }, [selectedCompanyId, currentUserEmployeeId]);
+
+  const loadCurrentUserEmployee = async () => {
+    if (!user?.email) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('app_users')
+        .select('employee_id')
+        .eq('email', user.email)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error loading user employee:', error);
+        return;
+      }
+
+      if (data?.employee_id) {
+        setCurrentUserEmployeeId(data.employee_id);
+      } else if (employee?.id) {
+        setCurrentUserEmployeeId(employee.id);
+      }
+    } catch (error) {
+      console.error('Error loading user employee:', error);
+    }
+  };
 
   useEffect(() => {
     if (formData.employee_id && formData.leave_type_id) {
@@ -118,15 +152,22 @@ export default function LeaveRequests() {
   const loadLeaveRequests = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('leave_requests')
         .select(`
           *,
           employee:employees!leave_requests_employee_id_fkey(first_name, last_name, employee_number),
           leave_type:leave_types(name, code)
         `)
-        .eq('company_id', selectedCompanyId)
-        .order('created_at', { ascending: false });
+        .eq('company_id', selectedCompanyId);
+
+      if (isEmployee && currentUserEmployeeId) {
+        query = query.eq('employee_id', currentUserEmployeeId);
+      }
+
+      query = query.order('created_at', { ascending: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setRequests(data || []);
@@ -168,6 +209,13 @@ export default function LeaveRequests() {
     } catch (error) {
       console.error('Error loading employees:', error);
     }
+  };
+
+  const handleOpenModal = () => {
+    if (isEmployee && currentUserEmployeeId) {
+      setFormData(prev => ({ ...prev, employee_id: currentUserEmployeeId }));
+    }
+    setShowModal(true);
   };
 
   const loadVacationBalance = async (employeeId: string) => {
@@ -447,7 +495,7 @@ export default function LeaveRequests() {
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Solicitudes de Ausencia</h1>
           <p className="text-slate-600">Gestiona las solicitudes de tiempo libre del equipo</p>
         </div>
-        <Button onClick={() => setShowModal(true)}>
+        <Button onClick={handleOpenModal}>
           <Plus className="w-5 h-5 mr-2" />
           Nueva Solicitud
         </Button>
@@ -600,7 +648,7 @@ export default function LeaveRequests() {
           <div className="text-center py-12">
             <Calendar className="w-12 h-12 text-slate-400 mx-auto mb-3" />
             <p className="text-slate-500 mb-4">No se encontraron solicitudes</p>
-            <Button onClick={() => setShowModal(true)}>
+            <Button onClick={handleOpenModal}>
               <Plus className="w-5 h-5 mr-2" />
               Crear Primera Solicitud
             </Button>
@@ -621,6 +669,7 @@ export default function LeaveRequests() {
             onChange={(value) => setFormData({ ...formData, employee_id: value })}
             placeholder="Buscar por nombre o número de empleado..."
             required
+            disabled={isEmployee && !!currentUserEmployeeId}
           />
 
           <Autocomplete

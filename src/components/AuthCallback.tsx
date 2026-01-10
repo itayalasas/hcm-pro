@@ -80,65 +80,74 @@ export default function AuthCallback({ onSuccess }: AuthCallbackProps) {
         }
       }
 
-      let { data: company } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('legal_name', tenant.organization_name)
-        .maybeSingle();
+      let company = null;
 
-      if (!company) {
-        const { data: newCompany, error: companyError } = await supabase
+      if (tenant && tenant.organization_name) {
+        const { data: existingCompany } = await supabase
           .from('companies')
-          .insert({
-            code: tenant.id.substring(0, 10).toUpperCase(),
-            legal_name: tenant.organization_name,
-            trade_name: tenant.name,
-            tax_id: tenant.id,
-            email: tenant.owner_email,
-            active: true,
-          })
-          .select()
-          .single();
+          .select('id')
+          .eq('legal_name', tenant.organization_name)
+          .maybeSingle();
 
-        if (companyError) {
-          console.error('Error creating company:', companyError);
-          throw companyError;
+        company = existingCompany;
+
+        if (!company) {
+          const companyCode = tenant.id ? tenant.id.substring(0, 10).toUpperCase() : `COMP-${Date.now().toString().slice(-6)}`;
+
+          const { data: newCompany, error: companyError } = await supabase
+            .from('companies')
+            .insert({
+              code: companyCode,
+              legal_name: tenant.organization_name,
+              trade_name: tenant.name || tenant.organization_name,
+              tax_id: tenant.id || companyCode,
+              email: tenant.owner_email || user.email,
+              active: true,
+            })
+            .select()
+            .single();
+
+          if (companyError) {
+            console.error('Error creating company:', companyError);
+          } else {
+            company = newCompany;
+          }
         }
-        company = newCompany;
       }
 
       if (user.role.toLowerCase() === 'empleado' || user.role.toLowerCase() === 'employee') {
-        const { data: existingEmployee, error: checkError } = await supabase
-          .from('employees')
-          .select('id')
-          .eq('email', user.email)
-          .maybeSingle();
+        if (company) {
+          const { data: existingEmployee, error: checkError } = await supabase
+            .from('employees')
+            .select('id')
+            .eq('email', user.email)
+            .maybeSingle();
 
-        if (checkError && checkError.code !== 'PGRST116') {
-          console.error('Error checking employee:', checkError);
-        }
+          if (checkError && checkError.code !== 'PGRST116') {
+            console.error('Error checking employee:', checkError);
+          }
 
-        if (!existingEmployee) {
-          const nameParts = user.name.split(' ');
-          const firstName = nameParts[0] || user.name;
-          const lastName = nameParts.slice(1).join(' ') || '';
+          if (!existingEmployee) {
+            const nameParts = user.name.split(' ');
+            const firstName = nameParts[0] || user.name;
+            const lastName = nameParts.slice(1).join(' ') || '';
 
-          const employeeNumber = `EMP-${Date.now().toString().slice(-6)}`;
+            const employeeNumber = `EMP-${Date.now().toString().slice(-6)}`;
 
-          const { error: employeeError } = await supabase.from('employees').insert({
-            employee_number: employeeNumber,
-            company_id: company.id,
-            first_name: firstName,
-            last_name: lastName,
-            email: user.email,
-            status: 'active',
-            hire_date: new Date().toISOString().split('T')[0],
-            work_location: 'remote',
-          });
+            const { error: employeeError } = await supabase.from('employees').insert({
+              employee_number: employeeNumber,
+              company_id: company.id,
+              first_name: firstName,
+              last_name: lastName,
+              email: user.email,
+              status: 'active',
+              hire_date: new Date().toISOString().split('T')[0],
+              work_location: 'remote',
+            });
 
-          if (employeeError) {
-            console.error('Error creating employee:', employeeError);
-            throw employeeError;
+            if (employeeError) {
+              console.error('Error creating employee:', employeeError);
+            }
           }
         }
       } else {

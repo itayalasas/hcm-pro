@@ -32,23 +32,27 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const authBaseUrl = Deno.env.get('VITE_AUTH_URL') || 'http://auth.emplysys.com';
-    const authApiKey = Deno.env.get('VITE_AUTH_API_KEY')!;
+    const authApiUrl = Deno.env.get('AUTH_API_URL')!;
     const authAppId = Deno.env.get('VITE_AUTH_APP_ID')!;
-
-    const authApiUrl = `${authBaseUrl}/api/users`;
+    const authApiKey = Deno.env.get('AUTH_API_KEY');
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log('Fetching users from external API:', authApiUrl);
+    console.log('Using App ID:', authAppId);
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Application-ID': authAppId,
+    };
+
+    if (authApiKey) {
+      headers['X-API-Key'] = authApiKey;
+    }
 
     const response = await fetch(authApiUrl, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Application-ID': authAppId,
-        'X-API-Key': authApiKey,
-      },
+      headers,
     });
 
     if (!response.ok) {

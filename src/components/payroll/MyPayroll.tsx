@@ -340,7 +340,7 @@ export default function MyPayroll() {
               )}
 
               <div className="flex gap-2">
-                {hasPermission('my_payroll', 'view_own') && (
+                {hasPermission('misnominas', 'view_own') && (
                   <Button
                     variant="outline"
                     onClick={() => handleViewDetail(payroll)}
@@ -350,7 +350,7 @@ export default function MyPayroll() {
                   </Button>
                 )}
 
-                {hasPermission('my_payroll', 'download') && (
+                {hasPermission('misnominas', 'download') && (
                   <Button
                     variant="outline"
                     onClick={() => handleDownload(payroll)}
@@ -360,7 +360,7 @@ export default function MyPayroll() {
                   </Button>
                 )}
 
-                {hasPermission('my_payroll', 'confirm') && !payroll.employee_confirmed && payroll.period?.status === 'approved' && (
+                {hasPermission('misnominas', 'confirm') && !payroll.employee_confirmed && payroll.period?.status === 'approved' && (
                   <Button
                     onClick={() => {
                       setSelectedPayroll(payroll);

@@ -78,7 +78,7 @@ const navigation = [
     name: 'Mis Nóminas',
     icon: Receipt,
     path: '/my-payroll',
-    moduleKey: 'mis-nominas'
+    moduleKey: 'misnominas'
   },
   {
     name: 'Aprendizaje',

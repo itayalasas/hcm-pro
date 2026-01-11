@@ -26,7 +26,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadPermissions = async () => {
-    if (!user || !currentCompany) {
+    if (!user) {
       setPermissions(new Map());
       setLoading(false);
       return;
@@ -34,19 +34,18 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
     try {
       setLoading(true);
-      const modules = ['employees', 'attendance', 'payroll', 'misnominas', 'organization', 'performance', 'learning', 'documents', 'settings'];
       const newPermissions = new Map<string, Permission[]>();
 
-      for (const moduleCode of modules) {
-        const { data, error } = await supabase
-          .rpc('get_user_permissions', {
-            p_user_id: user.id,
-            p_company_id: currentCompany.id,
-            p_module_code: moduleCode
-          });
-
-        if (!error && data) {
-          newPermissions.set(moduleCode, data);
+      if (user.permissions && typeof user.permissions === 'object') {
+        for (const [moduleCode, perms] of Object.entries(user.permissions)) {
+          if (Array.isArray(perms)) {
+            const permissionsList: Permission[] = perms.map(p => ({
+              permission_code: p,
+              permission_name: p,
+              granted: true
+            }));
+            newPermissions.set(moduleCode, permissionsList);
+          }
         }
       }
 

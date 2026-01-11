@@ -36,7 +36,7 @@ interface LeaveRequest {
   id: string;
   start_date: string;
   end_date: string;
-  days_requested: number;
+  total_days: number;
   status: string;
   leave_type: {
     name: string;
@@ -98,7 +98,7 @@ export default function EmployeeDashboard() {
               id,
               start_date,
               end_date,
-              days_requested,
+              total_days,
               status,
               leave_type:leave_types(name)
             `)
@@ -263,7 +263,7 @@ export default function EmployeeDashboard() {
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
-                        {request.days_requested} {request.days_requested === 1 ? 'día' : 'días'}
+                        {request.total_days} {request.total_days === 1 ? 'día' : 'días'}
                       </span>
                     </div>
                   </div>

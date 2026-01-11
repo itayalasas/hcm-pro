@@ -84,31 +84,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadEmployeeData = async (email: string) => {
     try {
-      const { data, error } = await supabase
-        .from('employees')
-        .select('*')
+      const { data: appUserData } = await supabase
+        .from('app_users')
+        .select(`
+          id,
+          employee_id,
+          employee:employees(*)
+        `)
         .eq('email', email)
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      setEmployee(data);
-
-      if (data && data.company_id) {
-        setEmployeeCompanyId(data.company_id);
+      if (appUserData?.employee) {
+        setEmployee(appUserData.employee as Employee);
+        if (appUserData.employee.company_id) {
+          setEmployeeCompanyId(appUserData.employee.company_id);
+        }
       } else {
-        const authData = getStoredAuthData();
-        const userRole = authData.user?.role?.toLowerCase() || '';
-        if (authData.user && (userRole === 'empleado' || userRole === 'employee')) {
-          const { data: appUserData } = await supabase
-            .from('app_users')
-            .select('id')
-            .eq('email', email)
-            .maybeSingle();
+        const { data: employeeData } = await supabase
+          .from('employees')
+          .select('*')
+          .eq('email', email)
+          .maybeSingle();
 
-          if (appUserData) {
+        if (employeeData) {
+          setEmployee(employeeData);
+          if (employeeData.company_id) {
+            setEmployeeCompanyId(employeeData.company_id);
+          }
+        } else {
+          const authData = getStoredAuthData();
+          const userRole = authData.user?.role?.toLowerCase() || '';
+          if (authData.user && (userRole === 'empleado' || userRole === 'employee') && appUserData) {
             const { data: userCompany } = await supabase
               .from('user_companies')
               .select('company_id')

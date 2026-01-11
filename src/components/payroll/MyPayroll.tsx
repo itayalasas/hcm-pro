@@ -76,8 +76,10 @@ export default function MyPayroll() {
   useEffect(() => {
     if (employee?.id && selectedCompanyId) {
       loadPayrolls();
+    } else if (user && selectedCompanyId) {
+      setLoading(false);
     }
-  }, [employee, selectedCompanyId, selectedYear, selectedMonth]);
+  }, [user, employee, selectedCompanyId, selectedYear, selectedMonth]);
 
   const loadPayrolls = async () => {
     if (!employee?.id) return;
@@ -238,6 +240,23 @@ export default function MyPayroll() {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!employee?.id) {
+    return (
+      <div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Mis Nóminas</h1>
+          <p className="text-slate-600">Consulta y confirma tus recibos de nómina</p>
+        </div>
+        <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
+          <AlertCircle className="w-12 h-12 text-amber-400 mx-auto mb-3" />
+          <p className="text-slate-900 font-semibold mb-2">Acceso No Disponible</p>
+          <p className="text-slate-500">Este módulo está disponible solo para usuarios registrados como empleados.</p>
+          <p className="text-sm text-slate-400 mt-2">Contacta a tu administrador si crees que deberías tener acceso.</p>
+        </div>
       </div>
     );
   }

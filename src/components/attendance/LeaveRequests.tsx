@@ -230,7 +230,10 @@ export default function LeaveRequests() {
     }
 
     try {
-      console.log('Loading subordinate requests for manager:', employee.id);
+      console.log('=== Loading Subordinate Requests ===');
+      console.log('Manager Employee ID:', employee.id);
+      console.log('Selected Company ID:', selectedCompanyId);
+
       const { data, error } = await supabase
         .rpc('get_subordinate_leave_requests', {
           p_manager_employee_id: employee.id,
@@ -239,10 +242,16 @@ export default function LeaveRequests() {
 
       if (error) {
         console.error('Error loading subordinate requests:', error);
+        setSubordinateRequests([]);
         return;
       }
 
-      console.log('Subordinate requests loaded:', data?.length || 0);
+      console.log('Raw RPC response:', data);
+      console.log('Subordinate requests count:', data?.length || 0);
+
+      if (data && data.length > 0) {
+        console.log('First subordinate request sample:', data[0]);
+      }
 
       const formattedRequests = (data || []).map((item: any) => ({
         id: item.id,

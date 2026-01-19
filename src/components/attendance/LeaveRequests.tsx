@@ -63,6 +63,7 @@ export default function LeaveRequests() {
   const { hasPermission, canApproveLeaveRequest } = usePermissions();
   const { showToast } = useToast();
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
+  const [subordinateRequests, setSubordinateRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
@@ -70,6 +71,7 @@ export default function LeaveRequests() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [viewMode, setViewMode] = useState<'my' | 'team'>('my');
   const [vacationBalance, setVacationBalance] = useState<VacationBalance | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -94,6 +96,7 @@ export default function LeaveRequests() {
   useEffect(() => {
     if (selectedCompanyId) {
       loadLeaveRequests();
+      loadSubordinateRequests();
       loadLeaveTypes();
       loadEmployees();
     }
@@ -178,6 +181,54 @@ export default function LeaveRequests() {
       showToast('Error al cargar solicitudes', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSubordinateRequests = async () => {
+    if (!employee?.id) {
+      setSubordinateRequests([]);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .rpc('get_subordinate_leave_requests', {
+          p_manager_employee_id: employee.id,
+          p_status: null
+        });
+
+      if (error) {
+        console.error('Error loading subordinate requests:', error);
+        return;
+      }
+
+      const formattedRequests = (data || []).map((item: any) => ({
+        id: item.id,
+        employee_id: item.employee_id,
+        leave_type_id: item.leave_type_id,
+        start_date: item.start_date,
+        end_date: item.end_date,
+        total_days: item.total_days,
+        reason: item.reason,
+        status: item.status,
+        approved_by: item.approved_by,
+        approval_comments: item.approval_comments,
+        approval_date: item.approval_date,
+        created_at: item.created_at,
+        employee: {
+          first_name: item.employee_first_name,
+          last_name: item.employee_last_name,
+          employee_number: item.employee_number
+        },
+        leave_type: {
+          name: item.leave_type_name,
+          code: item.leave_type_code
+        }
+      }));
+
+      setSubordinateRequests(formattedRequests);
+    } catch (error) {
+      console.error('Error loading subordinate requests:', error);
     }
   };
 
@@ -368,6 +419,7 @@ export default function LeaveRequests() {
 
       showToast('Solicitud aprobada', 'success');
       await loadLeaveRequests();
+      await loadSubordinateRequests();
 
       if (formData.employee_id && formData.leave_type_id) {
         const selectedType = leaveTypes.find(t => t.id === formData.leave_type_id);
@@ -402,6 +454,7 @@ export default function LeaveRequests() {
 
       showToast('Solicitud rechazada', 'success');
       await loadLeaveRequests();
+      await loadSubordinateRequests();
 
       if (formData.employee_id && formData.leave_type_id) {
         const selectedType = leaveTypes.find(t => t.id === formData.leave_type_id);
@@ -427,6 +480,7 @@ export default function LeaveRequests() {
 
       showToast('Solicitud eliminada', 'success');
       await loadLeaveRequests();
+      await loadSubordinateRequests();
 
       if (formData.employee_id && formData.leave_type_id) {
         const selectedType = leaveTypes.find(t => t.id === formData.leave_type_id);
@@ -483,10 +537,14 @@ export default function LeaveRequests() {
     }
   };
 
-  const filteredRequests = requests.filter(req => {
+  const currentRequests = viewMode === 'my' ? requests : subordinateRequests;
+
+  const filteredRequests = currentRequests.filter(req => {
     if (filter === 'all') return true;
     return req.status === filter;
   });
+
+  const hasPendingSubordinates = subordinateRequests.filter(r => r.status === 'pending').length > 0;
 
   const employeeOptions = employees.map(emp => ({
     value: emp.id,
@@ -521,13 +579,41 @@ export default function LeaveRequests() {
         )}
       </div>
 
+      {subordinateRequests.length > 0 && (
+        <div className="mb-6 flex gap-2">
+          <button
+            onClick={() => setViewMode('my')}
+            className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
+              viewMode === 'my'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            Mis Solicitudes
+          </button>
+          <button
+            onClick={() => setViewMode('team')}
+            className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors relative ${
+              viewMode === 'team'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            Solicitudes de Mi Equipo
+            {hasPendingSubordinates && viewMode === 'my' && (
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+            )}
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-slate-600">Total</h3>
             <FileText className="w-5 h-5 text-slate-600" />
           </div>
-          <p className="text-3xl font-bold text-slate-900">{requests.length}</p>
+          <p className="text-3xl font-bold text-slate-900">{currentRequests.length}</p>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
@@ -536,7 +622,7 @@ export default function LeaveRequests() {
             <Clock className="w-5 h-5 text-amber-600" />
           </div>
           <p className="text-3xl font-bold text-slate-900">
-            {requests.filter(r => r.status === 'pending').length}
+            {currentRequests.filter(r => r.status === 'pending').length}
           </p>
         </div>
 
@@ -546,7 +632,7 @@ export default function LeaveRequests() {
             <CheckCircle className="w-5 h-5 text-green-600" />
           </div>
           <p className="text-3xl font-bold text-slate-900">
-            {requests.filter(r => r.status === 'approved').length}
+            {currentRequests.filter(r => r.status === 'approved').length}
           </p>
         </div>
 
@@ -556,14 +642,16 @@ export default function LeaveRequests() {
             <XCircle className="w-5 h-5 text-red-600" />
           </div>
           <p className="text-3xl font-bold text-slate-900">
-            {requests.filter(r => r.status === 'rejected').length}
+            {currentRequests.filter(r => r.status === 'rejected').length}
           </p>
         </div>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">Todas las Solicitudes</h2>
+          <h2 className="text-lg font-semibold text-slate-900">
+            {viewMode === 'my' ? 'Todas las Solicitudes' : 'Solicitudes de Subordinados'}
+          </h2>
           <div className="flex gap-2">
             {['all', 'pending', 'approved', 'rejected'].map(status => (
               <button

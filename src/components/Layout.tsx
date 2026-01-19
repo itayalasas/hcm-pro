@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import Logo, { LogoIcon } from './ui/Logo';
+import PendingApprovalsNotification from './ui/PendingApprovalsNotification';
 
 interface LayoutProps {
   children: ReactNode;
@@ -276,6 +277,8 @@ export default function Layout({ children }: LayoutProps) {
           {children}
         </main>
       </div>
+
+      <PendingApprovalsNotification />
     </div>
   );
 }

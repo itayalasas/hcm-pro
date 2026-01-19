@@ -78,6 +78,8 @@ export default function LeaveRequests() {
   const [calculatedDays, setCalculatedDays] = useState(0);
   const [calculatingDays, setCalculatingDays] = useState(false);
   const [currentUserEmployeeId, setCurrentUserEmployeeId] = useState<string | null>(null);
+  const [isManager, setIsManager] = useState(false);
+  const [checkingManager, setCheckingManager] = useState(true);
 
   const [formData, setFormData] = useState({
     employee_id: '',
@@ -104,8 +106,39 @@ export default function LeaveRequests() {
   useEffect(() => {
     if (selectedCompanyId && employee?.id) {
       loadSubordinateRequests();
+      checkIfManager();
     }
   }, [selectedCompanyId, employee?.id]);
+
+  const checkIfManager = async () => {
+    if (!employee?.id) {
+      setIsManager(false);
+      setCheckingManager(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('direct_manager_id', employee.id)
+        .eq('status', 'active')
+        .limit(1);
+
+      if (error) {
+        console.error('Error checking if manager:', error);
+        setIsManager(false);
+      } else {
+        setIsManager((data || []).length > 0);
+        console.log('Is manager:', (data || []).length > 0, 'Employee ID:', employee.id);
+      }
+    } catch (error) {
+      console.error('Error checking if manager:', error);
+      setIsManager(false);
+    } finally {
+      setCheckingManager(false);
+    }
+  };
 
   const loadCurrentUserEmployee = async () => {
     if (!user?.email) return;
@@ -571,10 +604,13 @@ export default function LeaveRequests() {
 
   console.log('Render state:', {
     viewMode,
+    isManager,
+    checkingManager,
     subordinateRequestsCount: subordinateRequests.length,
     requestsCount: requests.length,
     employeeId: employee?.id,
-    filteredRequestsCount: filteredRequests.length
+    filteredRequestsCount: filteredRequests.length,
+    currentRequestsCount: currentRequests.length
   });
 
   if (loading) {
@@ -600,7 +636,7 @@ export default function LeaveRequests() {
         )}
       </div>
 
-      {subordinateRequests.length > 0 && (
+      {isManager && (
         <div className="mb-6 flex gap-2">
           <button
             onClick={() => setViewMode('my')}
@@ -738,24 +774,38 @@ export default function LeaveRequests() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex gap-2">
-                        {request.status === 'pending' && (viewMode === 'team' || hasPermission('attendance', 'approve_team') || hasPermission('attendance', 'approve_all')) && (
-                          <>
-                            <button
-                              onClick={() => handleApprove(request.id)}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                              title="Aprobar"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleReject(request.id)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Rechazar"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
+                        {(() => {
+                          const isPending = request.status === 'pending';
+                          const canApprove = viewMode === 'team' || hasPermission('attendance', 'approve_team') || hasPermission('attendance', 'approve_all');
+                          const shouldShowButtons = isPending && canApprove;
+
+                          console.log(`Request ${request.id} (${request.employee?.first_name}):`, {
+                            status: request.status,
+                            isPending,
+                            viewMode,
+                            canApprove,
+                            shouldShowButtons
+                          });
+
+                          return shouldShowButtons ? (
+                            <>
+                              <button
+                                onClick={() => handleApprove(request.id)}
+                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                title="Aprobar"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleReject(request.id)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Rechazar"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            </>
+                          ) : null;
+                        })()}
                         {(hasPermission('attendance', 'delete') || request.employee_id === currentUserEmployeeId) && request.status === 'pending' && (
                           <button
                             onClick={() => {

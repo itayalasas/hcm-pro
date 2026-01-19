@@ -96,11 +96,16 @@ export default function LeaveRequests() {
   useEffect(() => {
     if (selectedCompanyId) {
       loadLeaveRequests();
-      loadSubordinateRequests();
       loadLeaveTypes();
       loadEmployees();
     }
   }, [selectedCompanyId, currentUserEmployeeId]);
+
+  useEffect(() => {
+    if (selectedCompanyId && employee?.id) {
+      loadSubordinateRequests();
+    }
+  }, [selectedCompanyId, employee?.id]);
 
   const loadCurrentUserEmployee = async () => {
     if (!user?.email) return;
@@ -186,11 +191,13 @@ export default function LeaveRequests() {
 
   const loadSubordinateRequests = async () => {
     if (!employee?.id) {
+      console.log('No employee ID available for loading subordinate requests');
       setSubordinateRequests([]);
       return;
     }
 
     try {
+      console.log('Loading subordinate requests for manager:', employee.id);
       const { data, error } = await supabase
         .rpc('get_subordinate_leave_requests', {
           p_manager_employee_id: employee.id,
@@ -201,6 +208,8 @@ export default function LeaveRequests() {
         console.error('Error loading subordinate requests:', error);
         return;
       }
+
+      console.log('Subordinate requests loaded:', data?.length || 0);
 
       const formattedRequests = (data || []).map((item: any) => ({
         id: item.id,
@@ -560,6 +569,14 @@ export default function LeaveRequests() {
     label: `${type.name} (${type.code})`
   }));
 
+  console.log('Render state:', {
+    viewMode,
+    subordinateRequestsCount: subordinateRequests.length,
+    requestsCount: requests.length,
+    employeeId: employee?.id,
+    filteredRequestsCount: filteredRequests.length
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -721,11 +738,7 @@ export default function LeaveRequests() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex gap-2">
-                        {request.status === 'pending' && (
-                          viewMode === 'team' ||
-                          hasPermission('attendance', 'approve_team') ||
-                          hasPermission('attendance', 'approve_all')
-                        ) && (
+                        {request.status === 'pending' && (viewMode === 'team' || hasPermission('attendance', 'approve_team') || hasPermission('attendance', 'approve_all')) && (
                           <>
                             <button
                               onClick={() => handleApprove(request.id)}

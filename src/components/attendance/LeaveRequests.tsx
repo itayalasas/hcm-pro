@@ -399,11 +399,13 @@ export default function LeaveRequests() {
 
   const handleApprove = async (requestId: string) => {
     try {
-      const approvalCheck = await canApproveLeaveRequest(requestId);
+      if (viewMode !== 'team') {
+        const approvalCheck = await canApproveLeaveRequest(requestId);
 
-      if (!approvalCheck.canApprove) {
-        showToast(approvalCheck.reason, 'error');
-        return;
+        if (!approvalCheck.canApprove) {
+          showToast(approvalCheck.reason, 'error');
+          return;
+        }
       }
 
       const { error } = await supabase
@@ -411,7 +413,7 @@ export default function LeaveRequests() {
         .update({
           status: 'approved',
           approval_date: new Date().toISOString(),
-          approved_by: user?.id
+          approved_by: employee?.id || user?.id
         })
         .eq('id', requestId);
 
@@ -434,11 +436,13 @@ export default function LeaveRequests() {
 
   const handleReject = async (requestId: string) => {
     try {
-      const approvalCheck = await canApproveLeaveRequest(requestId);
+      if (viewMode !== 'team') {
+        const approvalCheck = await canApproveLeaveRequest(requestId);
 
-      if (!approvalCheck.canApprove) {
-        showToast(approvalCheck.reason, 'error');
-        return;
+        if (!approvalCheck.canApprove) {
+          showToast(approvalCheck.reason, 'error');
+          return;
+        }
       }
 
       const { error } = await supabase
@@ -446,7 +450,7 @@ export default function LeaveRequests() {
         .update({
           status: 'rejected',
           approval_date: new Date().toISOString(),
-          approved_by: user?.id
+          approved_by: employee?.id || user?.id
         })
         .eq('id', requestId);
 
@@ -717,7 +721,11 @@ export default function LeaveRequests() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex gap-2">
-                        {request.status === 'pending' && (hasPermission('attendance', 'approve_team') || hasPermission('attendance', 'approve_all')) && (
+                        {request.status === 'pending' && (
+                          viewMode === 'team' ||
+                          hasPermission('attendance', 'approve_team') ||
+                          hasPermission('attendance', 'approve_all')
+                        ) && (
                           <>
                             <button
                               onClick={() => handleApprove(request.id)}
@@ -735,7 +743,7 @@ export default function LeaveRequests() {
                             </button>
                           </>
                         )}
-                        {(hasPermission('attendance', 'delete') || request.employee_id === currentUserEmployeeId) && (
+                        {(hasPermission('attendance', 'delete') || request.employee_id === currentUserEmployeeId) && request.status === 'pending' && (
                           <button
                             onClick={() => {
                               setRequestToDelete(request.id);
